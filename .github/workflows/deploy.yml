@@ -1,0 +1,62 @@
+name: Build and Deploy React (Password SSH)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        env:
+          CI: false
+        run: npm run build
+
+      # Ensure target dir exists and perms are OK (via SSH)
+      - name: Prepare remote directory
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            sudo mkdir -p /var/www/react-app
+            sudo chown -R $USER:www-data /var/www/react-app
+            sudo chmod -R 750 /var/www/react-app
+
+      # Upload build/ to the server using password auth
+      - name: Upload build to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "build/*"
+          target: "/var/www/react-app"
+          strip_components: 0
+          overwrite: true
+
+      # Reload Nginx (and optionally test config)
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            sudo nginx -t
+            sudo systemctl reload nginx
