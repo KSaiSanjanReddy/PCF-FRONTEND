@@ -1,64 +1,75 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import Layout from '../components/Layout';
-import Dashboard from '../pages/Dashboard';
-import VisitorManagement from '../pages/VisitorManagement';
-import SuiteManagement from '../pages/SuiteManagement';
-import Bookings from '../pages/Bookings';
-import HardwareManagement from '../pages/HardwareManagement';
-import DocumentsManagement from '../pages/DocumentsManagement';
-import Projects from '../pages/Projects';
-import Settings from '../pages/Settings';
-import Login from '../pages/auth/Login';
-import Signup from '../pages/auth/Signup';
-import ForgotPassword from '../pages/auth/ForgotPassword';
-import ResetPassword from '../pages/auth/ResetPassword';
-import MFAVerification from '../pages/auth/MFAVerification';
-import Users from '../pages/settings/Users';
-import UsersCreate from '../pages/settings/UsersCreate';
-import UsersEdit from '../pages/settings/UsersEdit';
-import Roles from '../pages/settings/Roles';
-import Department from '../pages/settings/Department';
-import RolesDepartments from '../pages/settings/RolesDepartments';
-import EmployeeId from '../pages/settings/EmployeeId';
-import Authorization from '../pages/settings/Authorization';
-import Accounts from '../pages/settings/Accounts';
-import HardwareType from '../pages/settings/HardwareType';
-import WhatsApp from '../pages/settings/WhatsApp';
-import SMS from '../pages/settings/SMS';
-import MessageTemplates from '../pages/settings/MessageTemplates';
-import AlertManagement from '../pages/settings/AlertManagement';
-import VdocipherSettings from '../pages/settings/VdocipherSettings';
-import WifiSettings from '../pages/settings/WifiSettings';
-import Reports from '../pages/settings/Reports';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import Layout from "../components/Layout";
+import Dashboard from "../pages/Dashboard";
+import VisitorManagement from "../pages/VisitorManagement";
+import SuiteManagement from "../pages/SuiteManagement";
+import Bookings from "../pages/Bookings";
+import HardwareManagement from "../pages/HardwareManagement";
+import DocumentsManagement from "../pages/DocumentsManagement";
+import Projects from "../pages/Projects";
+import Settings from "../pages/Settings";
+import Login from "../pages/auth/Login";
+import Signup from "../pages/auth/Signup";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
+import MFAVerification from "../pages/auth/MFAVerification";
+import Users from "../pages/settings/Users";
+import UsersCreate from "../pages/settings/UsersCreate";
+import UsersEdit from "../pages/settings/UsersEdit";
+import Roles from "../pages/settings/Roles";
+import Department from "../pages/settings/Department";
+import RolesDepartments from "../pages/settings/RolesDepartments";
+import EmployeeId from "../pages/settings/EmployeeId";
+import Authorization from "../pages/settings/Authorization";
+import Accounts from "../pages/settings/Accounts";
+import HardwareType from "../pages/settings/HardwareType";
+import WhatsApp from "../pages/settings/WhatsApp";
+import SMS from "../pages/settings/SMS";
+import MessageTemplates from "../pages/settings/MessageTemplates";
+import AlertManagement from "../pages/settings/AlertManagement";
+import VdocipherSettings from "../pages/settings/VdocipherSettings";
+import WifiSettings from "../pages/settings/WifiSettings";
+import Reports from "../pages/settings/Reports";
+import ProtectedRoute from "../components/ProtectedRoute";
+
+// New pages
+import PCFRequest from "../pages/PCFRequest";
+import ProductPortfolio from "../pages/ProductPortfolio";
+import AllProducts from "../pages/AllProducts";
+import ActiveProjects from "../pages/ActiveProjects";
+import ArchivedProjects from "../pages/ArchivedProjects";
+import ComponentsMaster from "../pages/ComponentsMaster";
+import DocumentMaster from "../pages/DocumentMaster";
+import TaskManagement from "../pages/TaskManagement";
+import ReportsMain from "../pages/Reports";
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Navigate to="/dashboard" replace />,
   },
   {
-    path: '/login',
+    path: "/login",
     element: <Login />,
   },
   {
-    path: '/signup',
+    path: "/signup",
     element: <Signup />,
   },
   {
-    path: '/forgot-password',
+    path: "/forgot-password",
     element: <ForgotPassword />,
   },
   {
-    path: '/reset-password',
+    path: "/reset-password",
     element: <ResetPassword />,
   },
   {
-    path: '/mfa-verification',
+    path: "/mfa-verification",
     element: <MFAVerification />,
   },
   {
-    path: '/',
+    path: "/",
     element: (
       <ProtectedRoute>
         <Layout />
@@ -66,103 +77,139 @@ export const router = createBrowserRouter([
     ),
     children: [
       {
-        path: 'dashboard',
+        path: "dashboard",
         element: <Dashboard />,
       },
       {
-        path: 'visitor-management',
-        element: <VisitorManagement />,
+        path: "pcf-request",
+        element: <PCFRequest />,
       },
       {
-        path: 'suite-management',
-        element: <SuiteManagement />,
+        path: "product-portfolio",
+        element: <ProductPortfolio />,
       },
       {
-        path: 'bookings',
-        element: <Bookings />,
+        path: "product-portfolio/all-products",
+        element: <AllProducts />,
       },
       {
-        path: 'hardware-management',
-        element: <HardwareManagement />,
-      },
-      {
-        path: 'documents-management',
-        element: <DocumentsManagement />,
-      },
-      {
-        path: 'projects',
+        path: "projects",
         element: <Projects />,
       },
       {
-        path: 'settings',
+        path: "projects/active",
+        element: <ActiveProjects />,
+      },
+      {
+        path: "projects/archived",
+        element: <ArchivedProjects />,
+      },
+      {
+        path: "components-master",
+        element: <ComponentsMaster />,
+      },
+      {
+        path: "document-master",
+        element: <DocumentMaster />,
+      },
+      {
+        path: "task-management",
+        element: <TaskManagement />,
+      },
+      {
+        path: "reports",
+        element: <ReportsMain />,
+      },
+      {
+        path: "visitor-management",
+        element: <VisitorManagement />,
+      },
+      {
+        path: "suite-management",
+        element: <SuiteManagement />,
+      },
+      {
+        path: "bookings",
+        element: <Bookings />,
+      },
+      {
+        path: "hardware-management",
+        element: <HardwareManagement />,
+      },
+      {
+        path: "documents-management",
+        element: <DocumentsManagement />,
+      },
+      {
+        path: "settings",
         element: <Settings />,
         children: [
           {
-            path: 'users',
+            path: "users",
             element: <Users />,
           },
           {
-            path: 'users/create',
+            path: "users/create",
             element: <UsersCreate />,
           },
           {
-            path: 'users/edit/:userId',
+            path: "users/edit/:userId",
             element: <UsersEdit />,
           },
           {
-            path: 'roles',
+            path: "roles",
             element: <Roles />,
           },
           {
-            path: 'department',
+            path: "department",
             element: <Department />,
           },
           {
-            path: 'roles-departments',
+            path: "roles-departments",
             element: <RolesDepartments />,
           },
           {
-            path: 'employee-id',
+            path: "employee-id",
             element: <EmployeeId />,
           },
           {
-            path: 'authorization',
+            path: "authorization",
             element: <Authorization />,
           },
           {
-            path: 'accounts',
+            path: "accounts",
             element: <Accounts />,
           },
           {
-            path: 'hardware-type',
+            path: "hardware-type",
             element: <HardwareType />,
           },
           {
-            path: 'whatsapp',
+            path: "whatsapp",
             element: <WhatsApp />,
           },
           {
-            path: 'sms',
+            path: "sms",
             element: <SMS />,
           },
           {
-            path: 'message-templates',
+            path: "message-templates",
             element: <MessageTemplates />,
           },
           {
-            path: 'alert-management',
+            path: "alert-management",
             element: <AlertManagement />,
           },
           {
-            path: 'vdocipher-settings',
+            path: "vdocipher-settings",
             element: <VdocipherSettings />,
           },
           {
-            path: 'wifi-settings',
+            path: "wifi-settings",
             element: <WifiSettings />,
           },
           {
-            path: 'reports',
+            path: "reports",
             element: <Reports />,
           },
         ],

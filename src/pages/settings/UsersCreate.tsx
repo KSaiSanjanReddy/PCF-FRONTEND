@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, User, Shield, Key, ChevronDown } from 'lucide-react';
-import authService from '../../lib/authService';
-import type { Department, Role, SignupRequest } from '../../types';
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, User, Shield, Key, ChevronDown } from "lucide-react";
+import authService from "../../lib/authService";
+import type { Department, Role, SignupRequest } from "../../types";
 
 const UsersCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -22,13 +22,13 @@ const UsersCreate: React.FC = () => {
     change_password_next_login: boolean;
     password_never_expires: boolean;
   }>({
-    user_name: '',
-    user_email: '',
-    user_phone_number: '',
-    user_role: '',
-    user_department: '',
-    user_password: '',
-    confirm_password: '',
+    user_name: "",
+    user_email: "",
+    user_phone_number: "",
+    user_role: "",
+    user_department: "",
+    user_password: "",
+    confirm_password: "",
     change_password_next_login: false,
     password_never_expires: false,
   });
@@ -51,20 +51,29 @@ const UsersCreate: React.FC = () => {
     };
   }, []);
 
-  function updateField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm(prev => ({ ...prev, [key]: value }));
+  function updateField<K extends keyof typeof form>(
+    key: K,
+    value: (typeof form)[K]
+  ) {
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
 
-    if (!form.user_name || !form.user_email || !form.user_role || !form.user_department || !form.user_password) {
-      alert('Please fill in all required fields.');
+    if (
+      !form.user_name ||
+      !form.user_email ||
+      !form.user_role ||
+      !form.user_department ||
+      !form.user_password
+    ) {
+      alert("Please fill in all required fields.");
       return;
     }
     if (form.user_password !== form.confirm_password) {
-      alert('Passwords do not match.');
+      alert("Passwords do not match.");
       return;
     }
 
@@ -83,18 +92,18 @@ const UsersCreate: React.FC = () => {
 
       const result = await authService.signup(payload);
       if (result.success) {
-        alert(result.message || 'User created successfully');
-        
+        alert(result.message || "User created successfully");
+
         // Trigger refresh of users list
-        localStorage.setItem('refreshUsers', 'true');
-        
-        navigate('/settings/users');
+        localStorage.setItem("refreshUsers", "true");
+
+        navigate("/settings/users");
       } else {
-        alert(result.message || 'Failed to create user');
+        alert(result.message || "Failed to create user");
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong');
+      alert("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -104,31 +113,46 @@ const UsersCreate: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Create New User</h2>
-          <p className="text-gray-600">Add a new user account to the VEW system</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            Create New User
+          </h2>
+          <p className="text-gray-600">
+            Add a new user account to the EnviGuide system
+          </p>
         </div>
-        <Link to="/settings/users" className="px-3 py-2 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 inline-flex items-center space-x-2">
+        <Link
+          to="/settings/users"
+          className="px-3 py-2 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 inline-flex items-center space-x-2"
+        >
           <ArrowLeft className="h-4 w-4" />
           <span>Back to Users</span>
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-lg shadow p-6 space-y-8">
+      <form
+        onSubmit={handleSubmit}
+        autoComplete="off"
+        className="bg-white rounded-lg shadow p-6 space-y-8"
+      >
         <section className="space-y-4">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center">
               <User className="h-5 w-5" />
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-gray-900">Basic Information</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900">
+              Basic Information
+            </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Username <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Username <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 value={form.user_name}
-                onChange={e => updateField('user_name', e.target.value)}
+                onChange={(e) => updateField("user_name", e.target.value)}
                 placeholder="Enter username"
                 autoComplete="off"
                 autoCorrect="off"
@@ -137,12 +161,14 @@ const UsersCreate: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Email Address <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Email Address <span className="text-red-500">*</span>
+              </label>
               <input
                 type="email"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 value={form.user_email}
-                onChange={e => updateField('user_email', e.target.value)}
+                onChange={(e) => updateField("user_email", e.target.value)}
                 placeholder="name@example.com"
                 name="user_email_field"
                 autoComplete="off"
@@ -152,45 +178,59 @@ const UsersCreate: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Mobile Number <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Mobile Number <span className="text-red-500">*</span>
+              </label>
               <input
                 type="tel"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 value={form.user_phone_number}
-                onChange={e => updateField('user_phone_number', e.target.value)}
+                onChange={(e) =>
+                  updateField("user_phone_number", e.target.value)
+                }
                 placeholder="Enter mobile number"
                 autoComplete="off"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Role <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Role <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <select
                   className="w-full h-10 border border-gray-300 rounded-md px-3 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
                   value={form.user_role}
-                  onChange={e => updateField('user_role', e.target.value)}
+                  onChange={(e) => updateField("user_role", e.target.value)}
                   required
                 >
                   <option value="">Select role</option>
-                  {roles.map(r => (
-                    <option key={r.role_id} value={r.role_name}>{r.role_name}</option>
+                  {roles.map((r) => (
+                    <option key={r.role_id} value={r.role_name}>
+                      {r.role_name}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Department <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Department <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <select
                   className="w-full h-10 border border-gray-300 rounded-md px-3 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
                   value={form.user_department}
-                  onChange={e => updateField('user_department', e.target.value)}
+                  onChange={(e) =>
+                    updateField("user_department", e.target.value)
+                  }
                   required
                 >
                   <option value="">Select department</option>
-                  {departments.map(d => (
-                    <option key={d.department_id} value={d.department_name}>{d.department_name}</option>
+                  {departments.map((d) => (
+                    <option key={d.department_id} value={d.department_name}>
+                      {d.department_name}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -204,16 +244,20 @@ const UsersCreate: React.FC = () => {
             <div className="h-10 w-10 rounded-full bg-green-200 text-green-700 flex items-center justify-center">
               <Shield className="h-5 w-5" />
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-gray-900">Security Settings</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900">
+              Security Settings
+            </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Password <span className="text-red-500">*</span>
+              </label>
               <input
                 type="password"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 value={form.user_password}
-                onChange={e => updateField('user_password', e.target.value)}
+                onChange={(e) => updateField("user_password", e.target.value)}
                 placeholder="Enter password"
                 name="new_password"
                 autoComplete="new-password"
@@ -221,12 +265,16 @@ const UsersCreate: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Confirm Password <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-gray-700 mb-1">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
               <input
                 type="password"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 value={form.confirm_password}
-                onChange={e => updateField('confirm_password', e.target.value)}
+                onChange={(e) =>
+                  updateField("confirm_password", e.target.value)
+                }
                 placeholder="Re-enter password"
                 name="confirm_password"
                 autoComplete="new-password"
@@ -241,7 +289,9 @@ const UsersCreate: React.FC = () => {
             <div className="h-10 w-10 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center">
               <Key className="h-5 w-5" />
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-gray-900">Password Options</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900">
+              Password Options
+            </h3>
           </div>
           <div className="space-y-3">
             <label className="flex items-center space-x-3">
@@ -250,7 +300,9 @@ const UsersCreate: React.FC = () => {
                 type="checkbox"
                 className="h-4 w-4"
                 checked={form.password_never_expires}
-                onChange={e => updateField('password_never_expires', e.target.checked)}
+                onChange={(e) =>
+                  updateField("password_never_expires", e.target.checked)
+                }
               />
               <span className="text-gray-700">Password Never Expires</span>
             </label>
@@ -260,15 +312,23 @@ const UsersCreate: React.FC = () => {
                 type="checkbox"
                 className="h-4 w-4"
                 checked={form.change_password_next_login}
-                onChange={e => updateField('change_password_next_login', e.target.checked)}
+                onChange={(e) =>
+                  updateField("change_password_next_login", e.target.checked)
+                }
               />
-              <span className="text-gray-700">Change Password at Next Login</span>
+              <span className="text-gray-700">
+                Change Password at Next Login
+              </span>
             </label>
           </div>
         </section>
 
         <div className="flex items-center justify-end space-x-3">
-          <button type="button" className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50" onClick={() => navigate('/settings/users')}>
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50"
+            onClick={() => navigate("/settings/users")}
+          >
             Cancel
           </button>
           <button
@@ -277,7 +337,7 @@ const UsersCreate: React.FC = () => {
             disabled={loading}
           >
             {loading ? (
-              'Creating...'
+              "Creating..."
             ) : (
               <>
                 <Plus className="h-4 w-4" />
@@ -292,5 +352,3 @@ const UsersCreate: React.FC = () => {
 };
 
 export default UsersCreate;
-
-

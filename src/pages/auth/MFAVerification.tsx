@@ -1,10 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { AlertCircle, CheckCircle, ArrowLeft, QrCode, Download, Copy, Check } from 'lucide-react';
-import QRCode from 'qrcode';
-import { useAuth } from '../../contexts/AuthContext';
-import LoadingSpinner from '../../components/LoadingSpinner';
-import Logo from '../../components/Logo';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  AlertCircle,
+  CheckCircle,
+  ArrowLeft,
+  QrCode,
+  Download,
+  Copy,
+  Check,
+} from "lucide-react";
+import QRCode from "qrcode";
+import { useAuth } from "../../contexts/AuthContext";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import Logo from "../../components/Logo";
 
 interface MFAData {
   success: boolean;
@@ -15,40 +23,45 @@ interface MFAData {
 }
 
 const MFAVerification: React.FC = () => {
-  const [mfaToken, setMfaToken] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [mfaToken, setMfaToken] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [mfaData, setMfaData] = useState<MFAData | null>(null);
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState("");
   const [showQR, setShowQR] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [generatedQRCode, setGeneratedQRCode] = useState<string>('');
+  const [generatedQRCode, setGeneratedQRCode] = useState<string>("");
   const [isSetupDone, setIsSetupDone] = useState<boolean>(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { verifyMFA } = useAuth();
 
   useEffect(() => {
-    console.log('MFA Verification - Location state:', location.state);
+    console.log("MFA Verification - Location state:", location.state);
     // Get MFA data and email from location state
     if (location.state?.mfaData && location.state?.email) {
-      console.log('MFA data received:', location.state.mfaData);
-      console.log('User email:', location.state.email);
+      console.log("MFA data received:", location.state.mfaData);
+      console.log("User email:", location.state.email);
       setMfaData(location.state.mfaData);
       setUserEmail(location.state.email);
 
       // Determine if setup is already done. If the backend didn't send a secret, assume done.
       const setupKey = `mfaSetupDone:${location.state.email}`;
-      const saved = localStorage.getItem(setupKey) === 'true';
+      const saved = localStorage.getItem(setupKey) === "true";
       const backendIndicatesDone = !location.state.mfaData.manualCode;
-      console.log('Setup status - saved:', saved, 'backend indicates done:', backendIndicatesDone);
+      console.log(
+        "Setup status - saved:",
+        saved,
+        "backend indicates done:",
+        backendIndicatesDone
+      );
       setIsSetupDone(saved || backendIndicatesDone);
     } else {
-      console.log('No MFA data found, redirecting to login');
+      console.log("No MFA data found, redirecting to login");
       // If no MFA data, redirect to login
-      navigate('/login');
+      navigate("/login");
     }
   }, [location.state, navigate]);
 
@@ -60,19 +73,23 @@ const MFAVerification: React.FC = () => {
   }, [mfaData?.manualCode, userEmail, isSetupDone]);
 
   const buildOtpAuthUri = (secret: string, email: string): string => {
-    const issuer = 'VeW';
+    const issuer = "EnviGuide";
     // Use a simpler label format that Google Authenticator prefers
     const label = `${issuer}:${email}`;
-    
+
     // Validate that the secret is base32-encoded
     const base32Regex = /^[A-Z2-7]+=*$/;
     if (!base32Regex.test(secret)) {
-      console.warn('Secret may not be properly base32-encoded:', secret);
+      console.warn("Secret may not be properly base32-encoded:", secret);
     }
-    
+
     // Build the URI with proper formatting
-    const uri = `otpauth://totp/${encodeURIComponent(label)}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-    
+    const uri = `otpauth://totp/${encodeURIComponent(
+      label
+    )}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(
+      issuer
+    )}&algorithm=SHA1&digits=6&period=30`;
+
     return uri;
   };
 
@@ -80,60 +97,60 @@ const MFAVerification: React.FC = () => {
     if (!mfaData?.manualCode || !userEmail) return;
     try {
       const otpauth = buildOtpAuthUri(mfaData.manualCode, userEmail);
-      
+
       // Validate the URI format
-      if (!otpauth.startsWith('otpauth://totp/')) {
-        console.error('Invalid otpauth URI format:', otpauth);
+      if (!otpauth.startsWith("otpauth://totp/")) {
+        console.error("Invalid otpauth URI format:", otpauth);
         return;
       }
-      
+
       const qrDataURL = await QRCode.toDataURL(otpauth, {
         margin: 1, // Reduced margin for better scanning
-        color: { dark: '#000000', light: '#FFFFFF' },
-        errorCorrectionLevel: 'H', // High error correction for better scanning
-        type: 'image/png'
+        color: { dark: "#000000", light: "#FFFFFF" },
+        errorCorrectionLevel: "H", // High error correction for better scanning
+        type: "image/png",
       });
-      
+
       setGeneratedQRCode(qrDataURL);
     } catch (err) {
-      console.error('Error generating QR code:', err);
+      console.error("Error generating QR code:", err);
     }
   };
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     setIsLoading(true);
 
     if (!mfaToken.trim()) {
-      setError('Please enter the MFA token');
+      setError("Please enter the MFA token");
       setIsLoading(false);
       return;
     }
 
     try {
       const result = await verifyMFA(userEmail, mfaToken);
-      console.log('MFA verification result:', result);
-      
+      console.log("MFA verification result:", result);
+
       if (result.success && result.user) {
         // Mark setup as done for this email so we don't show QR/manual code again
         const setupKey = `mfaSetupDone:${userEmail}`;
-        localStorage.setItem(setupKey, 'true');
+        localStorage.setItem(setupKey, "true");
         setIsSetupDone(true);
 
-        setSuccess('MFA verified successfully! Redirecting to dashboard...');
+        setSuccess("MFA verified successfully! Redirecting to dashboard...");
         setTimeout(() => {
-          navigate('/dashboard', { replace: true });
+          navigate("/dashboard", { replace: true });
         }, 1000);
       } else {
-        setError(result.message || 'MFA verification failed. Please try again.');
+        setError(
+          result.message || "MFA verification failed. Please try again."
+        );
       }
     } catch (error) {
-      console.error('MFA verification error:', error);
-      setError('An unexpected error occurred');
+      console.error("MFA verification error:", error);
+      setError("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +158,9 @@ const MFAVerification: React.FC = () => {
 
   const downloadQRCode = () => {
     if (generatedQRCode) {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = generatedQRCode;
-      link.download = 'mfa-qr-code.png';
+      link.download = "mfa-qr-code.png";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -157,11 +174,11 @@ const MFAVerification: React.FC = () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        const textArea = document.createElement('textarea');
+        const textArea = document.createElement("textarea");
         textArea.value = mfaData.manualCode;
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textArea);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -179,11 +196,14 @@ const MFAVerification: React.FC = () => {
     <div className="min-h-screen flex">
       {/* Left Panel - Dark Blue Background */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-800 flex-col items-center justify-center px-8">
-        <Logo className="mb-8" />
+        <Logo className="mb-8" variant="dark" />
         <div className="text-center text-white">
-          <h1 className="text-2xl font-bold mb-4">Welcome to the Employee Portal</h1>
+          <h1 className="text-2xl font-bold mb-4">
+            Welcome to EnviGuide Management Suite
+          </h1>
           <p className="text-slate-300 text-lg">
-            Manage your work, track progress, and collaborate with your team seamlessly.
+            Manage your work, track progress, and collaborate with your team
+            seamlessly.
           </p>
         </div>
       </div>
@@ -192,8 +212,12 @@ const MFAVerification: React.FC = () => {
       <div className="w-full lg:w-1/2 flex items-center justify-center px-8 py-12 bg-white">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">MFA Verification</h2>
-            <p className="text-gray-600">Enter the 6-digit code from your authenticator app</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              MFA Verification
+            </h2>
+            <p className="text-gray-600">
+              Enter the 6-digit code from your authenticator app
+            </p>
           </div>
 
           {error && (
@@ -227,8 +251,8 @@ const MFAVerification: React.FC = () => {
                   onClick={() => setShowQR(true)}
                   className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                     showQR
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   <QrCode className="inline w-4 h-4 mr-2" />
@@ -238,8 +262,8 @@ const MFAVerification: React.FC = () => {
                   onClick={() => setShowQR(false)}
                   className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                     !showQR
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   Manual Code
@@ -258,10 +282,12 @@ const MFAVerification: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600">
-                      Scan this QR code with Google Authenticator or any TOTP app
+                      Scan this QR code with Google Authenticator or any TOTP
+                      app
                     </p>
                     <p className="text-xs text-green-600 font-medium">
-                      ✓ Compatible with Google Authenticator, Authy, Microsoft Authenticator
+                      ✓ Compatible with Google Authenticator, Authy, Microsoft
+                      Authenticator
                     </p>
                     <div className="flex gap-2 justify-center">
                       <button
@@ -279,7 +305,6 @@ const MFAVerification: React.FC = () => {
                         Regenerate QR
                       </button> */}
                     </div>
-
                   </div>
                 </div>
               )}
@@ -287,9 +312,12 @@ const MFAVerification: React.FC = () => {
               {/* Manual Code Tab */}
               {!showQR && mfaData.manualCode && (
                 <div className="text-center">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Manual Setup Code</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Manual Setup Code
+                  </h3>
                   <p className="text-xs text-gray-600 mb-3">
-                    If you can't scan the QR code, use this manual code in your authenticator app:
+                    If you can't scan the QR code, use this manual code in your
+                    authenticator app:
                   </p>
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-3">
                     <div className="font-mono text-lg text-gray-800 break-all select-all">
@@ -313,11 +341,16 @@ const MFAVerification: React.FC = () => {
                     )}
                   </button>
                   <div className="mt-3 text-xs text-gray-600 space-y-1">
-                    <p><strong>Google Authenticator Setup:</strong></p>
+                    <p>
+                      <strong>Google Authenticator Setup:</strong>
+                    </p>
                     <p>1. Open Google Authenticator app</p>
                     <p>2. Tap the + button</p>
                     <p>3. Choose "Enter a setup key"</p>
-                    <p>4. Enter account name: <strong>VeW:{userEmail}</strong></p>
+                    <p>
+                      4. Enter account name:{" "}
+                      <strong>EnviGuide:{userEmail}</strong>
+                    </p>
                     <p>5. Enter the key above</p>
                     <p>6. Choose "Time based"</p>
                   </div>
@@ -329,7 +362,10 @@ const MFAVerification: React.FC = () => {
           {/* Verification */}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="mfaToken" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="mfaToken"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 MFA Token
               </label>
               <input
@@ -344,7 +380,7 @@ const MFAVerification: React.FC = () => {
                 placeholder="000000"
                 value={mfaToken}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
+                  const value = e.target.value.replace(/\D/g, "");
                   setMfaToken(value);
                 }}
                 disabled={isLoading}
@@ -362,14 +398,14 @@ const MFAVerification: React.FC = () => {
               {isLoading ? (
                 <LoadingSpinner size="sm" className="border-white" />
               ) : (
-                'Verify MFA'
+                "Verify MFA"
               )}
             </button>
           </form>
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate("/login")}
               className="inline-flex items-center text-blue-600 hover:text-blue-500"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -379,13 +415,18 @@ const MFAVerification: React.FC = () => {
 
           {/* Help Information */}
           <div className="mt-8 p-4 bg-gray-50 rounded-md">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Need Help?</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Need Help?
+            </h3>
             <ul className="text-xs text-gray-600 space-y-1">
               <li>• Make sure your device time is synchronized</li>
               <li>• Check that you're using the correct authenticator app</li>
               <li>• Ensure you're entering the current 6-digit code</li>
               <li>• The code refreshes every 30 seconds</li>
-              <li>• Popular apps: Google Authenticator, Authy, Microsoft Authenticator</li>
+              <li>
+                • Popular apps: Google Authenticator, Authy, Microsoft
+                Authenticator
+              </li>
               {/* <li>• <strong>Current Frontend URL:</strong> http://localhost:5174/</li>
               <li>• <strong>Backend URL:</strong> http://localhost:8000/</li> */}
             </ul>

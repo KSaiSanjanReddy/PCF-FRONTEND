@@ -1,8 +1,6 @@
-# Backend Integration Documentation
+# Backend Integration Guide
 
-## Overview
-
-This document describes the backend integration for the VeW (Viplaveditworks) frontend application, specifically for user authentication and management.
+This document describes the backend integration for the EnviGuide frontend application, specifically for user authentication and management.
 
 ## API Endpoints
 
