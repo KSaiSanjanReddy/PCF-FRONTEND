@@ -16,7 +16,7 @@ const Header: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            Welcome to Enviguide!
+            Welcome to VeW!
           </h2>
         </div>
 

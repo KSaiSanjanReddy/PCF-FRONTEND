@@ -1,13 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Users, Plus, Search, Filter, Edit, Trash2, RefreshCw, User, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import type { BackendUser } from '../../types';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import { useState, useEffect } from "react";
+import {
+  Users,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  RefreshCw,
+  X,
+  User,
+  ArrowLeft,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import authService from "../../lib/authService";
+import type { BackendUser } from "../../types";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<BackendUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<BackendUser[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BackendUser | null>(null);
@@ -15,35 +27,43 @@ const UsersPage: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
-    
+
     // Listen for refresh events from other components
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'refreshUsers' && e.newValue === 'true') {
-        localStorage.removeItem('refreshUsers');
+      if (e.key === "refreshUsers" && e.newValue === "true") {
+        localStorage.removeItem("refreshUsers");
         loadUsers();
       }
     };
 
     // Check for immediate refresh request
-    if (localStorage.getItem('refreshUsers') === 'true') {
-      localStorage.removeItem('refreshUsers');
+    if (localStorage.getItem("refreshUsers") === "true") {
+      localStorage.removeItem("refreshUsers");
       loadUsers();
     }
 
-    window.addEventListener('storage', handleStorageChange);
-    
+    // Listen for custom refresh events
+    const handleCustomRefresh = () => {
+      loadUsers();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("refreshUsers", handleCustomRefresh);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("refreshUsers", handleCustomRefresh);
     };
   }, []);
 
   useEffect(() => {
     // Filter users based on search term
-    const filtered = users.filter(user =>
-      user.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.user_role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.user_department?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = users.filter(
+      (user) =>
+        user.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.user_role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.user_department?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(filtered);
   }, [searchTerm, users]);
@@ -51,12 +71,16 @@ const UsersPage: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/user/getAll?pageNumber=1&pageSize=100`);
-      
+      console.log("Loading users from API...");
+      const response = await fetch(
+        `https://enviguide.nextechltd.in/api/user/getAll?pageNumber=1&pageSize=100`
+      );
+      console.log("Users API response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Users API response:', data);
-        
+        console.log("Users API response:", data);
+
         if (data.status && data.data && data.data.userList) {
           // Backend returns { status: true, data: { totalCount: "7", userList: [...] } }
           setUsers(data.data.userList);
@@ -65,15 +89,19 @@ const UsersPage: React.FC = () => {
         } else if (data.data && Array.isArray(data.data)) {
           setUsers(data.data);
         } else {
-          console.warn('Unexpected users response format:', data);
+          console.warn("Unexpected users response format:", data);
           setUsers([]);
         }
       } else {
-        console.error('Failed to fetch users:', response.status, response.statusText);
+        console.error(
+          "Failed to fetch users:",
+          response.status,
+          response.statusText
+        );
         setUsers([]);
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error("Error loading users:", error);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -87,27 +115,34 @@ const UsersPage: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this user? This action cannot be undone."
+      )
+    ) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/user/delete/${userId}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `https://enviguide.nextechltd.in/api/user/delete/${userId}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
           if (data.status) {
             // Remove user from local state
-            setUsers(prev => prev.filter(user => user.user_id !== userId));
-            alert('User deleted successfully!');
+            setUsers((prev) => prev.filter((user) => user.user_id !== userId));
+            alert("User deleted successfully!");
           } else {
-            alert('Failed to delete user: ' + data.message);
+            alert("Failed to delete user: " + data.message);
           }
         } else {
-          alert('Failed to delete user');
+          alert("Failed to delete user");
         }
       } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user');
+        console.error("Error deleting user:", error);
+        alert("Error deleting user");
       }
     }
   };
@@ -128,7 +163,9 @@ const UsersPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Users</h2>
-            <p className="text-gray-600">Manage system users and their permissions</p>
+            <p className="text-gray-600">
+              Manage system users and their permissions
+            </p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-12">
@@ -146,7 +183,9 @@ const UsersPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Users</h2>
-          <p className="text-gray-600">Manage system users and their permissions</p>
+          <p className="text-gray-600">
+            Manage system users and their permissions
+          </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -154,10 +193,15 @@ const UsersPage: React.FC = () => {
             disabled={refreshing}
             className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
             <span>Refresh</span>
           </button>
-          <Link to="/settings/users/create" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2">
+          <Link
+            to="/settings/users/create"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+          >
             <Plus className="h-4 w-4" />
             <span>Add User</span>
           </Link>
@@ -184,7 +228,7 @@ const UsersPage: React.FC = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             {filteredUsers.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200">
@@ -212,19 +256,28 @@ const UsersPage: React.FC = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((user) => (
-                    <tr key={user.user_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openUserDetails(user)}>
+                    <tr
+                      key={user.user_id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => openUserDetails(user)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                               <span className="text-sm font-medium text-gray-700">
-                                {user.user_name?.charAt(0)?.toUpperCase() || 'U'}
+                                {user.user_name?.charAt(0)?.toUpperCase() ||
+                                  "U"}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
-                            <div className="text-sm text-gray-500">{user.user_email}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.user_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {user.user_email}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -234,7 +287,7 @@ const UsersPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.user_department || 'N/A'}
+                        {user.user_department || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.user_phone_number}
@@ -245,7 +298,10 @@ const UsersPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex items-center justify-end space-x-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Link
                             to={`/settings/users/edit/${user.user_id}`}
                             className="text-indigo-600 hover:text-indigo-900 p-2 rounded-md hover:bg-indigo-50"
@@ -270,10 +326,14 @@ const UsersPage: React.FC = () => {
               <div className="p-6">
                 <div className="text-center text-gray-500">
                   <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>{searchTerm ? 'No users found matching your search.' : 'No users found.'}</p>
+                  <p>
+                    {searchTerm
+                      ? "No users found matching your search."
+                      : "No users found."}
+                  </p>
                   {searchTerm && (
                     <button
-                      onClick={() => setSearchTerm('')}
+                      onClick={() => setSearchTerm("")}
                       className="mt-2 text-blue-600 hover:text-blue-500"
                     >
                       Clear search
@@ -306,8 +366,12 @@ const UsersPage: React.FC = () => {
                 <User className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">User Details</h2>
-                <p className="text-gray-600">View user information and permissions</p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  User Details
+                </h2>
+                <p className="text-gray-600">
+                  View user information and permissions
+                </p>
               </div>
             </div>
           </div>
@@ -321,7 +385,7 @@ const UsersPage: React.FC = () => {
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900 cursor-not-allowed"
-                  value={selectedUser?.user_name || ''}
+                  value={selectedUser?.user_name || ""}
                   disabled
                 />
               </div>
@@ -333,7 +397,7 @@ const UsersPage: React.FC = () => {
                 <input
                   type="email"
                   className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900 cursor-not-allowed"
-                  value={selectedUser?.user_email || ''}
+                  value={selectedUser?.user_email || ""}
                   disabled
                 />
               </div>
@@ -345,7 +409,7 @@ const UsersPage: React.FC = () => {
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900 cursor-not-allowed"
-                  value={selectedUser?.user_role || ''}
+                  value={selectedUser?.user_role || ""}
                   disabled
                 />
               </div>
@@ -357,7 +421,7 @@ const UsersPage: React.FC = () => {
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900 cursor-not-allowed"
-                  value={selectedUser?.user_department || 'N/A'}
+                  value={selectedUser?.user_department || "N/A"}
                   disabled
                 />
               </div>
@@ -369,7 +433,7 @@ const UsersPage: React.FC = () => {
                 <input
                   type="tel"
                   className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900 cursor-not-allowed"
-                  value={selectedUser?.user_phone_number || ''}
+                  value={selectedUser?.user_phone_number || ""}
                   disabled
                 />
               </div>

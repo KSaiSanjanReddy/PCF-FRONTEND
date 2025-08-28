@@ -99,6 +99,8 @@ const Signup: React.FC = () => {
         
         // Trigger refresh of users list if we're in the admin context
         localStorage.setItem('refreshUsers', 'true');
+        // Also dispatch a custom event for immediate refresh
+        window.dispatchEvent(new CustomEvent('refreshUsers'));
         
         // Redirect to login after a short delay
         setTimeout(() => {

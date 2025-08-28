@@ -9,11 +9,13 @@ const Logo: React.FC<LogoProps> = ({ className = '' }) => {
     <div className={`flex flex-col items-center ${className}`}>
       {/* VΞW Logo */}
       <div className="text-4xl font-bold text-white mb-2">
-        <span className="text-white">Enviguide</span>
+        <span className="text-white">V</span>
+        <span className="text-white">Ξ</span>
+        <span className="text-white">W</span>
       </div>
       {/* Company Name */}
       <div className="text-white text-lg font-medium">
-        Envguide Works
+        VIPLAV EDIT WORKS
       </div>
     </div>
   );

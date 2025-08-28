@@ -25,14 +25,17 @@ const MFAVerification: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [generatedQRCode, setGeneratedQRCode] = useState<string>('');
   const [isSetupDone, setIsSetupDone] = useState<boolean>(false);
-
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { verifyMFA } = useAuth();
 
   useEffect(() => {
+    console.log('MFA Verification - Location state:', location.state);
     // Get MFA data and email from location state
     if (location.state?.mfaData && location.state?.email) {
+      console.log('MFA data received:', location.state.mfaData);
+      console.log('User email:', location.state.email);
       setMfaData(location.state.mfaData);
       setUserEmail(location.state.email);
 
@@ -40,8 +43,10 @@ const MFAVerification: React.FC = () => {
       const setupKey = `mfaSetupDone:${location.state.email}`;
       const saved = localStorage.getItem(setupKey) === 'true';
       const backendIndicatesDone = !location.state.mfaData.manualCode;
+      console.log('Setup status - saved:', saved, 'backend indicates done:', backendIndicatesDone);
       setIsSetupDone(saved || backendIndicatesDone);
     } else {
+      console.log('No MFA data found, redirecting to login');
       // If no MFA data, redirect to login
       navigate('/login');
     }
@@ -55,19 +60,19 @@ const MFAVerification: React.FC = () => {
   }, [mfaData?.manualCode, userEmail, isSetupDone]);
 
   const buildOtpAuthUri = (secret: string, email: string): string => {
-    const issuer = 'Enviguide';
+    const issuer = 'VeW';
     // Use a simpler label format that Google Authenticator prefers
     const label = `${issuer}:${email}`;
-
+    
     // Validate that the secret is base32-encoded
     const base32Regex = /^[A-Z2-7]+=*$/;
     if (!base32Regex.test(secret)) {
       console.warn('Secret may not be properly base32-encoded:', secret);
     }
-
+    
     // Build the URI with proper formatting
     const uri = `otpauth://totp/${encodeURIComponent(label)}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-
+    
     return uri;
   };
 
@@ -75,21 +80,20 @@ const MFAVerification: React.FC = () => {
     if (!mfaData?.manualCode || !userEmail) return;
     try {
       const otpauth = buildOtpAuthUri(mfaData.manualCode, userEmail);
-
+      
       // Validate the URI format
       if (!otpauth.startsWith('otpauth://totp/')) {
         console.error('Invalid otpauth URI format:', otpauth);
         return;
       }
-
+      
       const qrDataURL = await QRCode.toDataURL(otpauth, {
-        width: 256,
-        margin: 1,
+        margin: 1, // Reduced margin for better scanning
         color: { dark: '#000000', light: '#FFFFFF' },
-        errorCorrectionLevel: 'H',
+        errorCorrectionLevel: 'H', // High error correction for better scanning
         type: 'image/png'
       });
-
+      
       setGeneratedQRCode(qrDataURL);
     } catch (err) {
       console.error('Error generating QR code:', err);
@@ -113,7 +117,7 @@ const MFAVerification: React.FC = () => {
     try {
       const result = await verifyMFA(userEmail, mfaToken);
       console.log('MFA verification result:', result);
-
+      
       if (result.success && result.user) {
         // Mark setup as done for this email so we don't show QR/manual code again
         const setupKey = `mfaSetupDone:${userEmail}`;
@@ -221,20 +225,22 @@ const MFAVerification: React.FC = () => {
               <div className="flex border-b border-gray-200 mb-4">
                 <button
                   onClick={() => setShowQR(true)}
-                  className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${showQR
+                  className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+                    showQR
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
+                  }`}
                 >
                   <QrCode className="inline w-4 h-4 mr-2" />
                   QR Code
                 </button>
                 <button
                   onClick={() => setShowQR(false)}
-                  className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${!showQR
+                  className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+                    !showQR
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
+                  }`}
                 >
                   Manual Code
                 </button>
@@ -311,7 +317,7 @@ const MFAVerification: React.FC = () => {
                     <p>1. Open Google Authenticator app</p>
                     <p>2. Tap the + button</p>
                     <p>3. Choose "Enter a setup key"</p>
-                    <p>4. Enter account name: <strong>Enviguide:{userEmail}</strong></p>
+                    <p>4. Enter account name: <strong>VeW:{userEmail}</strong></p>
                     <p>5. Enter the key above</p>
                     <p>6. Choose "Time based"</p>
                   </div>

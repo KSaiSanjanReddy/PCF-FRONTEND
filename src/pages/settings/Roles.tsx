@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Search, Filter, Edit, Trash2, RefreshCw, X } from 'lucide-react';
+import { Shield, Plus, Search, Filter, Edit, Trash2, RefreshCw, Eye, X } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 interface Role {
@@ -181,10 +181,10 @@ const RolesPage: React.FC = () => {
     setShowViewModal(true);
   };
 
-  // const resetForm = () => {
-  //   setFormData({ role_name: '', description: '', role_code: '' });
-  //   setSelectedRole(null);
-  // };
+  const resetForm = () => {
+    setFormData({ role_name: '', description: '', role_code: '' });
+    setSelectedRole(null);
+  };
 
   if (loading) {
     return (

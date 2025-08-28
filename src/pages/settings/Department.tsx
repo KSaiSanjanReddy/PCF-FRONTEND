@@ -181,10 +181,10 @@ const DepartmentPage: React.FC = () => {
     setShowViewModal(true);
   };
 
-  // const resetForm = () => {
-  //   setFormData({ department_name: '', description: '', department_code: '' });
-  //   setSelectedDepartment(null);
-  // };
+  const resetForm = () => {
+    setFormData({ department_name: '', description: '', department_code: '' });
+    setSelectedDepartment(null);
+  };
 
   if (loading) {
     return (

@@ -33,9 +33,11 @@ const Login: React.FC = () => {
 
     try {
       const result = await login(formData.email, formData.password);
+      console.log('Login result:', result);
       
       if (result.success) {
         if (result.requiresMFA && result.mfaData) {
+          console.log('MFA required, redirecting to MFA verification with data:', result.mfaData);
           // Redirect to MFA verification page
           navigate('/mfa-verification', { 
             state: { 
@@ -44,11 +46,13 @@ const Login: React.FC = () => {
             } 
           });
         } else {
+          console.log('Login successful, redirecting to dashboard');
           // Login successful, redirect will happen automatically via useEffect
           const from = (location.state as any)?.from?.pathname || '/dashboard';
           navigate(from, { replace: true });
         }
       } else {
+        console.log('Login failed:', result.message);
         setError(result.message);
       }
     } catch (error) {

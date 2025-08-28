@@ -105,7 +105,7 @@ const UsersCreate: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Create New User</h2>
-          <p className="text-gray-600">Add a new user account to the Enviguide system</p>
+          <p className="text-gray-600">Add a new user account to the VEW system</p>
         </div>
         <Link to="/settings/users" className="px-3 py-2 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 inline-flex items-center space-x-2">
           <ArrowLeft className="h-4 w-4" />

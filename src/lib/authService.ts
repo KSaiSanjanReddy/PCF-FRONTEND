@@ -1,19 +1,23 @@
-import type { ApiResponse, Department, LoginRequest, Role, SignupRequest, User } from "../types";
+import type {
+  ApiResponse,
+  Department,
+  LoginRequest,
+  Role,
+  SignupRequest,
+  User,
+} from "../types";
 
-const API_BASE_URL = 'https://enviguide.nextechltd.in';
-
-
+// const API_BASE_URL = 'https://localhost:8000';
+const API_BASE_URL = "https://enviguide.nextechltd.in";
 
 // MFA Response interface
-// interface MFAResponse {
-//   success: boolean;
-//   message: string;
-//   qrCode?: string;
-//   manualCode?: string;
-//   localIP?: string;
-// }
-
-
+interface MFAResponse {
+  success: boolean;
+  message: string;
+  qrCode?: string;
+  manualCode?: string;
+  localIP?: string;
+}
 
 // MFA Verification Response
 interface MFAVerificationResponse {
@@ -32,14 +36,15 @@ interface MFAVerificationResponse {
 }
 
 class AuthService {
-  private token: string | null = localStorage.getItem('token');
+  private token: string | null = localStorage.getItem("token");
   private user: User | null = null;
 
   constructor() {
+    // Try to restore user from localStorage
     const savedUser = localStorage.getItem("user");
     if (savedUser && this.token) {
       try {
-        this.user = JSON.parse(savedUser) as User;
+        this.user = JSON.parse(savedUser);
       } catch (error) {
         console.error("Error parsing saved user:", error);
         this.logout();
@@ -63,33 +68,55 @@ class AuthService {
   }
 
   // Login user
-  async login(credentials: LoginRequest): Promise<{ success: boolean; user?: User; message: string; requiresMFA?: boolean; mfaData?: any }> {
+  async login(
+    credentials: LoginRequest
+  ): Promise<{
+    success: boolean;
+    user?: User;
+    message: string;
+    requiresMFA?: boolean;
+    mfaData?: any;
+  }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
+      console.log("Login response:", data);
+      console.log("Response status:", response.status);
+      console.log("Data structure:", JSON.stringify(data, null, 2));
 
-      if (data.status && data.data) {
-        // Check if MFA is required
+      // Handle different response formats
+      if (data.success && data.manualCode) {
+        // Handle direct MFA response format (your current backend response)
+        console.log("Direct MFA response detected:", data);
+        return {
+          success: true,
+          requiresMFA: true,
+          mfaData: data,
+          message: data.message,
+        };
+      } else if (data.status && data.data) {
+        // Check if MFA is required in nested format
+        console.log("Checking MFA requirement:", data.data.requiresMFA);
         if (data.data.requiresMFA) {
-          return { 
-            success: true, 
-            requiresMFA: true, 
+          console.log("MFA required, returning MFA data:", data.data);
+          return {
+            success: true,
+            requiresMFA: true,
             mfaData: data.data,
-            message: data.message 
+            message: data.message,
           };
         }
-        
-        // Backend returns { status: true, message: "...", code: 200, data: {...} }
+
+        // Regular login success
         const userData = data.data;
-        
+
         // Create user object
         const user: User = {
           id: userData.user_email, // Use email as primary ID
@@ -105,35 +132,37 @@ class AuthService {
         };
 
         // Store token and user data
-    if (userData.token && typeof userData.token === "string") {
+        if (userData.token && typeof userData.token === "string") {
           this.token = userData.token;
           this.user = user;
-          // localStorage.setItem("token", this.token);
-          localStorage.setItem("token", this.token as string);
+          localStorage.setItem("token", this.token || "");
           localStorage.setItem("user", JSON.stringify(this.user));
         }
 
-        return { 
-          success: true, 
+        return {
+          success: true,
           user: user,
-          message: data.message 
+          message: data.message,
         };
       } else {
-        return { success: false, message: data.message || 'Login failed' };
+        return { success: false, message: data.message || "Login failed" };
       }
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Login error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Verify MFA
-  async verifyMFA(email: string, mfaToken: string): Promise<{ success: boolean; user?: User; message: string }> {
+  async verifyMFA(
+    email: string,
+    mfaToken: string
+  ): Promise<{ success: boolean; user?: User; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/verify`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ user_email: email, token: mfaToken }),
       });
@@ -150,28 +179,33 @@ class AuthService {
           department: data.data.user_department,
           phoneNumber: data.data.user_phone_number,
         };
-        
+
         // Save to localStorage
-        localStorage.setItem('token', this.token);
-        localStorage.setItem('user', JSON.stringify(this.user));
-        
+        localStorage.setItem("token", this.token);
+        localStorage.setItem("user", JSON.stringify(this.user));
+
         return { success: true, user: this.user, message: data.message };
       } else {
-        return { success: false, message: data.message || 'MFA verification failed' };
+        return {
+          success: false,
+          message: data.message || "MFA verification failed",
+        };
       }
     } catch (error) {
-      console.error('MFA verification error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("MFA verification error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Signup user
-  async signup(userData: SignupRequest): Promise<{ success: boolean; message: string }> {
+  async signup(
+    userData: SignupRequest
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/create`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(userData),
       });
@@ -182,21 +216,23 @@ class AuthService {
       if (data.status || data.success) {
         return { success: true, message: data.message };
       } else {
-        return { success: false, message: data.message || 'Signup failed' };
+        return { success: false, message: data.message || "Signup failed" };
       }
     } catch (error) {
-      console.error('Signup error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Signup error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Forgot password
-  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+  async forgotPassword(
+    email: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/forgot/password`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ user_email: email }),
       });
@@ -206,25 +242,31 @@ class AuthService {
       if (data.success) {
         return { success: true, message: data.message };
       } else {
-        return { success: false, message: data.message || 'Failed to send reset email' };
+        return {
+          success: false,
+          message: data.message || "Failed to send reset email",
+        };
       }
     } catch (error) {
-      console.error('Forgot password error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Forgot password error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Reset password
-  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/reset/password`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          token: token, 
-          user_password: newPassword 
+        body: JSON.stringify({
+          token: token,
+          user_password: newPassword,
         }),
       });
 
@@ -233,29 +275,39 @@ class AuthService {
       if (data.success) {
         return { success: true, message: data.message };
       } else {
-        return { success: false, message: data.message || 'Failed to reset password' };
+        return {
+          success: false,
+          message: data.message || "Failed to reset password",
+        };
       }
     } catch (error) {
-      console.error('Reset password error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Reset password error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Get departments for signup form
   async getDepartments(): Promise<Department[]> {
     try {
-      console.log('Fetching departments from:', `${API_BASE_URL}/api/department/get`);
+      console.log(
+        "Fetching departments from:",
+        `${API_BASE_URL}/api/department/get`
+      );
       const response = await fetch(`${API_BASE_URL}/api/department/get`);
-      console.log('Department response status:', response.status);
-      
+      console.log("Department response status:", response.status);
+
       if (!response.ok) {
-        console.error('Department API error:', response.status, response.statusText);
+        console.error(
+          "Department API error:",
+          response.status,
+          response.statusText
+        );
         return [];
       }
-      
+
       const data = await response.json();
-      console.log('Department API response:', data);
-      
+      console.log("Department API response:", data);
+
       // Handle different response formats
       if (data.success && data.data) {
         return data.data;
@@ -266,11 +318,11 @@ class AuthService {
       } else if (data.departments && Array.isArray(data.departments)) {
         return data.departments;
       }
-      
-      console.warn('Unexpected department response format:', data);
+
+      console.warn("Unexpected department response format:", data);
       return [];
     } catch (error) {
-      console.error('Error fetching departments:', error);
+      console.error("Error fetching departments:", error);
       return [];
     }
   }
@@ -278,18 +330,18 @@ class AuthService {
   // Get roles for signup form
   async getRoles(): Promise<Role[]> {
     try {
-      console.log('Fetching roles from:', `${API_BASE_URL}/api/roles/get`);
+      console.log("Fetching roles from:", `${API_BASE_URL}/api/roles/get`);
       const response = await fetch(`${API_BASE_URL}/api/roles/get`);
-      console.log('Roles response status:', response.status);
-      
+      console.log("Roles response status:", response.status);
+
       if (!response.ok) {
-        console.error('Roles API error:', response.status, response.statusText);
+        console.error("Roles API error:", response.status, response.statusText);
         return [];
       }
-      
+
       const data = await response.json();
-      console.log('Roles API response:', data);
-      
+      console.log("Roles API response:", data);
+
       // Handle different response formats
       if (data.success && data.data) {
         return data.data;
@@ -300,80 +352,114 @@ class AuthService {
       } else if (data.roles && Array.isArray(data.roles)) {
         return data.roles;
       }
-      
-      console.warn('Unexpected roles response format:', data);
+
+      console.warn("Unexpected roles response format:", data);
       return [];
     } catch (error) {
-      console.error('Error fetching roles:', error);
+      console.error("Error fetching roles:", error);
       return [];
     }
   }
 
   // Create a new role
-  async createRole(payload: { role_name: string; role_code?: string; description?: string }): Promise<{ success: boolean; message: string }> {
+  async createRole(payload: {
+    role_name: string;
+    role_code?: string;
+    description?: string;
+  }): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/create/role`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data: ApiResponse = await response.json();
       const success = (data as any).success ?? (data as any).status ?? false;
-      return { success: !!success, message: data.message || (success ? 'Role created' : 'Failed to create role') };
+      return {
+        success: !!success,
+        message:
+          data.message || (success ? "Role created" : "Failed to create role"),
+      };
     } catch (error) {
-      console.error('Create role error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Create role error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Create a new department
-  async createDepartment(payload: { department_name: string; department_code?: string; description?: string }): Promise<{ success: boolean; message: string }> {
+  async createDepartment(payload: {
+    department_name: string;
+    department_code?: string;
+    description?: string;
+  }): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/create/department`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data: ApiResponse = await response.json();
       const success = (data as any).success ?? (data as any).status ?? false;
-      return { success: !!success, message: data.message || (success ? 'Department created' : 'Failed to create department') };
+      return {
+        success: !!success,
+        message:
+          data.message ||
+          (success ? "Department created" : "Failed to create department"),
+      };
     } catch (error) {
-      console.error('Create department error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Create department error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Update an existing role
-  async updateRole(payload: { role_id: string; role_name: string; description?: string }): Promise<{ success: boolean; message: string }> {
+  async updateRole(payload: {
+    role_id: string;
+    role_name: string;
+    description?: string;
+  }): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/update-role`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data: ApiResponse = await response.json();
       const success = (data as any).success ?? (data as any).status ?? false;
-      return { success: !!success, message: data.message || (success ? 'Role updated' : 'Failed to update role') };
+      return {
+        success: !!success,
+        message:
+          data.message || (success ? "Role updated" : "Failed to update role"),
+      };
     } catch (error) {
-      console.error('Update role error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Update role error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
   // Update an existing department
-  async updateDepartment(payload: { department_id: string; department_name: string; description?: string }): Promise<{ success: boolean; message: string }> {
+  async updateDepartment(payload: {
+    department_id: string;
+    department_name: string;
+    description?: string;
+  }): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/update-department`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data: ApiResponse = await response.json();
       const success = (data as any).success ?? (data as any).status ?? false;
-      return { success: !!success, message: data.message || (success ? 'Department updated' : 'Failed to update department') };
+      return {
+        success: !!success,
+        message:
+          data.message ||
+          (success ? "Department updated" : "Failed to update department"),
+      };
     } catch (error) {
-      console.error('Update department error:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Update department error:", error);
+      return { success: false, message: "Network error occurred" };
     }
   }
 
@@ -381,14 +467,14 @@ class AuthService {
   logout(): void {
     this.token = null;
     this.user = null;
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   }
 
   // Update user data
   updateUserData(user: User): void {
     this.user = user;
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem("user", JSON.stringify(user));
   }
 }
 

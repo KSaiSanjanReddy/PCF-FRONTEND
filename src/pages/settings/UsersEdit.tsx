@@ -183,8 +183,7 @@ const UsersEdit: React.FC = () => {
               <User className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Edit User {user?.user_name ? `- ${user.user_name}` : ''}</h2>
-              {/* <h2 className="text-xl font-semibold text-gray-900">Edit User</h2> */}
+              <h2 className="text-xl font-semibold text-gray-900">Edit User</h2>
               <p className="text-gray-600">Update user information and permissions</p>
             </div>
           </div>

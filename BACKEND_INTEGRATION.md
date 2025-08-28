@@ -1,11 +1,13 @@
 # Backend Integration Documentation
 
 ## Overview
-This document describes the backend integration for the Enviguide frontend application, specifically for user authentication and management.
+
+This document describes the backend integration for the VeW (Viplaveditworks) frontend application, specifically for user authentication and management.
 
 ## API Endpoints
 
 ### Base URL
+
 ```
 https://enviguide.nextechltd.in
 ```
@@ -13,6 +15,7 @@ https://enviguide.nextechltd.in
 ### Authentication Endpoints
 
 #### 1. User Login
+
 - **URL**: `/api/user/login`
 - **Method**: `POST`
 - **Request Body**:
@@ -35,6 +38,7 @@ https://enviguide.nextechltd.in
   ```
 
 #### 2. MFA Verification
+
 - **URL**: `/api/user/verify`
 - **Method**: `POST`
 - **Request Body**:
@@ -63,6 +67,7 @@ https://enviguide.nextechltd.in
   ```
 
 #### 3. User Registration
+
 - **URL**: `/api/user/create`
 - **Method**: `POST`
 - **Request Body**:
@@ -79,7 +84,7 @@ https://enviguide.nextechltd.in
     "user_password": "SecurePassword123!"
   }
   ```
-- **Response**: 
+- **Response**:
   ```json
   {
     "status": true,
@@ -90,6 +95,7 @@ https://enviguide.nextechltd.in
   ```
 
 #### 4. Forgot Password
+
 - **URL**: `/api/user/forgot/password`
 - **Method**: `POST`
 - **Request Body**:
@@ -100,6 +106,7 @@ https://enviguide.nextechltd.in
   ```
 
 #### 5. Reset Password
+
 - **URL**: `/api/user/reset/password`
 - **Method**: `POST`
 - **Request Body**:
@@ -113,6 +120,7 @@ https://enviguide.nextechltd.in
 ## Frontend Implementation
 
 ### Components
+
 1. **Login.tsx** - User login form with MFA detection
 2. **Signup.tsx** - User registration form with all required fields
 3. **ForgotPassword.tsx** - Password reset request form
@@ -120,10 +128,12 @@ https://enviguide.nextechltd.in
 5. **MFAVerification.tsx** - MFA token verification form
 
 ### Services
+
 - **authService.ts** - Handles all API calls, authentication logic, and MFA flow
 - **AuthContext.tsx** - React context for managing authentication state
 
 ### Routes
+
 - `/login` - Login page
 - `/signup` - Registration page
 - `/forgot-password` - Forgot password page
@@ -144,26 +154,30 @@ If not set, it defaults to `https://enviguide.nextechltd.in`.
 ## Data Flow
 
 ### 1. **Login Flow with MFA**:
-   - User enters email and password
-   - Frontend calls `/api/user/login`
-   - If MFA is required, redirects to `/mfa-verification`
-   - User enters MFA token from authenticator app
-   - Frontend calls `/api/user/verify`
-   - On success, stores token and user data, redirects to dashboard
+
+- User enters email and password
+- Frontend calls `/api/user/login`
+- If MFA is required, redirects to `/mfa-verification`
+- User enters MFA token from authenticator app
+- Frontend calls `/api/user/verify`
+- On success, stores token and user data, redirects to dashboard
 
 ### 2. **Registration Flow**:
-   - User fills out registration form
-   - Frontend calls `/api/user/create`
-   - On success, shows success message and redirects to login
+
+- User fills out registration form
+- Frontend calls `/api/user/create`
+- On success, shows success message and redirects to login
 
 ### 3. **Password Reset Flow**:
-   - User requests password reset via `/api/user/forgot/password`
-   - Backend sends email with reset link
-   - User clicks link and sets new password via `/api/user/reset/password`
+
+- User requests password reset via `/api/user/forgot/password`
+- Backend sends email with reset link
+- User clicks link and sets new password via `/api/user/reset/password`
 
 ## MFA Integration
 
 ### MFA Setup Process
+
 1. User logs in with email/password
 2. Backend returns MFA setup data (QR code + manual code)
 3. User sets up authenticator app using QR code or manual code
@@ -172,6 +186,7 @@ If not set, it defaults to `https://enviguide.nextechltd.in`.
 6. On success, user is authenticated and redirected to dashboard
 
 ### MFA Verification
+
 - **QR Code Display**: Shows the QR code from the API response for easy scanning
 - **QR Code Download**: Users can download the QR code image for offline setup
 - **Tabbed Interface**: Toggle between QR code and manual setup code views
@@ -182,6 +197,7 @@ If not set, it defaults to `https://enviguide.nextechltd.in`.
 - Secure token validation
 
 ### QR Code Features
+
 - **High Resolution**: Displays QR code at 192x192 pixels for optimal scanning
 - **Downloadable**: Users can download the QR code as a PNG image
 - **Responsive Design**: Adapts to different screen sizes
@@ -191,6 +207,7 @@ If not set, it defaults to `https://enviguide.nextechltd.in`.
 ## Error Handling
 
 All API calls include proper error handling:
+
 - Network errors
 - API response errors (handles both `{status: true}` and `{success: true}` formats)
 - Validation errors
@@ -230,6 +247,7 @@ To test the integration:
 ### Debug Mode
 
 Enable browser developer tools to monitor:
+
 - Network requests to API endpoints
 - Console errors and warnings
 - Local storage authentication data
