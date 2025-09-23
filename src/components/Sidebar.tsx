@@ -313,8 +313,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation */}
         <nav
           className={cn(
-            "flex-1  transition-all duration-300 overflow-auto",
-            isMinimized ? "px-2 py-4 space-y-1" : "px-6 py-6 space-y-2"
+            "flex-1  transition-all duration-300",
+            isMinimized
+              ? "px-2 py-4 space-y-1"
+              : "px-6 py-6 space-y-2 overflow-auto"
           )}
         >
           {menuItems.map((item) => renderMenuItem(item))}

@@ -61,7 +61,7 @@ const Settings: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-12">
+      <div className=" space-y-12">
         {/* Header */}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
