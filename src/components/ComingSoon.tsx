@@ -14,7 +14,7 @@ const ComingSoon: React.FC<ComingSoonProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-6 p-6 ${className}`}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         <p className="text-gray-600">{description}</p>

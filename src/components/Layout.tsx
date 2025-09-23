@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
           </button>
         </Header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-blue-50 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-blue-50">
           <Outlet />
         </main>
       </div>

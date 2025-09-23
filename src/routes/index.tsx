@@ -16,20 +16,9 @@ import MFAVerification from "../pages/auth/MFAVerification";
 import Users from "../pages/settings/Users";
 import UsersCreate from "../pages/settings/UsersCreate";
 import UsersEdit from "../pages/settings/UsersEdit";
-import Roles from "../pages/settings/Roles";
-import Department from "../pages/settings/Department";
-import RolesDepartments from "../pages/settings/RolesDepartments";
-import EmployeeId from "../pages/settings/EmployeeId";
-import Authorization from "../pages/settings/Authorization";
-import Accounts from "../pages/settings/Accounts";
-import HardwareType from "../pages/settings/HardwareType";
-import WhatsApp from "../pages/settings/WhatsApp";
-import SMS from "../pages/settings/SMS";
-import MessageTemplates from "../pages/settings/MessageTemplates";
-import AlertManagement from "../pages/settings/AlertManagement";
-import VdocipherSettings from "../pages/settings/VdocipherSettings";
-import WifiSettings from "../pages/settings/WifiSettings";
-import Reports from "../pages/settings/Reports";
+import Products from "../pages/settings/Products";
+import Components from "../pages/settings/Components";
+import Industry from "../pages/settings/Industry";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 // New pages
@@ -143,76 +132,30 @@ export const router = createBrowserRouter([
       {
         path: "settings",
         element: <Settings />,
-        children: [
-          {
-            path: "users",
-            element: <Users />,
-          },
-          {
-            path: "users/create",
-            element: <UsersCreate />,
-          },
-          {
-            path: "users/edit/:userId",
-            element: <UsersEdit />,
-          },
-          {
-            path: "roles",
-            element: <Roles />,
-          },
-          {
-            path: "department",
-            element: <Department />,
-          },
-          {
-            path: "roles-departments",
-            element: <RolesDepartments />,
-          },
-          {
-            path: "employee-id",
-            element: <EmployeeId />,
-          },
-          {
-            path: "authorization",
-            element: <Authorization />,
-          },
-          {
-            path: "accounts",
-            element: <Accounts />,
-          },
-          {
-            path: "hardware-type",
-            element: <HardwareType />,
-          },
-          {
-            path: "whatsapp",
-            element: <WhatsApp />,
-          },
-          {
-            path: "sms",
-            element: <SMS />,
-          },
-          {
-            path: "message-templates",
-            element: <MessageTemplates />,
-          },
-          {
-            path: "alert-management",
-            element: <AlertManagement />,
-          },
-          {
-            path: "vdocipher-settings",
-            element: <VdocipherSettings />,
-          },
-          {
-            path: "wifi-settings",
-            element: <WifiSettings />,
-          },
-          {
-            path: "reports",
-            element: <Reports />,
-          },
-        ],
+      },
+      {
+        path: "settings/users",
+        element: <Users />,
+      },
+      {
+        path: "settings/users/create",
+        element: <UsersCreate />,
+      },
+      {
+        path: "settings/users/edit/:userId",
+        element: <UsersEdit />,
+      },
+      {
+        path: "settings/products",
+        element: <Products />,
+      },
+      {
+        path: "settings/components",
+        element: <Components />,
+      },
+      {
+        path: "settings/industry",
+        element: <Industry />,
       },
     ],
   },
