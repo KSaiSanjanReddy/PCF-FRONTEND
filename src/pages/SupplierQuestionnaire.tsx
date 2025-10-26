@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -110,8 +110,8 @@ const SupplierQuestionnaire: React.FC = () => {
       </label>
       <input
         type={type}
-        value={formData[field] || ""}
-        onChange={(e) => handleInputChange(field, e.target.value)}
+        // value={formData[field] || ""}
+        // onChange={(e) => handleInputChange(field, e.target.value)}
         placeholder={placeholder}
         className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all text-gray-700"
       />
@@ -1029,8 +1029,8 @@ const SupplierQuestionnaire: React.FC = () => {
       </div>
 
       {/* Fixed Navigation Buttons */}
-      <div className="sticky bottom-0 z-50 bg-white border-t-2 border-gray-200 shadow-2xl -mx-4 px-4">
-        <div className="max-w-4xl mx-auto py-4">
+      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t-2 border-gray-200 shadow-2xl">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <button
               onClick={prevStep}
