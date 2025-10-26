@@ -31,6 +31,7 @@ import ComponentsMaster from "../pages/ComponentsMaster";
 import DocumentMaster from "../pages/DocumentMaster";
 import TaskManagement from "../pages/TaskManagement";
 import ReportsMain from "../pages/Reports";
+import SupplierQuestionnaire from "../pages/SupplierQuestionnaire";
 
 export const router = createBrowserRouter([
   {
@@ -156,6 +157,10 @@ export const router = createBrowserRouter([
       {
         path: "settings/industry",
         element: <Industry />,
+      },
+      {
+        path: "supplier-questionnaire",
+        element: <SupplierQuestionnaire />,
       },
     ],
   },
