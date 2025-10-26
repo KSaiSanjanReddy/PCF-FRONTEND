@@ -107,9 +107,9 @@ const Settings: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#e8ecf1] p-5">
       <div className="mx-6 space-y-8">
         {/* Header */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm relative overflow-hidden border-t-4 border-[#9AFB00]">
+        <div className="bg-white rounded-2xl p-8 shadow-sm relative overflow-hidden border-t-4 border-[#6366f1]">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#9AFB00] to-[#7DD600] rounded-xl flex items-center justify-center shadow-lg shadow-[#9AFB00]/30">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-xl flex items-center justify-center shadow-lg shadow-[#6366f1]/30">
               <SettingsIcon className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -128,7 +128,7 @@ const Settings: React.FC = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a0aec0] text-lg" />
           <input
             type="text"
-            className="w-full pl-12 pr-5 py-3.5 border-2 border-[#e2e8f0] rounded-xl bg-white text-[15px] focus:outline-none focus:border-[#9AFB00] focus:ring-3 focus:ring-[#9AFB00]/15 transition-all"
+            className="w-full pl-12 pr-5 py-3.5 border-2 border-[#e2e8f0] rounded-xl bg-white text-[15px] focus:outline-none focus:border-[#6366f1] focus:ring-3 focus:ring-[#6366f1]/15 transition-all"
             placeholder="Search settings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -144,7 +144,7 @@ const Settings: React.FC = () => {
               <div key={group.title} className="space-y-5">
                 {/* Section Header */}
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#9AFB00] to-[#7DD600] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-lg flex items-center justify-center flex-shrink-0">
                     <GroupIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
@@ -165,26 +165,26 @@ const Settings: React.FC = () => {
                     return (
                       <div
                         key={item.name}
-                        className="bg-white rounded-xl p-6 cursor-pointer transition-all duration-300 border-2 border-transparent relative overflow-hidden group hover:translate-y-[-4px] hover:shadow-2xl hover:shadow-[#9AFB00]/20 hover:border-[#9AFB00]"
+                        className="bg-white rounded-xl p-6 cursor-pointer transition-all duration-300 border-2 border-transparent relative overflow-hidden group hover:translate-y-[-4px] hover:shadow-xl hover:shadow-[#6366f1]/10 hover:border-[#6366f1]/30"
                         onClick={() => navigate(item.path)}
                       >
                         {/* Top border gradient on hover */}
-                        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#9AFB00] to-[#7DD600] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
 
                         <div className="flex items-start gap-4">
                           <div
-                            className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                               item.cardType === "primary"
-                                ? "bg-gradient-to-br from-[#9AFB00] to-[#7DD600] shadow-lg shadow-[#9AFB00]/30"
+                                ? "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] shadow-lg shadow-[#6366f1]/30"
                                 : item.cardType === "secondary"
-                                ? "bg-gradient-to-br from-[#BFFD4D] to-[#9AFB00] shadow-lg shadow-[#9AFB00]/25"
-                                : "bg-gradient-to-br from-[#e8ffe8] to-[#d4ffd4] border border-[#9AFB00]"
+                                ? "bg-gradient-to-br from-[#8b5cf6] to-[#a78bfa] shadow-lg shadow-[#8b5cf6]/25"
+                                : "bg-gradient-to-br from-[#f1f5f9] to-[#e2e8f0] border border-[#cbd5e0] group-hover:border-[#6366f1] group-hover:bg-gradient-to-br group-hover:from-[#6366f1]/10 group-hover:to-[#8b5cf6]/10"
                             }`}
                           >
                             <ItemIcon
-                              className={`w-5 h-5 ${
+                              className={`w-5 h-5 transition-colors duration-300 ${
                                 item.cardType === "default"
-                                  ? "text-[#1a202c]"
+                                  ? "text-[#475569] group-hover:text-[#6366f1]"
                                   : "text-white"
                               }`}
                             />
@@ -193,7 +193,7 @@ const Settings: React.FC = () => {
                             <h3 className="text-base font-semibold text-[#1a202c]  flex items-center gap-2">
                               {item.name}
                               {item.badge && (
-                                <span className="text-[10px] px-2 py-0.5 bg-[#9AFB00] text-[#1a202c] rounded-md font-bold">
+                                <span className="text-[10px] px-2 py-0.5 bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white rounded-md font-bold">
                                   {item.badge}
                                 </span>
                               )}
@@ -205,7 +205,7 @@ const Settings: React.FC = () => {
                         </div>
 
                         {/* Arrow Icon */}
-                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[#cbd5e0] text-xl transition-all duration-300 group-hover:text-[#9AFB00] group-hover:translate-x-1">
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[#cbd5e0] text-xl transition-all duration-300 group-hover:text-[#6366f1] group-hover:translate-x-1">
                           <ChevronRight className="w-5 h-5" />
                         </div>
                       </div>
@@ -228,7 +228,7 @@ const Settings: React.FC = () => {
               return (
                 <button
                   key={index}
-                  className="px-5 py-2.5 border-2 border-[#e2e8f0] bg-white rounded-lg text-sm font-medium text-[#4a5568] cursor-pointer transition-all duration-200 hover:border-[#9AFB00] hover:text-[#1a202c] hover:bg-[#9AFB00]/10 active:scale-[0.98] flex items-center gap-2"
+                  className="px-5 py-2.5 border-2 border-[#e2e8f0] bg-white rounded-lg text-sm font-medium text-[#4a5568] cursor-pointer transition-all duration-200 hover:border-[#6366f1] hover:text-[#6366f1] hover:bg-[#6366f1]/5 active:scale-[0.98] flex items-center gap-2"
                   onClick={action.action}
                 >
                   <ActionIcon className="w-4 h-4" />
