@@ -17,6 +17,8 @@ import {
   BarChart3,
   Award,
   FileText,
+  HelpCircle,
+  Loader,
 } from "lucide-react";
 
 const SupplierQuestionnaire: React.FC = () => {
@@ -24,6 +26,8 @@ const SupplierQuestionnaire: React.FC = () => {
   const [formData, setFormData] = useState<Record<string, string | string[]>>(
     {}
   );
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const steps = [
     { id: "general", title: "General Information", Icon: Building2 },
@@ -72,10 +76,31 @@ const SupplierQuestionnaire: React.FC = () => {
     }));
   };
 
+  const saveDraft = async () => {
+    setIsSaving(true);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setIsSaving(false);
+    alert("Draft saved successfully!");
+  };
+
+  const validateCurrentStep = () => {
+    const newErrors: Record<string, string> = {};
+    // Add validation logic based on current step
+    return newErrors;
+  };
+
   const nextStep = () => {
+    const stepErrors = validateCurrentStep();
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      return;
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      setErrors({});
     }
   };
 
@@ -83,13 +108,33 @@ const SupplierQuestionnaire: React.FC = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      setErrors({});
     }
   };
 
   const goToStep = (index: number) => {
-    setCurrentStep(index);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (index <= currentStep || index === currentStep + 1) {
+      setCurrentStep(index);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
+
+  const Section = ({
+    children,
+    title,
+  }: {
+    children: React.ReactNode;
+    title?: string;
+  }) => (
+    <div className="mb-8 last:mb-0">
+      {title && (
+        <div className="mb-4 pb-2 border-b-2 border-gray-100">
+          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+        </div>
+      )}
+      <div className="space-y-5">{children}</div>
+    </div>
+  );
 
   const TextInput = ({
     label,
@@ -97,24 +142,55 @@ const SupplierQuestionnaire: React.FC = () => {
     required,
     type = "text",
     placeholder,
+    helperText,
   }: {
     label: string;
     field: string;
     required?: boolean;
     type?: string;
     placeholder?: string;
+    helperText?: string;
   }) => (
-    <div>
-      <label className="block text-base font-semibold text-gray-900 mb-2.5">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+    <div className="group">
+      <div className="flex items-center gap-2 mb-2.5">
+        <label className="block text-base font-semibold text-gray-900">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {helperText && (
+          <div className="relative group/tooltip">
+            <HelpCircle
+              size={16}
+              className="text-gray-400 hover:text-[#9AFB00] transition-colors cursor-help"
+            />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 pointer-events-none group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
+              {helperText}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        )}
+      </div>
       <input
         type={type}
-        // value={formData[field] || ""}
-        // onChange={(e) => handleInputChange(field, e.target.value)}
+        // value={String(formData[field] || "")}
+        // onChange={(e) => {
+        //   handleInputChange(field, e.target.value);
+        //   if (errors[field]) {
+        //     setErrors((prev) => ({ ...prev, [field]: "" }));
+        //   }
+        // }}
         placeholder={placeholder}
-        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all text-gray-700"
+        className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-lg transition-all text-gray-700 placeholder-gray-400 ${
+          errors[field]
+            ? "border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            : "border-gray-300 focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white"
+        }`}
       />
+      {errors[field] && (
+        <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+          <AlertCircle size={14} />
+          {errors[field]}
+        </p>
+      )}
     </div>
   );
 
@@ -318,89 +394,158 @@ const SupplierQuestionnaire: React.FC = () => {
     </div>
   );
 
-  const FileUpload = ({ label, field }: { label: string; field: string }) => (
-    <div>
-      <label className="block text-base font-semibold text-gray-900 mb-2.5">
-        {label}
-      </label>
-      <div className="flex items-center space-x-2">
-        <input
-          type="text"
-          value={formData[field] || ""}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          placeholder="Paste link or file path"
-          className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all"
-        />
-        <button className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] text-[#1a202c] font-medium rounded-lg hover:shadow-lg transition-all shadow-lg shadow-[#9AFB00]/30">
-          <Upload size={16} />
-          <span>Upload</span>
-        </button>
+  const FileUpload = ({
+    label,
+    field,
+    description,
+  }: {
+    label: string;
+    field: string;
+    description?: string;
+  }) => {
+    const [isDragging, setIsDragging] = useState(false);
+
+    return (
+      <div>
+        <label className="block text-base font-semibold text-gray-900 mb-2.5">
+          {label}
+        </label>
+        {description && (
+          <p className="text-sm text-gray-600 mb-3">{description}</p>
+        )}
+        <div
+          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 transition-all ${
+            isDragging
+              ? "border-[#9AFB00] bg-[#9AFB00]/5"
+              : "border-gray-300 hover:border-[#9AFB00]/50"
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+        >
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-16 h-16 bg-[#9AFB00]/10 rounded-full flex items-center justify-center mb-3">
+              <Upload className="text-[#9AFB00]" size={24} />
+            </div>
+            <p className="text-sm text-gray-700 font-medium mb-1">
+              Drag and drop files here, or
+            </p>
+            <button className="text-[#9AFB00] hover:text-[#7DD600] text-sm font-medium underline transition-colors">
+              browse to upload
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Supports PDF, DOC, XLS (Max 10MB)
+            </p>
+          </div>
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                const fileNames = Array.from(files).map((f) => f.name);
+                handleInputChange(field, fileNames.join(", "));
+              }
+            }}
+          />
+        </div>
+        {formData[field] && (
+          <div className="mt-3 p-3 bg-[#9AFB00]/10 border border-[#9AFB00]/30 rounded-lg">
+            <p className="text-sm text-gray-700">{formData[field]}</p>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 0: // General Information
         return (
-          <div className="space-y-6">
-            <TextInput label="Organization Name" field="orgName" required />
-            <RadioGroup
-              label="Core Business Activities"
-              field="businessActivity"
-              required
-              options={[
-                "Manufacturing",
-                "Food Processing",
-                "Power generation sector",
-                "Construction & Real Estate",
-                "Logistics & Transportation",
-                "Technology development & Services (IT)",
-                "Others",
-              ]}
-            />
-            <TextInput
-              label="Company Site Address"
-              field="siteAddress"
-              required
-            />
-            <TextInput
-              label="Designation/Role/Title"
-              field="designation"
-              required
-            />
-            <TextInput
-              label="Email Address"
-              field="email"
-              type="email"
-              required
-            />
-            <TextInput
-              label="Annual Production Volume"
-              field="productionVolume"
-            />
-            <TextInput
-              label="Production Site Where Product is Manufactured"
-              field="productionSite"
-            />
-            <RadioGroup
-              label="Organization's Annual Revenue"
-              field="annualRevenue"
-              required
-              options={[
-                "$1 Million or less",
-                "$1 Million to $2 Million",
-                "$2 Million to $3 Million",
-                "$3 Million to $4 Million",
-                "$4 Million to $5 Million",
-              ]}
-            />
-            <TextInput
-              label="Organizational Annual Reporting Period (Year)"
-              field="reportingPeriod"
-              type="number"
-              placeholder="2024"
-            />
+          <div className="space-y-8">
+            <Section title="Company Information">
+              <TextInput
+                label="Organization Name"
+                field="orgName"
+                required
+                placeholder="Enter your organization name"
+              />
+              <TextInput
+                label="Company Site Address"
+                field="siteAddress"
+                required
+                placeholder="Enter full address"
+              />
+              <TextInput
+                label="Email Address"
+                field="email"
+                type="email"
+                required
+                placeholder="example@company.com"
+              />
+              <TextInput
+                label="Designation/Role/Title"
+                field="designation"
+                required
+                placeholder="Your role in the organization"
+              />
+            </Section>
+
+            <Section title="Business Details">
+              <RadioGroup
+                label="Core Business Activities"
+                field="businessActivity"
+                required
+                options={[
+                  "Manufacturing",
+                  "Food Processing",
+                  "Power generation sector",
+                  "Construction & Real Estate",
+                  "Logistics & Transportation",
+                  "Technology development & Services (IT)",
+                  "Others",
+                ]}
+              />
+              <RadioGroup
+                label="Organization's Annual Revenue"
+                field="annualRevenue"
+                required
+                options={[
+                  "$1 Million or less",
+                  "$1 Million to $2 Million",
+                  "$2 Million to $3 Million",
+                  "$3 Million to $4 Million",
+                  "$4 Million to $5 Million",
+                ]}
+              />
+            </Section>
+
+            <Section title="Production Details">
+              <TextInput
+                label="Annual Production Volume"
+                field="productionVolume"
+                placeholder="e.g., 1000 units/year"
+                helperText="Estimated annual production output"
+              />
+              <TextInput
+                label="Production Site Where Product is Manufactured"
+                field="productionSite"
+                placeholder="Location of manufacturing facility"
+              />
+              <TextInput
+                label="Organizational Annual Reporting Period (Year)"
+                field="reportingPeriod"
+                type="number"
+                placeholder="2024"
+              />
+            </Section>
           </div>
         );
 
@@ -955,22 +1100,22 @@ const SupplierQuestionnaire: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#e8ecf1]">
-      <div className="py-8 px-4 pb-32">
+      <div className="py-6 sm:py-8 px-4 pb-32">
         {/* Progress Steps */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 w-full">
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-6 w-full max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-gray-600">
               Step {currentStep + 1} of {steps.length}
             </span>
-            <span className="text-sm font-medium text-[#7DD600]">
+            <span className="text-sm font-semibold text-[#7DD600]">
               {Math.round(((currentStep + 1) / steps.length) * 100)}% Complete
             </span>
           </div>
 
-          <div className="relative">
-            <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
+          <div className="relative hidden lg:block">
+            <div className="absolute top-6 left-0 right-0 h-1.5 bg-gray-200 rounded-full">
               <div
-                className="h-full bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full transition-all duration-500 shadow-lg"
+                className="h-full bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full transition-all duration-500 shadow-lg shadow-[#9AFB00]/30"
                 style={{
                   width: `${((currentStep + 1) / steps.length) * 100}%`,
                 }}
@@ -980,29 +1125,34 @@ const SupplierQuestionnaire: React.FC = () => {
             <div className="relative flex justify-between px-2">
               {steps.map((step, index) => {
                 const IconComponent = step.Icon;
+                const isActive = index <= currentStep;
                 return (
                   <div
                     key={step.id}
-                    className="flex flex-col items-center cursor-pointer"
+                    className={`flex flex-col items-center cursor-pointer transition-transform ${
+                      isActive ? "scale-105" : "scale-100"
+                    }`}
                     onClick={() => goToStep(index)}
                   >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
                         index <= currentStep
-                          ? "bg-gradient-to-br from-[#9AFB00] to-[#7DD600] text-white shadow-lg shadow-[#9AFB00]/30"
-                          : "bg-white border-2 border-gray-300 text-gray-400"
+                          ? "bg-gradient-to-br from-[#9AFB00] to-[#7DD600] text-white shadow-lg shadow-[#9AFB00]/30 hover:shadow-xl"
+                          : "bg-white border-2 border-gray-300 text-gray-400 hover:border-gray-400"
                       }`}
                     >
                       {index < currentStep ? (
-                        <Check size={20} />
+                        <Check size={22} />
                       ) : (
                         <IconComponent size={20} />
                       )}
                     </div>
                     <span
-                      className={`mt-2 text-xs font-medium text-center w-[100px] leading-tight ${
+                      className={`mt-2 text-xs font-medium text-center w-[90px] leading-tight transition-colors ${
                         index === currentStep
-                          ? "text-[#7DD600]"
+                          ? "text-[#7DD600] font-bold"
+                          : index < currentStep
+                          ? "text-[#7DD600]/70"
                           : "text-gray-500"
                       }`}
                     >
@@ -1013,61 +1163,119 @@ const SupplierQuestionnaire: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Mobile Progress */}
+          <div className="lg:hidden">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full transition-all duration-500"
+                  style={{
+                    width: `${((currentStep + 1) / steps.length) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <span className="text-xs text-gray-600">
+                {steps[currentStep].title}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Form Content */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 max-w-4xl mx-auto ">
+        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-20 max-w-4xl mx-auto animate-fadeIn">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">
-              {steps[currentStep].title}
-            </h2>
-            <div className="h-1 w-20 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full"></div>
+            <div className="flex items-center gap-3 mb-2">
+              {React.createElement(steps[currentStep].Icon, {
+                size: 28,
+                className: "text-[#9AFB00]",
+              })}
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {steps[currentStep].title}
+              </h2>
+            </div>
+            <div className="h-1 w-24 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full"></div>
+            <p className="mt-3 text-sm text-gray-600">
+              Please provide accurate information to ensure the best results
+            </p>
           </div>
 
-          {renderStepContent()}
+          <div className="animate-slideIn">{renderStepContent()}</div>
         </div>
       </div>
 
       {/* Fixed Navigation Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t-2 border-gray-200 shadow-2xl">
+      <div className="fixed bottom-0 left-0 lg:left-72 right-0 z-10 bg-white/95 backdrop-blur-sm border-t-2 border-gray-200 shadow-2xl transition-all duration-300">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
             <button
               onClick={prevStep}
               disabled={currentStep === 0}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all ${
+              className={`flex items-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all w-full sm:w-auto justify-center ${
                 currentStep === 0
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white text-gray-700 hover:bg-gray-50 shadow-lg hover:shadow-xl"
+                  : "bg-white text-gray-700 hover:bg-gray-50 shadow-lg hover:shadow-xl border-2 border-gray-200"
               }`}
             >
               <ChevronLeft size={20} />
               <span>Previous</span>
             </button>
 
-            <div className="flex space-x-3">
-              <button className="px-6 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 font-medium shadow-lg hover:shadow-xl transition-all">
-                Save Draft
+            <div className="flex space-x-2 sm:space-x-3 w-full sm:w-auto">
+              <button
+                onClick={saveDraft}
+                disabled={isSaving}
+                className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 font-medium shadow-lg hover:shadow-xl transition-all border-2 border-gray-200 w-full sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader size={16} className="animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Draft</span>
+                )}
               </button>
 
               {currentStep < steps.length - 1 ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all"
+                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all w-full sm:w-auto"
                 >
                   <span>Next</span>
                   <ChevronRight size={20} />
                 </button>
               ) : (
-                <button className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#7DD600] to-[#9AFB00] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all">
+                <button className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#7DD600] to-[#9AFB00] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all w-full sm:w-auto">
                   <Check size={20} />
-                  <span>Submit Questionnaire</span>
+                  <span>Submit</span>
                 </button>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes slideIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+          }
+          .animate-slideIn {
+            animation: slideIn 0.4s ease-out;
+          }
+        `}
+      </style>
     </div>
   );
 };
