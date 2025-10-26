@@ -160,7 +160,7 @@ const SupplierQuestionnaire: React.FC = () => {
           <div className="relative group/tooltip">
             <HelpCircle
               size={16}
-              className="text-gray-400 hover:text-[#9AFB00] transition-colors cursor-help"
+              className="text-gray-400 hover:text-[#6366f1] transition-colors cursor-help"
             />
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 pointer-events-none group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
               {helperText}
@@ -182,7 +182,7 @@ const SupplierQuestionnaire: React.FC = () => {
         className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-lg transition-all text-gray-700 placeholder-gray-400 ${
           errors[field]
             ? "border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-            : "border-gray-300 focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white"
+            : "border-gray-300 focus:ring-2 focus:ring-[#6366f1] focus:border-[#6366f1] focus:bg-white"
         }`}
       />
       {errors[field] && (
@@ -213,7 +213,7 @@ const SupplierQuestionnaire: React.FC = () => {
         {options.map((option) => (
           <label
             key={option}
-            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-[#9AFB00] hover:shadow-sm cursor-pointer transition-all"
+            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-[#6366f1] hover:shadow-sm cursor-pointer transition-all"
           >
             <input
               type="radio"
@@ -221,7 +221,7 @@ const SupplierQuestionnaire: React.FC = () => {
               value={option}
               checked={formData[field] === option}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="text-[#9AFB00] focus:ring-[#9AFB00] w-4 h-4"
+              className="text-[#6366f1] focus:ring-[#6366f1] w-4 h-4"
             />
             <span className="text-sm text-gray-700 font-medium">{option}</span>
           </label>
@@ -247,7 +247,7 @@ const SupplierQuestionnaire: React.FC = () => {
         <label
           className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl cursor-pointer transition-all ${
             formData[field] === "yes"
-              ? "bg-[#9AFB00]/5 border-[#9AFB00] shadow-sm"
+              ? "bg-[#6366f1]/5 border-[#6366f1] shadow-sm"
               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
           }`}
         >
@@ -263,12 +263,12 @@ const SupplierQuestionnaire: React.FC = () => {
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                 formData[field] === "yes"
-                  ? "border-[#9AFB00]"
+                  ? "border-[#6366f1]"
                   : "border-gray-300"
               }`}
             >
               {formData[field] === "yes" && (
-                <div className="w-2.5 h-2.5 rounded-full bg-[#9AFB00]"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></div>
               )}
             </div>
           </div>
@@ -277,7 +277,7 @@ const SupplierQuestionnaire: React.FC = () => {
         <label
           className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl cursor-pointer transition-all ${
             formData[field] === "no"
-              ? "bg-[#9AFB00]/5 border-[#9AFB00] shadow-sm"
+              ? "bg-[#6366f1]/5 border-[#6366f1] shadow-sm"
               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
           }`}
         >
@@ -293,12 +293,12 @@ const SupplierQuestionnaire: React.FC = () => {
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                 formData[field] === "no"
-                  ? "border-[#9AFB00]"
+                  ? "border-[#6366f1]"
                   : "border-gray-300"
               }`}
             >
               {formData[field] === "no" && (
-                <div className="w-2.5 h-2.5 rounded-full bg-[#9AFB00]"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#6366f1]"></div>
               )}
             </div>
           </div>
@@ -327,7 +327,7 @@ const SupplierQuestionnaire: React.FC = () => {
         {options.map((option) => (
           <label
             key={option}
-            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-[#9AFB00] hover:shadow-sm cursor-pointer transition-all"
+            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-[#6366f1] hover:shadow-sm cursor-pointer transition-all"
           >
             <input
               type="checkbox"
@@ -343,7 +343,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   );
                 }
               }}
-              className="text-[#9AFB00] focus:ring-[#9AFB00] rounded w-4 h-4"
+              className="text-[#6366f1] focus:ring-[#6366f1] rounded w-4 h-4"
             />
             <span className="text-sm text-gray-700 font-medium">{option}</span>
           </label>
@@ -373,7 +373,7 @@ const SupplierQuestionnaire: React.FC = () => {
               value={item}
               onChange={(e) => updateListItem(field, index, e.target.value)}
               placeholder={placeholder}
-              className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all"
+              className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6366f1] focus:border-[#6366f1] focus:bg-white transition-all"
             />
             <button
               onClick={() => removeListItem(field, index)}
@@ -386,7 +386,7 @@ const SupplierQuestionnaire: React.FC = () => {
       )}
       <button
         onClick={() => addListItem(field)}
-        className="flex items-center space-x-2 px-4 py-2.5 text-[#7DD600] hover:bg-[#9AFB00]/10 rounded-lg text-sm font-medium transition-colors border border-[#9AFB00]/30"
+        className="flex items-center space-x-2 px-4 py-2.5 text-[#6366f1] hover:bg-[#6366f1]/10 rounded-lg text-sm font-medium transition-colors border border-[#6366f1]/30"
       >
         <Plus size={16} />
         <span>Add Item</span>
@@ -416,8 +416,8 @@ const SupplierQuestionnaire: React.FC = () => {
         <div
           className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 transition-all ${
             isDragging
-              ? "border-[#9AFB00] bg-[#9AFB00]/5"
-              : "border-gray-300 hover:border-[#9AFB00]/50"
+              ? "border-[#6366f1] bg-[#6366f1]/5"
+              : "border-gray-300 hover:border-[#6366f1]/50"
           }`}
           onDragOver={(e) => {
             e.preventDefault();
@@ -430,13 +430,13 @@ const SupplierQuestionnaire: React.FC = () => {
           }}
         >
           <div className="flex flex-col items-center mb-4">
-            <div className="w-16 h-16 bg-[#9AFB00]/10 rounded-full flex items-center justify-center mb-3">
-              <Upload className="text-[#9AFB00]" size={24} />
+            <div className="w-16 h-16 bg-[#6366f1]/10 rounded-full flex items-center justify-center mb-3">
+              <Upload className="text-[#6366f1]" size={24} />
             </div>
             <p className="text-sm text-gray-700 font-medium mb-1">
               Drag and drop files here, or
             </p>
-            <button className="text-[#9AFB00] hover:text-[#7DD600] text-sm font-medium underline transition-colors">
+            <button className="text-[#6366f1] hover:text-[#8b5cf6] text-sm font-medium underline transition-colors">
               browse to upload
             </button>
             <p className="text-xs text-gray-500 mt-2">
@@ -457,7 +457,7 @@ const SupplierQuestionnaire: React.FC = () => {
           />
         </div>
         {formData[field] && (
-          <div className="mt-3 p-3 bg-[#9AFB00]/10 border border-[#9AFB00]/30 rounded-lg">
+          <div className="mt-3 p-3 bg-[#6366f1]/10 border border-[#6366f1]/30 rounded-lg">
             <p className="text-sm text-gray-700">{formData[field]}</p>
           </div>
         )}
@@ -1059,7 +1059,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   handleInputChange("carbonReductionMeasures", e.target.value)
                 }
                 rows={4}
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all text-gray-700"
+                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6366f1] focus:border-[#6366f1] focus:bg-white transition-all text-gray-700"
               />
             </div>
 
@@ -1074,7 +1074,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   handleInputChange("renewableInitiatives", e.target.value)
                 }
                 rows={4}
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#9AFB00] focus:border-[#9AFB00] focus:bg-white transition-all text-gray-700"
+                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6366f1] focus:border-[#6366f1] focus:bg-white transition-all text-gray-700"
               />
             </div>
 
@@ -1107,7 +1107,7 @@ const SupplierQuestionnaire: React.FC = () => {
             <span className="text-sm font-medium text-gray-600">
               Step {currentStep + 1} of {steps.length}
             </span>
-            <span className="text-sm font-semibold text-[#7DD600]">
+            <span className="text-sm font-semibold text-[#6366f1]">
               {Math.round(((currentStep + 1) / steps.length) * 100)}% Complete
             </span>
           </div>
@@ -1115,7 +1115,7 @@ const SupplierQuestionnaire: React.FC = () => {
           <div className="relative hidden lg:block">
             <div className="absolute top-6 left-0 right-0 h-1.5 bg-gray-200 rounded-full">
               <div
-                className="h-full bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full transition-all duration-500 shadow-lg shadow-[#9AFB00]/30"
+                className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all duration-500 shadow-lg shadow-[#6366f1]/30"
                 style={{
                   width: `${((currentStep + 1) / steps.length) * 100}%`,
                 }}
@@ -1137,7 +1137,7 @@ const SupplierQuestionnaire: React.FC = () => {
                     <div
                       className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
                         index <= currentStep
-                          ? "bg-gradient-to-br from-[#9AFB00] to-[#7DD600] text-white shadow-lg shadow-[#9AFB00]/30 hover:shadow-xl"
+                          ? "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/30 hover:shadow-xl"
                           : "bg-white border-2 border-gray-300 text-gray-400 hover:border-gray-400"
                       }`}
                     >
@@ -1150,9 +1150,9 @@ const SupplierQuestionnaire: React.FC = () => {
                     <span
                       className={`mt-2 text-xs font-medium text-center w-[90px] leading-tight transition-colors ${
                         index === currentStep
-                          ? "text-[#7DD600] font-bold"
+                          ? "text-[#6366f1] font-bold"
                           : index < currentStep
-                          ? "text-[#7DD600]/70"
+                          ? "text-[#6366f1]/70"
                           : "text-gray-500"
                       }`}
                     >
@@ -1169,7 +1169,7 @@ const SupplierQuestionnaire: React.FC = () => {
             <div className="flex items-center gap-2 mb-3">
               <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full transition-all duration-500"
                   style={{
                     width: `${((currentStep + 1) / steps.length) * 100}%`,
                   }}
@@ -1190,13 +1190,13 @@ const SupplierQuestionnaire: React.FC = () => {
             <div className="flex items-center gap-3 mb-2">
               {React.createElement(steps[currentStep].Icon, {
                 size: 28,
-                className: "text-[#9AFB00]",
+                className: "text-[#6366f1]",
               })}
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {steps[currentStep].title}
               </h2>
             </div>
-            <div className="h-1 w-24 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] rounded-full"></div>
+            <div className="h-1 w-24 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full"></div>
             <p className="mt-3 text-sm text-gray-600">
               Please provide accurate information to ensure the best results
             </p>
@@ -1242,13 +1242,13 @@ const SupplierQuestionnaire: React.FC = () => {
               {currentStep < steps.length - 1 ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#9AFB00] to-[#7DD600] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all w-full sm:w-auto"
+                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white rounded-xl hover:shadow-2xl shadow-lg shadow-[#6366f1]/30 font-medium transition-all w-full sm:w-auto"
                 >
                   <span>Next</span>
                   <ChevronRight size={20} />
                 </button>
               ) : (
-                <button className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#7DD600] to-[#9AFB00] text-[#1a202c] rounded-xl hover:shadow-2xl shadow-lg shadow-[#9AFB00]/30 font-medium transition-all w-full sm:w-auto">
+                <button className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white rounded-xl hover:shadow-2xl shadow-lg shadow-[#6366f1]/30 font-medium transition-all w-full sm:w-auto">
                   <Check size={20} />
                   <span>Submit</span>
                 </button>
