@@ -15,6 +15,7 @@ import {
   HardDrive,
   RefreshCw,
   FileText,
+  Award,
 } from "lucide-react";
 
 const Settings: React.FC = () => {
@@ -86,6 +87,11 @@ const Settings: React.FC = () => {
       label: "Supplier Questionnaire",
       icon: FileText,
       action: () => navigate("/supplier-questionnaire"),
+    },
+    {
+      label: "Data Quality Rating",
+      icon: Award,
+      action: () => navigate("/data-quality-rating"),
     },
     { label: "View Logs", icon: ScrollText, action: () => {} },
     { label: "Security Settings", icon: Shield, action: () => {} },
