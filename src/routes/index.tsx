@@ -32,6 +32,7 @@ import DocumentMaster from "../pages/DocumentMaster";
 import TaskManagement from "../pages/TaskManagement";
 import ReportsMain from "../pages/Reports";
 import SupplierQuestionnaire from "../pages/SupplierQuestionnaire";
+import DataQualityRating from "../pages/DataQualityRating";
 
 export const router = createBrowserRouter([
   {
@@ -161,6 +162,10 @@ export const router = createBrowserRouter([
       {
         path: "supplier-questionnaire",
         element: <SupplierQuestionnaire />,
+      },
+      {
+        path: "data-quality-rating",
+        element: <DataQualityRating />,
       },
     ],
   },
