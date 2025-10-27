@@ -2,7 +2,8 @@
 
 /* Style the whole scrollbar */
 ::-webkit-scrollbar {
-  width: 8px; /* Adjust thickness */
+  width: 8px;
+  /* Adjust thickness */
 }
 
 /* Style the scrollbar track (the path) */
@@ -12,7 +13,8 @@
 
 /* Style the scrollbar thumb (the draggable part) */
 ::-webkit-scrollbar-thumb {
-  background: #888; /* Example gray color */
+  background: #888;
+  /* Example gray color */
   border-radius: 4px;
 }
 

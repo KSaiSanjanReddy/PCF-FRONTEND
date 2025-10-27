@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "@types/qrcode": "^1.5.5",
     "@types/react-router-dom": "^5.3.3",
+    "antd": "^5.27.6",
     "clsx": "^2.1.1",
     "lucide-react": "^0.539.0",
     "qrcode": "^1.5.4",
