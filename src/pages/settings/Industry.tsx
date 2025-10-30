@@ -13,6 +13,13 @@ import {
   X,
   Save,
 } from "lucide-react";
+import {
+  listSetup,
+  addSetup,
+  updateSetup,
+  deleteSetup,
+  type SetupItem,
+} from "../../lib/dataSetupService";
 
 interface IndustryData {
   id: string;
@@ -25,47 +32,11 @@ const Industry: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"type" | "category">("type");
 
-  const [industryTypes, setIndustryTypes] = useState<IndustryData[]>([
-    {
-      id: "1",
-      code: "CHS001",
-      name: "Chassis",
-      description: "Business entities and corporate organizations",
-    },
-    {
-      id: "2",
-      code: "FUL002",
-      name: "BatteryCell",
-      description: "Private individuals and personal clients",
-    },
-    {
-      id: "3",
-      code: "CE003",
-      name: "Aluminium",
-      description: "Government agencies and public sector organizations",
-    },
-  ]);
+  const [industryTypes, setIndustryTypes] = useState<IndustryData[]>([]);
 
-  const [industryCategories, setIndustryCategories] = useState<IndustryData[]>([
-    {
-      id: "1",
-      code: "CAT001",
-      name: "Electronics",
-      description: "Electronic components and devices",
-    },
-    {
-      id: "2",
-      code: "CAT002",
-      name: "Mechanical",
-      description: "Mechanical parts and assemblies",
-    },
-    {
-      id: "3",
-      code: "CAT003",
-      name: "Software",
-      description: "Software products and applications",
-    },
-  ]);
+  const [industryCategories, setIndustryCategories] = useState<IndustryData[]>(
+    []
+  );
 
   const [newItem, setNewItem] = useState({
     code: "",
@@ -107,29 +78,61 @@ const Industry: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    const setter = getCurrentSetter();
-    const currentData = getCurrentData();
-    setter(currentData.filter((item) => item.id !== id));
+  const tabToEntity = () => {
+    // Postman collection exposes only /industry endpoints; use same for both tabs
+    return "industry" as const;
   };
 
-  const handleAddNew = () => {
-    if (newItem.code && newItem.name && newItem.description) {
+  useEffect(() => {
+    const load = async () => {
+      const items = await listSetup(tabToEntity());
+      const normalized: IndustryData[] = (items as SetupItem[]).map(
+        (i, idx) => ({
+          id:
+            (i as any).id?.toString?.() ||
+            (i as any)._id?.toString?.() ||
+            `${idx + 1}`,
+          code: i.code,
+          name: i.name,
+          description: i.description || "",
+        })
+      );
+      const setter = getCurrentSetter();
+      setter(normalized);
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const handleDelete = async (id: string) => {
+    const ok = await deleteSetup(tabToEntity(), id);
+    if (ok) {
       const setter = getCurrentSetter();
       const currentData = getCurrentData();
-      const newId = (currentData.length + 1).toString();
+      setter(currentData.filter((item) => item.id !== id));
+    }
+  };
 
-      setter([
-        ...currentData,
-        {
-          id: newId,
-          code: newItem.code,
-          name: newItem.name,
-          description: newItem.description,
-        },
-      ]);
-
-      setNewItem({ code: "", name: "", description: "" });
+  const handleAddNew = async () => {
+    if (newItem.code && newItem.name && newItem.description) {
+      const ok = await addSetup(tabToEntity(), newItem);
+      if (ok) {
+        const items = await listSetup(tabToEntity());
+        const setter = getCurrentSetter();
+        const normalized: IndustryData[] = (items as SetupItem[]).map(
+          (i, idx) => ({
+            id:
+              (i as any).id?.toString?.() ||
+              (i as any)._id?.toString?.() ||
+              `${idx + 1}`,
+            code: i.code,
+            name: i.name,
+            description: i.description || "",
+          })
+        );
+        setter(normalized);
+        setNewItem({ code: "", name: "", description: "" });
+      }
     }
   };
 
@@ -146,25 +149,31 @@ const Industry: React.FC = () => {
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingItem && editItem.code && editItem.name && editItem.description) {
-      const setter = getCurrentSetter();
-      const currentData = getCurrentData();
-
-      setter(
-        currentData.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                code: editItem.code,
-                name: editItem.name,
-                description: editItem.description,
-              }
-            : item
-        )
-      );
-
-      handleCancelEdit();
+      const ok = await updateSetup("industry", {
+        id: editingItem.id,
+        code: editItem.code,
+        name: editItem.name,
+        description: editItem.description,
+      });
+      if (ok) {
+        const items = await listSetup("industry");
+        const setter = getCurrentSetter();
+        const normalized: IndustryData[] = (items as SetupItem[]).map(
+          (i, idx) => ({
+            id:
+              (i as any).id?.toString?.() ||
+              (i as any)._id?.toString?.() ||
+              `${idx + 1}`,
+            code: i.code,
+            name: i.name,
+            description: i.description || "",
+          })
+        );
+        setter(normalized);
+        handleCancelEdit();
+      }
     }
   };
 
@@ -210,9 +219,9 @@ const Industry: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (itemToDelete) {
-      handleDelete(itemToDelete.id);
+      await handleDelete(itemToDelete.id);
       setShowDeleteModal(false);
       setItemToDelete(null);
     }

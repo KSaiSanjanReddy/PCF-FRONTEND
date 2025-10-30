@@ -13,6 +13,13 @@ import {
   X,
   Save,
 } from "lucide-react";
+import {
+  listSetup,
+  addSetup,
+  updateSetup,
+  deleteSetup,
+  type SetupItem,
+} from "../../lib/dataSetupService";
 
 interface ProductData {
   id: string;
@@ -27,69 +34,12 @@ const Products: React.FC = () => {
     "type" | "category" | "subcategory"
   >("type");
 
-  const [productTypes, setProductTypes] = useState<ProductData[]>([
-    {
-      id: "1",
-      code: "CHS001",
-      name: "Chassis",
-      description: "Business entities and corporate organizations",
-    },
-    {
-      id: "2",
-      code: "FUL002",
-      name: "BatteryCell",
-      description: "Private individuals and personal clients",
-    },
-    {
-      id: "3",
-      code: "CE003",
-      name: "Aluminimum",
-      description: "Government agencies and public sector organizations",
-    },
-  ]);
+  const [productTypes, setProductTypes] = useState<ProductData[]>([]);
 
-  const [productCategories, setProductCategories] = useState<ProductData[]>([
-    {
-      id: "1",
-      code: "CAT001",
-      name: "Electronics",
-      description: "Electronic components and devices",
-    },
-    {
-      id: "2",
-      code: "CAT002",
-      name: "Mechanical",
-      description: "Mechanical parts and assemblies",
-    },
-    {
-      id: "3",
-      code: "CAT003",
-      name: "Software",
-      description: "Software products and applications",
-    },
-  ]);
+  const [productCategories, setProductCategories] = useState<ProductData[]>([]);
   const [productSubCategories, setProductSubCategories] = useState<
     ProductData[]
-  >([
-    {
-      id: "1",
-      code: "SUB001",
-      name: "Sensors",
-      description: "Various types of sensor components",
-    },
-    {
-      id: "2",
-      code: "SUB002",
-      name: "Controllers",
-      description: "Control units and processing modules",
-    },
-    {
-      id: "3",
-      code: "SUB003",
-      name: "Connectors",
-      description: "Connection and interface components",
-    },
-  ]);
+  >([]);
 
   const [newItem, setNewItem] = useState({
     code: "",
@@ -135,29 +85,74 @@ const Products: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    const setter = getCurrentSetter();
-    const currentData = getCurrentData();
-    setter(currentData.filter((item) => item.id !== id));
+  const tabToEntity = () => {
+    switch (activeTab) {
+      case "type":
+        return "product-type" as const;
+      case "category":
+        return "product-category" as const;
+      case "subcategory":
+        return "product-sub-category" as const;
+      default:
+        return "product-type" as const;
+    }
   };
 
-  const handleAddNew = () => {
-    if (newItem.code && newItem.name && newItem.description) {
+  // Load data when tab changes
+  useEffect(() => {
+    const load = async () => {
+      const entity = tabToEntity();
+      const items = await listSetup(entity);
+      const normalized: ProductData[] = (items as SetupItem[]).map(
+        (i, idx) => ({
+          id:
+            (i as any).id?.toString?.() ||
+            (i as any)._id?.toString?.() ||
+            `${idx + 1}`,
+          code: i.code,
+          name: i.name,
+          description: i.description || "",
+        })
+      );
+      const setter = getCurrentSetter();
+      setter(normalized);
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const handleDelete = async (id: string) => {
+    const entity = tabToEntity();
+    const ok = await deleteSetup(entity, id);
+    if (ok) {
       const setter = getCurrentSetter();
       const currentData = getCurrentData();
-      const newId = (currentData.length + 1).toString();
+      setter(currentData.filter((item) => item.id !== id));
+    }
+  };
 
-      setter([
-        ...currentData,
-        {
-          id: newId,
-          code: newItem.code,
-          name: newItem.name,
-          description: newItem.description,
-        },
-      ]);
-
-      setNewItem({ code: "", name: "", description: "" });
+  const handleAddNew = async () => {
+    if (newItem.code && newItem.name && newItem.description) {
+      const entity = tabToEntity();
+      const ok = await addSetup(entity, newItem);
+      if (ok) {
+        // Refresh list
+        const items = await listSetup(entity);
+        const setter = getCurrentSetter();
+        const normalized: ProductData[] = (items as SetupItem[]).map(
+          (i, idx) => ({
+            id:
+              (i as any).id?.toString?.() ||
+              (i as any)._id?.toString?.() ||
+              `${idx + 1}`,
+            code: i.code,
+            name: i.name,
+            description: i.description || "",
+          })
+        );
+        setter(normalized);
+        setNewItem({ code: "", name: "", description: "" });
+      }
     }
   };
 
@@ -174,25 +169,32 @@ const Products: React.FC = () => {
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingItem && editItem.code && editItem.name && editItem.description) {
-      const setter = getCurrentSetter();
-      const currentData = getCurrentData();
-
-      setter(
-        currentData.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                code: editItem.code,
-                name: editItem.name,
-                description: editItem.description,
-              }
-            : item
-        )
-      );
-
-      handleCancelEdit();
+      const entity = tabToEntity();
+      const ok = await updateSetup(entity, {
+        id: editingItem.id,
+        code: editItem.code,
+        name: editItem.name,
+        description: editItem.description,
+      });
+      if (ok) {
+        const items = await listSetup(entity);
+        const setter = getCurrentSetter();
+        const normalized: ProductData[] = (items as SetupItem[]).map(
+          (i, idx) => ({
+            id:
+              (i as any).id?.toString?.() ||
+              (i as any)._id?.toString?.() ||
+              `${idx + 1}`,
+            code: i.code,
+            name: i.name,
+            description: i.description || "",
+          })
+        );
+        setter(normalized);
+        handleCancelEdit();
+      }
     }
   };
 
@@ -238,9 +240,9 @@ const Products: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (itemToDelete) {
-      handleDelete(itemToDelete.id);
+      await handleDelete(itemToDelete.id);
       setShowDeleteModal(false);
       setItemToDelete(null);
     }
