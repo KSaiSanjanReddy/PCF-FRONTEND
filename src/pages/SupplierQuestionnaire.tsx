@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,15 +20,64 @@ import {
   FileText,
   HelpCircle,
   Loader,
+  CheckCircle,
+  ArrowLeft,
+  Eye,
+  Edit,
 } from "lucide-react";
+import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
+import authService from "../lib/authService";
+// import { QUESTIONNAIRE_SECTIONS, GDPR_MESSAGE } from "../config/questionnaireConfig";
 
 const SupplierQuestionnaire: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Get sgiq_id from search params, with fallback to parsing URL directly
+  let sgiq_id = searchParams.get("sgiq_id");
+  if (!sgiq_id && location.search) {
+    // Fallback: parse URL search string directly
+    const urlParams = new URLSearchParams(location.search);
+    sgiq_id = urlParams.get("sgiq_id");
+  }
+
+  // Get user_id from search params, with fallback to parsing URL directly
+  let user_id = searchParams.get("user_id");
+  if (!user_id && location.search) {
+    // Fallback: parse URL search string directly
+    const urlParams = new URLSearchParams(location.search);
+    user_id = urlParams.get("user_id");
+  }
+
+  // Debug logging
+  useEffect(() => {
+    console.log("SupplierQuestionnaire - URL params:", {
+      pathname: location.pathname,
+      search: location.search,
+      sgiq_id: sgiq_id,
+      user_id: user_id,
+      allParams: Object.fromEntries(searchParams.entries()),
+      searchParamsGet: searchParams.get("sgiq_id"),
+    });
+  }, [location.pathname, location.search, sgiq_id, user_id, searchParams]);
+
+  // Determine mode based on route
+  const isViewMode = location.pathname.includes("/view");
+  const isEditMode = location.pathname.includes("/edit");
+  const isCreateMode = location.pathname.includes("/new");
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<Record<string, string | string[]>>(
-    {}
-  );
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [questionnaireId, setQuestionnaireId] = useState<string | null>(
+    sgiq_id
+  );
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const steps = [
     { id: "general", title: "General Information", Icon: Building2 },
@@ -76,18 +126,674 @@ const SupplierQuestionnaire: React.FC = () => {
     }));
   };
 
+  // Load data on mount - either from API or draft
+  useEffect(() => {
+    const loadData = async () => {
+      // If viewing or editing existing questionnaire, load from API
+      if ((isViewMode || isEditMode) && sgiq_id) {
+        setIsLoading(true);
+        setLoadError(null);
+
+        try {
+          // Use user_id from URL params if available, otherwise get from authenticated user
+          let userIdToUse = user_id;
+          if (!userIdToUse) {
+            const user = authService.getCurrentUser();
+            if (!user || !user.id) {
+              setLoadError("User not authenticated");
+              return;
+            }
+            userIdToUse = user.id;
+          }
+
+          // Validate sgiq_id before making API call
+          if (!sgiq_id || sgiq_id.trim() === "") {
+            setLoadError("Questionnaire ID is missing");
+            setIsLoading(false);
+            return;
+          }
+
+          console.log(
+            "Fetching questionnaire with sgiq_id:",
+            sgiq_id,
+            "user_id:",
+            userIdToUse
+          );
+
+          const result =
+            await supplierQuestionnaireService.getQuestionnaireById(
+              sgiq_id,
+              userIdToUse
+            );
+
+          if (result.success && result.data) {
+            // Map API data to form data - pass the entire data object
+            populateFormFromAPI(result.data);
+          } else {
+            setLoadError(result.message || "Failed to load questionnaire");
+          }
+        } catch (error) {
+          console.error("Error loading questionnaire:", error);
+          setLoadError("An error occurred while loading the questionnaire");
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (isCreateMode) {
+        // Load draft for new questionnaire
+        const draft = supplierQuestionnaireService.loadDraft();
+        if (draft) {
+          setFormData(draft.formData);
+          setCurrentStep(draft.currentStep);
+        }
+      }
+    };
+
+    loadData();
+  }, [sgiq_id, user_id, isViewMode, isEditMode, isCreateMode]);
+
+  // Map API response to form data
+  const populateFormFromAPI = (apiData: any) => {
+    const mappedData: Record<string, any> = {};
+
+    // General Information - access directly from supplier_general_info_questions
+    const generalInfo = apiData.supplier_general_info_questions || {};
+    if (generalInfo.name_of_organization)
+      mappedData.orgName = generalInfo.name_of_organization;
+    if (generalInfo.core_business_activities) {
+      // Handle array - take first item or use array
+      mappedData.businessActivity = Array.isArray(
+        generalInfo.core_business_activities
+      )
+        ? generalInfo.core_business_activities[0] ||
+          generalInfo.core_business_activities
+        : generalInfo.core_business_activities;
+    }
+    if (generalInfo.company_site_address)
+      mappedData.siteAddress = generalInfo.company_site_address;
+    if (generalInfo.designation)
+      mappedData.designation = generalInfo.designation;
+    if (generalInfo.email_address) mappedData.email = generalInfo.email_address;
+    if (generalInfo.type_of_product_manufacture)
+      mappedData.productTypes = generalInfo.type_of_product_manufacture;
+    if (generalInfo.annul_or_monthly_product_volume_of_product?.length > 0) {
+      mappedData.productionVolume =
+        generalInfo.annul_or_monthly_product_volume_of_product[0];
+    }
+    if (generalInfo.weight_of_product)
+      mappedData.productWeight = generalInfo.weight_of_product;
+    if (generalInfo.where_production_site_product_manufactured) {
+      mappedData.productionSite =
+        generalInfo.where_production_site_product_manufactured;
+    }
+    if (generalInfo.price_of_product)
+      mappedData.productPrice = generalInfo.price_of_product;
+    if (generalInfo.organization_annual_revenue)
+      mappedData.annualRevenue = generalInfo.organization_annual_revenue;
+    if (generalInfo.organization_annual_reporting_period) {
+      mappedData.reportingPeriod =
+        generalInfo.organization_annual_reporting_period;
+    }
+    if (generalInfo.sgiq_id) {
+      setQuestionnaireId(generalInfo.sgiq_id);
+    }
+
+    // Material Composition - access directly (object, not array)
+    const materialData = apiData.material_composition_questions;
+    if (materialData) {
+      // Handle main_raw_materials_used - it's an array of objects with mcm_id, mcmt_id
+      if (materialData.main_raw_materials_used) {
+        // Extract IDs or names from the objects
+        const rawMaterials = materialData.main_raw_materials_used.map(
+          (item: any) => {
+            if (typeof item === "string") return item;
+            // If it's an object, try to get the name or id
+            return (
+              item.mcm_details?.name ||
+              item.mcmt_details?.name ||
+              item.mcm_id ||
+              item.mcmt_id ||
+              item
+            );
+          }
+        );
+        mappedData.rawMaterials = rawMaterials;
+      }
+      mappedData.hasRecycledMaterial = materialData.has_recycled_material_usage
+        ? "yes"
+        : "no";
+      if (materialData.percentage_recycled_material) {
+        mappedData.recycledMaterialPercent = String(
+          materialData.percentage_recycled_material
+        );
+      }
+      mappedData.canEstimateRecycledTypes =
+        materialData.knows_material_breakdown ? "yes" : "no";
+      if (materialData.percentage_pre_consumer)
+        mappedData.preConsumerPercent = String(
+          materialData.percentage_pre_consumer
+        );
+      if (materialData.percentage_post_consumer)
+        mappedData.postConsumerPercent = String(
+          materialData.percentage_post_consumer
+        );
+      if (materialData.percentage_reutilization)
+        mappedData.reutilizationPercent = String(
+          materialData.percentage_reutilization
+        );
+      mappedData.hasRecycledCopper = materialData.has_recycled_copper
+        ? "yes"
+        : "no";
+      if (materialData.percentage_recycled_copper)
+        mappedData.recycledCopperPercent = String(
+          materialData.percentage_recycled_copper
+        );
+      mappedData.hasRecycledAluminum = materialData.has_recycled_aluminum
+        ? "yes"
+        : "no";
+      if (materialData.percentage_recycled_aluminum) {
+        mappedData.recycledAluminumPercent = String(
+          materialData.percentage_recycled_aluminum
+        );
+      }
+      mappedData.hasRecycledSteel = materialData.has_recycled_steel
+        ? "yes"
+        : "no";
+      if (materialData.percentage_recycled_steel)
+        mappedData.recycledSteelPercent = String(
+          materialData.percentage_recycled_steel
+        );
+      mappedData.hasRecycledPlastics = materialData.has_recycled_plastics
+        ? "yes"
+        : "no";
+      if (materialData.percentage_total_recycled_plastics)
+        mappedData.recycledPlasticsPercent = String(
+          materialData.percentage_total_recycled_plastics
+        );
+      if (materialData.percentage_recycled_thermoplastics)
+        mappedData.recycledThermoplasticsPercent = String(
+          materialData.percentage_recycled_thermoplastics
+        );
+      if (materialData.percentage_recycled_plastic_fillers)
+        mappedData.recycledFillerPercent = String(
+          materialData.percentage_recycled_plastic_fillers
+        );
+      if (materialData.percentage_recycled_fibers)
+        mappedData.recycledFiberPercent = String(
+          materialData.percentage_recycled_fibers
+        );
+      mappedData.hasRecyclingProgram = materialData.has_recycling_process
+        ? "yes"
+        : "no";
+      mappedData.hasFutureRecyclingStrategy =
+        materialData.has_future_recycling_strategy ? "yes" : "no";
+      if (materialData.planned_recycling_year)
+        mappedData.recyclingImplementationYear = String(
+          materialData.planned_recycling_year
+        );
+      mappedData.trackTransportEmissions =
+        materialData.track_transport_emissions ? "yes" : "no";
+      if (materialData.estimated_transport_emissions)
+        mappedData.transportEmissions =
+          materialData.estimated_transport_emissions;
+      mappedData.needsEmissionsHelp =
+        materialData.need_support_for_emissions_calc ? "yes" : "no";
+      if (materialData.emission_calc_requirement)
+        mappedData.emissionsHelpDetails =
+          materialData.emission_calc_requirement;
+      if (materialData.percentage_pcr)
+        mappedData.pcrPercent = String(materialData.percentage_pcr);
+      if (materialData.percentage_pir)
+        mappedData.pirPercent = String(materialData.percentage_pir);
+      mappedData.hasBioBasedMaterials = materialData.use_bio_based_materials
+        ? "yes"
+        : "no";
+      if (materialData.bio_based_material_details) {
+        // Split comma-separated string into array
+        mappedData.bioBasedMaterials = materialData.bio_based_material_details
+          .split(",")
+          .map((s: string) => s.trim());
+      }
+      if (materialData.msds_or_composition_link)
+        mappedData.msdsLink = materialData.msds_or_composition_link;
+      if (materialData.main_alloy_metals)
+        mappedData.alloyMetals = materialData.main_alloy_metals;
+      if (materialData.metal_grade)
+        mappedData.metalGrade = materialData.metal_grade;
+    }
+
+    // Energy & Manufacturing - access first item from array
+    const energyData = Array.isArray(apiData.energy_manufacturing_questions)
+      ? apiData.energy_manufacturing_questions[0]
+      : apiData.energy_manufacturing_questions;
+    if (energyData) {
+      if (energyData.energy_sources_used)
+        mappedData.energySources = energyData.energy_sources_used;
+      if (energyData.electricity_consumption_per_year) {
+        mappedData.electricityConsumption =
+          energyData.electricity_consumption_per_year;
+      }
+      mappedData.purchasesRenewable = energyData.purchases_renewable_electricity
+        ? "yes"
+        : "no";
+      if (energyData.renewable_electricity_percentage) {
+        mappedData.renewablePercent = [
+          String(energyData.renewable_electricity_percentage),
+        ];
+      }
+      mappedData.hasEnergyMethodology = energyData.has_energy_calculation_method
+        ? "yes"
+        : "no";
+      if (energyData.energy_calculation_method_details)
+        mappedData.energyMethodologyDoc =
+          energyData.energy_calculation_method_details;
+      if (energyData.energy_intensity_per_unit)
+        mappedData.energyIntensity = energyData.energy_intensity_per_unit;
+      if (energyData.process_specific_energy_usage) {
+        mappedData.processEnergyUsage =
+          energyData.process_specific_energy_usage;
+      }
+      mappedData.hasAbatementSystems = energyData.uses_abatement_systems
+        ? "yes"
+        : "no";
+      if (energyData.abatement_system_energy_consumption) {
+        // Split comma-separated string into array
+        mappedData.abatementEnergy =
+          energyData.abatement_system_energy_consumption
+            .split(",")
+            .map((s: string) => s.trim());
+      }
+      if (energyData.water_consumption_and_treatment_details) {
+        mappedData.waterConsumption =
+          energyData.water_consumption_and_treatment_details;
+      }
+    }
+
+    // Packaging - access first item from array
+    const packagingData = Array.isArray(apiData.packaging_questions)
+      ? apiData.packaging_questions[0]
+      : apiData.packaging_questions;
+    if (packagingData) {
+      if (packagingData.packaging_materials_used)
+        mappedData.packagingMaterials = packagingData.packaging_materials_used;
+      if (packagingData.packaging_weight_per_unit)
+        mappedData.packagingWeight = packagingData.packaging_weight_per_unit;
+      if (packagingData.packaging_size)
+        mappedData.packagingSize = packagingData.packaging_size;
+      mappedData.hasRecycledPackaging = packagingData.uses_recycled_packaging
+        ? "yes"
+        : "no";
+      if (packagingData.recycled_packaging_percentage)
+        mappedData.recycledPackagingPercent =
+          packagingData.recycled_packaging_percentage;
+    }
+
+    // Transportation - access directly (object, not array)
+    const transportData = apiData.transportation_logistics_questions;
+    if (transportData) {
+      // Handle transport_modes_used - it's an array of IDs
+      // If there are details, we can map IDs to names, otherwise use IDs directly
+      if (transportData.transport_modes_used) {
+        // Use IDs directly - the form will match them with options
+        mappedData.transportModes = transportData.transport_modes_used;
+      }
+      mappedData.hasCertifiedLogistics =
+        transportData.uses_certified_logistics_provider ? "yes" : "no";
+      if (transportData.logistics_provider_details)
+        mappedData.logisticsDetails = transportData.logistics_provider_details;
+    }
+
+    // Waste & By-products - access first item from array
+    const wasteData = Array.isArray(apiData.waste_by_products_questions)
+      ? apiData.waste_by_products_questions[0]
+      : apiData.waste_by_products_questions;
+    if (wasteData) {
+      if (wasteData.waste_types_generated)
+        mappedData.wasteTypes = wasteData.waste_types_generated;
+      if (wasteData.waste_treatment_methods)
+        mappedData.wasteTreatment = wasteData.waste_treatment_methods;
+      if (wasteData.recycling_percentage)
+        mappedData.wasteRecycledPercent = String(
+          wasteData.recycling_percentage
+        );
+      mappedData.hasByProducts = wasteData.has_byproducts ? "yes" : "no";
+      if (wasteData.byproduct_types)
+        mappedData.byProductTypes = wasteData.byproduct_types;
+      if (wasteData.byproduct_quantity)
+        mappedData.byProductQuantity = wasteData.byproduct_quantity;
+      if (wasteData.byproduct_price)
+        mappedData.byProductPrice = wasteData.byproduct_price;
+    }
+
+    // End-of-Life & Circularity - access first item from array
+    const eolData = Array.isArray(apiData.end_of_life_circularity_questions)
+      ? apiData.end_of_life_circularity_questions[0]
+      : apiData.end_of_life_circularity_questions;
+    if (eolData) {
+      mappedData.designedForCircularity = eolData.product_designed_for_recycling
+        ? "yes"
+        : "no";
+      if (eolData.product_recycling_details)
+        mappedData.circularityDetails = eolData.product_recycling_details;
+      mappedData.hasTakeBackProgram = eolData.has_takeback_program
+        ? "yes"
+        : "no";
+      if (eolData.takeback_program_details)
+        mappedData.takeBackDetails = eolData.takeback_program_details;
+    }
+
+    // Emissions - access first item from array
+    const emissionsData = Array.isArray(
+      apiData.emission_factors_or_lca_data_questions
+    )
+      ? apiData.emission_factors_or_lca_data_questions[0]
+      : apiData.emission_factors_or_lca_data_questions;
+    if (emissionsData) {
+      mappedData.reportsPCF = emissionsData.reports_product_carbon_footprint
+        ? "yes"
+        : "no";
+      if (emissionsData.pcf_methodologies_used)
+        mappedData.pcfMethodology = emissionsData.pcf_methodologies_used;
+      mappedData.hasScopeEmissions = emissionsData.has_scope_emission_data
+        ? "yes"
+        : "no";
+      if (emissionsData.emission_data_details)
+        mappedData.scopeEmissionsData = emissionsData.emission_data_details;
+      if (emissionsData.required_environmental_impact_methods)
+        mappedData.impactMethods =
+          emissionsData.required_environmental_impact_methods;
+    }
+
+    // Certifications - access first item from array
+    const certData = Array.isArray(
+      apiData.certification_and_standards_questions
+    )
+      ? apiData.certification_and_standards_questions[0]
+      : apiData.certification_and_standards_questions;
+    if (certData) {
+      mappedData.hasISOCertification =
+        certData.certified_iso_environmental_or_energy ? "yes" : "no";
+      mappedData.followsStandards = certData.follows_recognized_standards
+        ? "yes"
+        : "no";
+      mappedData.reportsESG = certData.reports_to_esg_frameworks ? "yes" : "no";
+      if (certData.previous_reports)
+        mappedData.certificationReports = certData.previous_reports;
+    }
+
+    // Additional Notes - access first item from array
+    const notesData = Array.isArray(apiData.additional_notes_questions)
+      ? apiData.additional_notes_questions[0]
+      : apiData.additional_notes_questions;
+    if (notesData) {
+      if (notesData.carbon_reduction_measures)
+        mappedData.carbonReductionMeasures =
+          notesData.carbon_reduction_measures;
+      if (notesData.renewable_energy_or_recycling_programs) {
+        mappedData.renewableInitiatives =
+          notesData.renewable_energy_or_recycling_programs;
+      }
+      mappedData.willingToShareData = notesData.willing_to_provide_primary_data
+        ? "yes"
+        : "no";
+      if (notesData.primary_data_details)
+        mappedData.primaryData = notesData.primary_data_details;
+    }
+
+    setFormData(mappedData);
+  };
+
+  // Auto-save draft on form data change (only for create mode)
+  useEffect(() => {
+    if (isCreateMode && Object.keys(formData).length > 0) {
+      const timeoutId = setTimeout(() => {
+        supplierQuestionnaireService.saveDraft(formData, currentStep);
+      }, 2000); // Auto-save after 2 seconds of inactivity
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData, currentStep, isCreateMode]);
+
   const saveDraft = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    alert("Draft saved successfully!");
+    try {
+      supplierQuestionnaireService.saveDraft(formData, currentStep);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      alert("Draft saved successfully!");
+    } catch (error) {
+      alert("Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const validateCurrentStep = () => {
     const newErrors: Record<string, string> = {};
-    // Add validation logic based on current step
+
+    // Validation for Step 0: General Information
+    if (currentStep === 0) {
+      if (!formData.orgName)
+        newErrors.orgName = "Organization name is required";
+      if (!formData.siteAddress)
+        newErrors.siteAddress = "Company site address is required";
+      if (!formData.email) newErrors.email = "Email address is required";
+      if (!formData.designation)
+        newErrors.designation = "Designation is required";
+      if (!formData.businessActivity)
+        newErrors.businessActivity = "Business activity is required";
+      if (!formData.annualRevenue)
+        newErrors.annualRevenue = "Annual revenue is required";
+    }
+
+    // Validation for Step 1: Material Composition
+    if (currentStep === 1) {
+      if (!formData.rawMaterials || formData.rawMaterials.length === 0) {
+        newErrors.rawMaterials = "At least one raw material is required";
+      }
+    }
+
+    // Add more validation rules as needed for other steps
+
     return newErrors;
+  };
+
+  const buildAPIPayload = () => {
+    const user = authService.getCurrentUser();
+
+    return {
+      bom_pcf_id: formData.bom_pcf_id || "",
+      general_info: {
+        name_of_organization: formData.orgName || "",
+        core_business_activities: Array.isArray(formData.businessActivity)
+          ? formData.businessActivity
+          : [formData.businessActivity || ""],
+        company_site_address: formData.siteAddress || "",
+        designation: formData.designation || "",
+        email_address: formData.email || "",
+        type_of_product_manufacture: formData.productTypes || [],
+        annul_or_monthly_product_volume_of_product: formData.productionVolume
+          ? [formData.productionVolume]
+          : [],
+        weight_of_product: formData.productWeight || "",
+        where_production_site_product_manufactured:
+          formData.productionSite || "",
+        price_of_product: formData.productPrice || "",
+        organization_annual_revenue: formData.annualRevenue || "",
+        organization_annual_reporting_period: formData.reportingPeriod || "",
+      },
+      material_composition: {
+        main_raw_materials_used: formData.rawMaterials || [],
+        contact_enviguide_support: formData.contactEnviguideSupport === "yes",
+        has_recycled_material_usage: formData.hasRecycledMaterial === "yes",
+        percentage_recycled_material:
+          parseFloat(formData.recycledMaterialPercent) || 0,
+        knows_material_breakdown: formData.canEstimateRecycledTypes === "yes",
+        percentage_pre_consumer: parseFloat(formData.preConsumerPercent) || 0,
+        percentage_post_consumer: parseFloat(formData.postConsumerPercent) || 0,
+        percentage_reutilization:
+          parseFloat(formData.reutilizationPercent) || 0,
+        has_recycled_copper: formData.hasRecycledCopper === "yes",
+        percentage_recycled_copper:
+          parseFloat(formData.recycledCopperPercent) || 0,
+        has_recycled_aluminum: formData.hasRecycledAluminum === "yes",
+        percentage_recycled_aluminum:
+          parseFloat(formData.recycledAluminumPercent) || 0,
+        has_recycled_steel: formData.hasRecycledSteel === "yes",
+        percentage_recycled_steel:
+          parseFloat(formData.recycledSteelPercent) || 0,
+        has_recycled_plastics: formData.hasRecycledPlastics === "yes",
+        percentage_total_recycled_plastics:
+          parseFloat(formData.recycledPlasticsPercent) || 0,
+        percentage_recycled_thermoplastics:
+          parseFloat(formData.recycledThermoplasticsPercent) || 0,
+        percentage_recycled_plastic_fillers:
+          parseFloat(formData.recycledFillerPercent) || 0,
+        percentage_recycled_fibers:
+          parseFloat(formData.recycledFiberPercent) || 0,
+        has_recycling_process: formData.hasRecyclingProgram === "yes",
+        has_future_recycling_strategy:
+          formData.hasFutureRecyclingStrategy === "yes",
+        planned_recycling_year:
+          parseInt(formData.recyclingImplementationYear) || 0,
+        track_transport_emissions: formData.trackTransportEmissions === "yes",
+        estimated_transport_emissions: formData.transportEmissions || "",
+        need_support_for_emissions_calc: formData.needsEmissionsHelp === "yes",
+        emission_calc_requirement: formData.emissionsHelpDetails || "",
+        percentage_pcr: parseFloat(formData.pcrPercent) || 0,
+        percentage_pir: parseFloat(formData.pirPercent) || 0,
+        use_bio_based_materials: formData.hasBioBasedMaterials === "yes",
+        bio_based_material_details: Array.isArray(formData.bioBasedMaterials)
+          ? formData.bioBasedMaterials.join(",")
+          : "",
+        msds_or_composition_link: formData.msdsLink || "",
+        main_alloy_metals: formData.alloyMetals || "",
+        metal_grade: formData.metalGrade || "",
+      },
+      energy_manufacturing: {
+        energy_sources_used: formData.energySources || [],
+        electricity_consumption_per_year: formData.electricityConsumption || "",
+        purchases_renewable_electricity: formData.purchasesRenewable === "yes",
+        renewable_electricity_percentage: parseFloat(
+          Array.isArray(formData.renewablePercent) &&
+            formData.renewablePercent.length > 0
+            ? formData.renewablePercent[0]
+            : formData.renewablePercent || "0"
+        ),
+        has_energy_calculation_method: formData.hasEnergyMethodology === "yes",
+        energy_calculation_method_details: formData.energyMethodologyDoc || "",
+        energy_intensity_per_unit: formData.energyIntensity || "",
+        process_specific_energy_usage: formData.processEnergyUsage || [],
+        enviguide_support: false,
+        uses_abatement_systems: formData.hasAbatementSystems === "yes",
+        abatement_system_energy_consumption: Array.isArray(
+          formData.abatementEnergy
+        )
+          ? formData.abatementEnergy.join(",")
+          : "",
+        water_consumption_and_treatment_details:
+          formData.waterConsumption || "",
+      },
+      packaging: {
+        packaging_materials_used: formData.packagingMaterials || [],
+        enviguide_support: false,
+        packaging_weight_per_unit: formData.packagingWeight || "",
+        packaging_size: formData.packagingSize || [],
+        uses_recycled_packaging: formData.hasRecycledPackaging === "yes",
+        recycled_packaging_percentage: formData.recycledPackagingPercent || [],
+      },
+      transportation_logistics: {
+        transport_modes_used: formData.transportModes || [],
+        enviguide_support: false,
+        uses_certified_logistics_provider:
+          formData.hasCertifiedLogistics === "yes",
+        logistics_provider_details: formData.logisticsDetails || [],
+      },
+      waste_by_products: {
+        waste_types_generated: formData.wasteTypes || [],
+        waste_treatment_methods: formData.wasteTreatment || [],
+        recycling_percentage: parseFloat(formData.wasteRecycledPercent) || 0,
+        has_byproducts: formData.hasByProducts === "yes",
+        byproduct_types: formData.byProductTypes || [],
+        byproduct_quantity: formData.byProductQuantity || "",
+        byproduct_price: formData.byProductPrice || [],
+      },
+      end_of_life_circularity: {
+        product_designed_for_recycling:
+          formData.designedForCircularity === "yes",
+        product_recycling_details: formData.circularityDetails || [],
+        has_takeback_program: formData.hasTakeBackProgram === "yes",
+        takeback_program_details: formData.takeBackDetails || [],
+      },
+      emission_factors: {
+        reports_product_carbon_footprint: formData.reportsPCF === "yes",
+        pcf_methodologies_used: formData.pcfMethodology || [],
+        has_scope_emission_data: formData.hasScopeEmissions === "yes",
+        emission_data_details: formData.scopeEmissionsData || [],
+        required_environmental_impact_methods: formData.impactMethods || [],
+      },
+      certification_standards: {
+        certified_iso_environmental_or_energy:
+          formData.hasISOCertification === "yes",
+        follows_recognized_standards: formData.followsStandards === "yes",
+        reports_to_esg_frameworks: formData.reportsESG === "yes",
+        previous_reports: formData.certificationReports || [],
+      },
+      additional_notes: {
+        carbon_reduction_measures: formData.carbonReductionMeasures || "",
+        renewable_energy_or_recycling_programs:
+          formData.renewableInitiatives || "",
+        willing_to_provide_primary_data: formData.willingToShareData === "yes",
+        primary_data_details: formData.primaryData || [],
+      },
+    };
+  };
+
+  const handleSubmit = async () => {
+    // Validate all required fields
+    const stepErrors = validateCurrentStep();
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = buildAPIPayload();
+
+      let result;
+      if (questionnaireId) {
+        // Update existing questionnaire
+        result = await supplierQuestionnaireService.updateQuestionnaire(
+          questionnaireId,
+          payload
+        );
+      } else {
+        // Create new questionnaire
+        result = await supplierQuestionnaireService.createQuestionnaire(
+          payload
+        );
+      }
+
+      if (result.success) {
+        // Clear draft
+        supplierQuestionnaireService.clearDraft();
+
+        // Save questionnaire ID for navigation to DQR
+        const sgiq_id =
+          result.data?.general_info?.sgiq_id || result.data?.sgiq_id;
+        setQuestionnaireId(sgiq_id);
+
+        // Show success modal
+        setShowSuccessModal(true);
+      } else {
+        alert(`Failed to submit questionnaire: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("An error occurred while submitting the questionnaire");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const nextStep = () => {
@@ -171,19 +877,20 @@ const SupplierQuestionnaire: React.FC = () => {
       </div>
       <input
         type={type}
-        // value={String(formData[field] || "")}
-        // onChange={(e) => {
-        //   handleInputChange(field, e.target.value);
-        //   if (errors[field]) {
-        //     setErrors((prev) => ({ ...prev, [field]: "" }));
-        //   }
-        // }}
+        value={String(formData[field] || "")}
+        onChange={(e) => {
+          handleInputChange(field, e.target.value);
+          if (errors[field]) {
+            setErrors((prev) => ({ ...prev, [field]: "" }));
+          }
+        }}
         placeholder={placeholder}
+        disabled={isViewMode}
         className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-lg transition-all text-gray-700 placeholder-gray-400 ${
           errors[field]
             ? "border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
             : "border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white"
-        }`}
+        } ${isViewMode ? "bg-gray-100 cursor-not-allowed opacity-70" : ""}`}
       />
       {errors[field] && (
         <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
@@ -213,7 +920,11 @@ const SupplierQuestionnaire: React.FC = () => {
         {options.map((option) => (
           <label
             key={option}
-            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-[#6366f1] hover:shadow-sm cursor-pointer transition-all"
+            className={`flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg transition-all ${
+              isViewMode
+                ? "cursor-not-allowed opacity-70"
+                : "hover:bg-white hover:border-[#6366f1] hover:shadow-sm cursor-pointer"
+            }`}
           >
             <input
               type="radio"
@@ -221,6 +932,7 @@ const SupplierQuestionnaire: React.FC = () => {
               value={option}
               checked={formData[field] === option}
               onChange={(e) => handleInputChange(field, e.target.value)}
+              disabled={isViewMode}
               className="text-green-500 focus:ring-green-500 w-4 h-4"
             />
             <span className="text-sm text-gray-700 font-medium">{option}</span>
@@ -245,11 +957,11 @@ const SupplierQuestionnaire: React.FC = () => {
       </label>
       <div className="flex space-x-3">
         <label
-          className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl cursor-pointer transition-all ${
+          className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl transition-all ${
             formData[field] === "yes"
               ? "bg-green-500/5 border-green-500 shadow-sm"
               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
-          }`}
+          } ${isViewMode ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
         >
           <div className="relative flex items-center justify-center">
             <input
@@ -258,6 +970,7 @@ const SupplierQuestionnaire: React.FC = () => {
               value="yes"
               checked={formData[field] === "yes"}
               onChange={(e) => handleInputChange(field, e.target.value)}
+              disabled={isViewMode}
               className="sr-only"
             />
             <div
@@ -275,11 +988,11 @@ const SupplierQuestionnaire: React.FC = () => {
           <span className="text-sm font-medium text-gray-700">Yes</span>
         </label>
         <label
-          className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl cursor-pointer transition-all ${
+          className={`flex items-center space-x-3 px-6 py-3 border-2 rounded-xl transition-all ${
             formData[field] === "no"
               ? "bg-green-500/5 border-green-500 shadow-sm"
               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
-          }`}
+          } ${isViewMode ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
         >
           <div className="relative flex items-center justify-center">
             <input
@@ -288,6 +1001,7 @@ const SupplierQuestionnaire: React.FC = () => {
               value="no"
               checked={formData[field] === "no"}
               onChange={(e) => handleInputChange(field, e.target.value)}
+              disabled={isViewMode}
               className="sr-only"
             />
             <div
@@ -327,7 +1041,11 @@ const SupplierQuestionnaire: React.FC = () => {
         {options.map((option) => (
           <label
             key={option}
-            className="flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-white hover:border-green-500 hover:shadow-sm cursor-pointer transition-all"
+            className={`flex items-center space-x-3 p-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg transition-all ${
+              isViewMode
+                ? "cursor-not-allowed opacity-70"
+                : "hover:bg-white hover:border-green-500 hover:shadow-sm cursor-pointer"
+            }`}
           >
             <input
               type="checkbox"
@@ -343,6 +1061,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   );
                 }
               }}
+              disabled={isViewMode}
               className="text-green-500 focus:ring-green-500 rounded w-4 h-4"
             />
             <span className="text-sm text-gray-700 font-medium">{option}</span>
@@ -373,24 +1092,31 @@ const SupplierQuestionnaire: React.FC = () => {
               value={item}
               onChange={(e) => updateListItem(field, index, e.target.value)}
               placeholder={placeholder}
-              className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white transition-all"
+              disabled={isViewMode}
+              className={`flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white transition-all ${
+                isViewMode ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             />
-            <button
-              onClick={() => removeListItem(field, index)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 size={18} />
-            </button>
+            {!isViewMode && (
+              <button
+                onClick={() => removeListItem(field, index)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
           </div>
         )
       )}
-      <button
-        onClick={() => addListItem(field)}
-        className="flex items-center space-x-2 px-4 py-2.5 text-green-500 hover:bg-green-500/10 rounded-lg text-sm font-medium transition-colors border border-green-500/30"
-      >
-        <Plus size={16} />
-        <span>Add Item</span>
-      </button>
+      {!isViewMode && (
+        <button
+          onClick={() => addListItem(field)}
+          className="flex items-center space-x-2 px-4 py-2.5 text-green-500 hover:bg-green-500/10 rounded-lg text-sm font-medium transition-colors border border-green-500/30"
+        >
+          <Plus size={16} />
+          <span>Add Item</span>
+        </button>
+      )}
     </div>
   );
 
@@ -413,49 +1139,51 @@ const SupplierQuestionnaire: React.FC = () => {
         {description && (
           <p className="text-sm text-gray-600 mb-3">{description}</p>
         )}
-        <div
-          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 transition-all ${
-            isDragging
-              ? "border-green-500 bg-green-500/5"
-              : "border-gray-300 hover:border-green-500/50"
-          }`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setIsDragging(false);
-          }}
-        >
-          <div className="flex flex-col items-center mb-4">
-            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-3">
-              <Upload className="text-green-500" size={24} />
-            </div>
-            <p className="text-sm text-gray-700 font-medium mb-1">
-              Drag and drop files here, or
-            </p>
-            <button className="text-green-500 hover:text-green-600 text-sm font-medium underline transition-colors">
-              browse to upload
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              Supports PDF, DOC, XLS (Max 10MB)
-            </p>
-          </div>
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const files = e.target.files;
-              if (files && files.length > 0) {
-                const fileNames = Array.from(files).map((f) => f.name);
-                handleInputChange(field, fileNames.join(", "));
-              }
+        {!isViewMode ? (
+          <div
+            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 transition-all ${
+              isDragging
+                ? "border-green-500 bg-green-500/5"
+                : "border-gray-300 hover:border-green-500/50"
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
             }}
-          />
-        </div>
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+            }}
+          >
+            <div className="flex flex-col items-center mb-4">
+              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-3">
+                <Upload className="text-green-500" size={24} />
+              </div>
+              <p className="text-sm text-gray-700 font-medium mb-1">
+                Drag and drop files here, or
+              </p>
+              <button className="text-green-500 hover:text-green-600 text-sm font-medium underline transition-colors">
+                browse to upload
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                Supports PDF, DOC, XLS (Max 10MB)
+              </p>
+            </div>
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  const fileNames = Array.from(files).map((f) => f.name);
+                  handleInputChange(field, fileNames.join(", "));
+                }
+              }}
+            />
+          </div>
+        ) : null}
         {formData[field] && (
           <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
             <p className="text-sm text-gray-700">{formData[field]}</p>
@@ -1098,12 +1826,78 @@ const SupplierQuestionnaire: React.FC = () => {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#e8ecf1] flex items-center justify-center">
+        <div className="text-center">
+          <Loader
+            size={48}
+            className="animate-spin text-green-500 mx-auto mb-4"
+          />
+          <p className="text-gray-600">Loading questionnaire...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#e8ecf1] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-gray-600 mb-6">{loadError}</p>
+          <button
+            onClick={() => navigate("/supplier-questionnaire")}
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg font-medium transition-all"
+          >
+            Back to List
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#e8ecf1]">
       <div className="py-6 sm:py-8 px-4 pb-32">
+        {/* Header with back button and mode indicator */}
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-6 w-full max-w-6xl mx-auto">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/supplier-questionnaire")}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span>Back to List</span>
+            </button>
+            <div className="flex items-center gap-2">
+              {isViewMode && (
+                <span className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+                  <Eye size={16} />
+                  View Mode
+                </span>
+              )}
+              {isEditMode && (
+                <span className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                  <Edit size={16} />
+                  Edit Mode
+                </span>
+              )}
+              {questionnaireId && (
+                <span className="text-sm text-gray-600">
+                  ID: {questionnaireId.slice(0, 8)}...
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Progress Steps */}
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-6 w-full max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-600">
               Step {currentStep + 1} of {steps.length}
             </span>
@@ -1224,33 +2018,63 @@ const SupplierQuestionnaire: React.FC = () => {
             </button>
 
             <div className="flex space-x-2 sm:space-x-3 w-full sm:w-auto">
-              <button
-                onClick={saveDraft}
-                disabled={isSaving}
-                className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 font-medium shadow-lg hover:shadow-xl transition-all border-2 border-gray-200 w-full sm:w-auto"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader size={16} className="animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <span>Save Draft</span>
-                )}
-              </button>
+              {!isViewMode && (
+                <button
+                  onClick={saveDraft}
+                  disabled={isSaving}
+                  className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 font-medium shadow-lg hover:shadow-xl transition-all border-2 border-gray-200 w-full sm:w-auto"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader size={16} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Draft</span>
+                  )}
+                </button>
+              )}
 
               {currentStep < steps.length - 1 ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-2xl shadow-lg shadow-green-500/30 font-medium transition-all w-full sm:w-auto"
+                  disabled={isViewMode}
+                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-2xl shadow-lg shadow-green-500/30 font-medium transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Next</span>
                   <ChevronRight size={20} />
                 </button>
+              ) : isViewMode ? (
+                <button
+                  onClick={() =>
+                    navigate(
+                      `/supplier-questionnaire/edit?sgiq_id=${questionnaireId}`
+                    )
+                  }
+                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:shadow-2xl shadow-lg shadow-blue-500/30 font-medium transition-all w-full sm:w-auto"
+                >
+                  <Edit size={20} />
+                  <span>Edit Questionnaire</span>
+                </button>
               ) : (
-                <button className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:shadow-2xl shadow-lg shadow-green-500/30 font-medium transition-all w-full sm:w-auto">
-                  <Check size={20} />
-                  <span>Submit</span>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:shadow-2xl shadow-lg shadow-green-500/30 font-medium transition-all w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader size={20} className="animate-spin" />
+                      <span>
+                        {isEditMode ? "Updating..." : "Submitting..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={20} />
+                      <span>{isEditMode ? "Update" : "Submit"}</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -1276,6 +2100,46 @@ const SupplierQuestionnaire: React.FC = () => {
           }
         `}
       </style>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fadeIn">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="text-green-500" size={48} />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Questionnaire Submitted!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Your supplier questionnaire has been successfully submitted. You
+                can now proceed to complete the Data Quality Rating.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    navigate("/dashboard");
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-all"
+                >
+                  Go to Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    navigate(`/data-quality-rating?sgiq_id=${questionnaireId}`);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg font-medium transition-all"
+                >
+                  Continue to DQR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

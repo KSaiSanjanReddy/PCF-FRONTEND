@@ -80,12 +80,14 @@ export async function updateSetup(
   const res = await fetch(endpoint(entity, "update"), {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({
-      id: item.id,
-      code: item.code,
-      name: item.name,
-      description: item.description ?? "",
-    }),
+    body: JSON.stringify([
+      {
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        description: item.description ?? "",
+      },
+    ]),
   });
   const data = await res.json();
   return !!(data?.success ?? data?.status);

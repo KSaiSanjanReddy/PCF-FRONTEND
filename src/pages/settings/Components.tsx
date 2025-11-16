@@ -20,6 +20,7 @@ import {
   deleteSetup,
   type SetupItem,
 } from "../../lib/dataSetupService";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 interface ComponentData {
   id: string;
@@ -55,6 +56,7 @@ const Components: React.FC = () => {
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const getCurrentData = () => {
     switch (activeTab) {
@@ -91,6 +93,7 @@ const Components: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
       const entity = tabToEntity();
       const items = await listSetup(entity);
       const normalized: ComponentData[] = (items as SetupItem[]).map(
@@ -106,6 +109,7 @@ const Components: React.FC = () => {
       );
       const setter = getCurrentSetter();
       setter(normalized);
+      setIsLoading(false);
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,30 +164,38 @@ const Components: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (editingItem && editItem.code && editItem.name && editItem.description) {
-      const entity = tabToEntity();
-      const ok = await updateSetup(entity, {
-        id: editingItem.id,
-        code: editItem.code,
-        name: editItem.name,
-        description: editItem.description,
-      });
-      if (ok) {
-        const items = await listSetup(entity);
-        const setter = getCurrentSetter();
-        const normalized: ComponentData[] = (items as SetupItem[]).map(
-          (i, idx) => ({
-            id:
-              (i as any).id?.toString?.() ||
-              (i as any)._id?.toString?.() ||
-              `${idx + 1}`,
-            code: i.code,
-            name: i.name,
-            description: i.description || "",
-          })
-        );
-        setter(normalized);
-        handleCancelEdit();
-      }
+      // Optimistic UI update first
+      const setter = getCurrentSetter();
+      const currentData = getCurrentData();
+      setter(
+        currentData.map((item) =>
+          item.id === editingItem.id
+            ? {
+                ...item,
+                code: editItem.code,
+                name: editItem.name,
+                description: editItem.description,
+              }
+            : item
+        )
+      );
+
+      const currentEditing = editingItem;
+      handleCancelEdit();
+
+      // Process API in background
+      (async () => {
+        const entity = tabToEntity();
+        const ok = await updateSetup(entity, {
+          id: currentEditing.id,
+          code: editItem.code,
+          name: editItem.name,
+          description: editItem.description,
+        });
+        if (!ok) {
+          console.error("Update failed for", entity, currentEditing.id);
+        }
+      })();
     }
   };
 
@@ -256,8 +268,6 @@ const Components: React.FC = () => {
     value: string
   ) => {
     setEditItem((prev) => ({ ...prev, [field]: value }));
-    // Trigger auto-save after input change
-    setTimeout(() => handleAutoSave(), 100);
   };
 
   const currentData = getCurrentData();
@@ -388,239 +398,248 @@ const Components: React.FC = () => {
 
           {/* Table */}
           <div className="px-6 pb-6">
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gradient-to-r from-green-50 to-green-100">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                        {getCodeTitle()}
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                        {getNameTitle()}
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                        Description
-                      </th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-32">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {currentData.map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className={`group hover:bg-gray-50 transition-colors duration-150 ${
-                          editingItem?.id === item.id
-                            ? "bg-blue-50 border-l-4 border-blue-500"
-                            : ""
-                        } ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
-                      >
-                        {editingItem?.id === item.id ? (
-                          // Enhanced Edit Mode
-                          <>
-                            <td className="px-6 py-4">
-                              <div className="relative">
+            {isLoading ? (
+              <div className="py-16 flex items-center justify-center">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-green-50 to-green-100">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                          {getCodeTitle()}
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                          {getNameTitle()}
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                          Description
+                        </th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-32">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {currentData.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className={`group hover:bg-gray-50 transition-colors duration-150 ${
+                            editingItem?.id === item.id
+                              ? "bg-blue-50 border-l-4 border-blue-500"
+                              : ""
+                          } ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
+                        >
+                          {editingItem?.id === item.id ? (
+                            // Enhanced Edit Mode
+                            <>
+                              <td className="px-6 py-4">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={editItem.code}
+                                    onChange={(e) =>
+                                      handleEditInputChange(
+                                        "code",
+                                        e.target.value
+                                      )
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                    placeholder="Enter code"
+                                    autoFocus
+                                  />
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
                                 <input
                                   type="text"
-                                  value={editItem.code}
+                                  value={editItem.name}
                                   onChange={(e) =>
                                     handleEditInputChange(
-                                      "code",
+                                      "name",
                                       e.target.value
                                     )
                                   }
                                   onKeyDown={handleKeyDown}
                                   className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
-                                  placeholder="Enter code"
-                                  autoFocus
+                                  placeholder="Enter name"
                                 />
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <input
-                                type="text"
-                                value={editItem.name}
-                                onChange={(e) =>
-                                  handleEditInputChange("name", e.target.value)
-                                }
-                                onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
-                                placeholder="Enter name"
-                              />
-                            </td>
-                            <td className="px-6 py-4">
-                              <input
-                                type="text"
-                                value={editItem.description}
-                                onChange={(e) =>
-                                  handleEditInputChange(
-                                    "description",
-                                    e.target.value
-                                  )
-                                }
-                                onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
-                                placeholder="Enter description"
-                              />
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center space-x-2">
-                                <button
-                                  onClick={handleSaveEdit}
-                                  disabled={
-                                    !editItem.code ||
-                                    !editItem.name ||
-                                    !editItem.description
+                              </td>
+                              <td className="px-6 py-4">
+                                <input
+                                  type="text"
+                                  value={editItem.description}
+                                  onChange={(e) =>
+                                    handleEditInputChange(
+                                      "description",
+                                      e.target.value
+                                    )
                                   }
-                                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
-                                  title="Save (Ctrl+Enter)"
-                                >
-                                  <Save className="h-3 w-3" />
-                                  <span>Save</span>
-                                </button>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
-                                  title="Cancel (Esc)"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </td>
-                          </>
-                        ) : (
-                          // View Mode
-                          <>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  {item.code}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {item.name}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-600 max-w-xs">
-                                {item.description}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <button
-                                  onClick={() => handleEdit(item)}
-                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                  title="Edit item"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteClick(item)}
-                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
-                                  title="Delete item"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                  placeholder="Enter description"
+                                />
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center space-x-2">
+                                  <button
+                                    onClick={handleSaveEdit}
+                                    disabled={
+                                      !editItem.code ||
+                                      !editItem.name ||
+                                      !editItem.description
+                                    }
+                                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
+                                    title="Save (Ctrl+Enter)"
+                                  >
+                                    <Save className="h-3 w-3" />
+                                    <span>Save</span>
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
+                                    title="Cancel (Esc)"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            // View Mode
+                            <>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {item.code}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {item.name}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-600 max-w-xs">
+                                  {item.description}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                  <button
+                                    onClick={() => handleEdit(item)}
+                                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                    title="Edit item"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteClick(item)}
+                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                    title="Delete item"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
 
-                    {/* Add New Row */}
-                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
-                      <td className="px-6 py-4">
-                        <div className="relative">
+                      {/* Add New Row */}
+                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
+                        <td className="px-6 py-4">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Enter code"
+                              value={newItem.code}
+                              onChange={(e) =>
+                                handleInputChange("code", e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
                           <input
                             type="text"
-                            placeholder="Enter code"
-                            value={newItem.code}
+                            placeholder="Enter name"
+                            value={newItem.name}
                             onChange={(e) =>
-                              handleInputChange("code", e.target.value)
+                              handleInputChange("name", e.target.value)
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
                           />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          type="text"
-                          placeholder="Enter name"
-                          value={newItem.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          type="text"
-                          placeholder="Enter description"
-                          value={newItem.description}
-                          onChange={(e) =>
-                            handleInputChange("description", e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                        />
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button
-                            onClick={handleAddNew}
-                            disabled={
-                              !newItem.code ||
-                              !newItem.name ||
-                              !newItem.description
+                        </td>
+                        <td className="px-6 py-4">
+                          <input
+                            type="text"
+                            placeholder="Enter description"
+                            value={newItem.description}
+                            onChange={(e) =>
+                              handleInputChange("description", e.target.value)
                             }
-                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
-                          >
-                            <Plus className="h-4 w-4" />
-                            <span>Add</span>
-                          </button>
-                          <button
-                            onClick={() =>
-                              setNewItem({
-                                code: "",
-                                name: "",
-                                description: "",
-                              })
-                            }
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                            title="Clear form"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Empty State */}
-              {currentData.length === 0 && (
-                <div className="text-center py-12 bg-gray-50">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Puzzle className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No {getTabTitle().toLowerCase()} found
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Get started by adding your first{" "}
-                    {getTabTitle().toLowerCase()}.
-                  </p>
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                          />
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <button
+                              onClick={handleAddNew}
+                              disabled={
+                                !newItem.code ||
+                                !newItem.name ||
+                                !newItem.description
+                              }
+                              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
+                            >
+                              <Plus className="h-4 w-4" />
+                              <span>Add</span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                setNewItem({
+                                  code: "",
+                                  name: "",
+                                  description: "",
+                                })
+                              }
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                              title="Clear form"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
+
+                {/* Empty State */}
+                {currentData.length === 0 && (
+                  <div className="text-center py-12 bg-gray-50">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Puzzle className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No {getTabTitle().toLowerCase()} found
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Get started by adding your first{" "}
+                      {getTabTitle().toLowerCase()}.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

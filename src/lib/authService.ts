@@ -68,9 +68,7 @@ class AuthService {
   }
 
   // Login user
-  async login(
-    credentials: LoginRequest
-  ): Promise<{
+  async login(credentials: LoginRequest): Promise<{
     success: boolean;
     user?: User;
     message: string;
@@ -172,7 +170,8 @@ class AuthService {
       if (data.status && data.data) {
         this.token = data.data.token;
         this.user = {
-          id: data.data.user_id,
+          id: data.data.user_email, // Use email as primary ID
+          userId: data.data.user_id, // Store backend user_id separately
           name: data.data.user_name,
           email: data.data.user_email,
           role: data.data.user_role,
