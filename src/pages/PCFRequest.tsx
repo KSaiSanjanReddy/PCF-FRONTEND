@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   Card,
@@ -9,6 +9,8 @@ import {
   Tag,
   Divider,
   DatePicker,
+  Spin,
+  message,
 } from "antd";
 import { ConfigProvider } from "antd";
 import {
@@ -24,9 +26,12 @@ import {
   Microchip,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
+import { useNavigate } from "react-router-dom";
+import pcfService from "../lib/pcfService";
+import type { PCFBOMItem } from "../lib/pcfService";
 
 interface PCFRequestItem {
-  id: number;
+  id: string;
   requestNumber: string;
   productName: string;
   productIcon: React.ReactNode;
@@ -37,92 +42,128 @@ interface PCFRequestItem {
 
 const PCFRequest: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
   const [pageSize, setPageSize] = useState(10);
   const [dateRange, setDateRange] = useState<
     [string | null, string | null] | null
   >(null);
+  const [pcfRequests, setPcfRequests] = useState<PCFRequestItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Mock data - matching the image exactly
-  const pcfRequests: PCFRequestItem[] = [
-    {
-      id: 1,
-      requestNumber: "PCF-2023-0002",
-      productName: "Engine Control Unit",
-      productIcon: <Microchip className="text-blue-600" size={20} />,
-      status: "in-progress",
-      submittedBy: "Tesla Inc.",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 2,
-      requestNumber: "PCF-2023-0002",
-      productName: "Chassis Frame",
-      productIcon: <Car className="text-purple-600" size={20} />,
-      status: "completed",
-      submittedBy: "BMW AG",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 3,
-      requestNumber: "PCF-2023-0002",
-      productName: "Battery Pack",
-      productIcon: <Battery className="text-green-600" size={20} />,
-      status: "draft",
-      submittedBy: "Volkswagen Group",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 4,
-      requestNumber: "PCF-2023-0002",
-      productName: "Headlight Assembly",
-      productIcon: <Lightbulb className="text-yellow-600" size={20} />,
-      status: "rejected",
-      submittedBy: "Ford Motor Company",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 5,
-      requestNumber: "PCF-2023-0002",
-      productName: "Steering System",
-      productIcon: <Car className="text-indigo-600" size={20} />,
-      status: "in-progress",
-      submittedBy: "Mercedes-Benz AG",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 6,
-      requestNumber: "PCF-2023-0002",
-      productName: "Suspension Unit",
-      productIcon: <Car className="text-teal-600" size={20} />,
-      status: "completed",
-      submittedBy: "Audi AG",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 7,
-      requestNumber: "PCF-2023-0002",
-      productName: "Climate Control",
-      productIcon: <Microchip className="text-orange-600" size={20} />,
-      status: "draft",
-      submittedBy: "Toyota Motor Corp.",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-    {
-      id: 8,
-      requestNumber: "PCF-2023-0002",
-      productName: "Steering System",
-      productIcon: <Car className="text-indigo-600" size={20} />,
-      status: "in-progress",
-      submittedBy: "Mercedes-Benz AG",
-      submittedOn: "23 Jul 2023, 10:45 AM",
-    },
-  ];
-
-  const statusCounts = {
-    inProgress: 12,
-    completed: 8,
-    pending: 4,
+  // Helper function to get product icon based on category
+  const getProductIcon = (categoryName: string): React.ReactNode => {
+    const category = categoryName?.toLowerCase() || "";
+    if (category.includes("battery") || category.includes("power")) {
+      return <Battery className="text-green-600" size={20} />;
+    } else if (category.includes("frame") || category.includes("chassis")) {
+      return <Car className="text-purple-600" size={20} />;
+    } else if (category.includes("light")) {
+      return <Lightbulb className="text-yellow-600" size={20} />;
+    } else if (category.includes("control") || category.includes("unit")) {
+      return <Microchip className="text-blue-600" size={20} />;
+    }
+    return <Car className="text-indigo-600" size={20} />;
   };
+
+  // Helper function to determine status (default to draft if not available)
+  const getStatus = (
+    item: PCFBOMItem
+  ): "in-progress" | "completed" | "draft" | "rejected" => {
+    // Since the list API doesn't provide status, we'll default to "draft"
+    // In a real scenario, you might need to fetch additional details or the API might include status
+    return "draft";
+  };
+
+  // Fetch PCF BOM list from API
+  const fetchPCFList = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await pcfService.getPCFBOMList(currentPage, pageSize);
+
+      if (result.success && result.data) {
+        // Helper function to format date
+        const formatDate = (dateString: string): string => {
+          try {
+            const date = new Date(dateString);
+            const months = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? "PM" : "AM";
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, "0");
+            return `${day} ${month} ${year}, ${displayHours}:${displayMinutes} ${ampm}`;
+          } catch (error) {
+            return "N/A";
+          }
+        };
+
+        // Transform API data to PCFRequestItem
+        const transformedData: PCFRequestItem[] = result.data.map((item) => ({
+          id: item.id,
+          requestNumber: item.code,
+          productName:
+            item.product_category_name || item.component_category_name || "N/A",
+          productIcon: getProductIcon(item.product_category_name || ""),
+          status: getStatus(item),
+          submittedBy: item.created_by_name || "Unknown",
+          submittedOn: item.created_date
+            ? formatDate(item.created_date)
+            : "N/A",
+        }));
+
+        setPcfRequests(transformedData);
+        setTotalCount(result.total_count || 0);
+        setTotalPages(result.total_pages || 1);
+      } else {
+        message.error(result.message || "Failed to fetch PCF requests");
+        setPcfRequests([]);
+      }
+    } catch (error) {
+      console.error("Error fetching PCF list:", error);
+      message.error("An error occurred while fetching PCF requests");
+      setPcfRequests([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, pageSize]);
+
+  // Load data on component mount and when page changes
+  useEffect(() => {
+    fetchPCFList();
+  }, [fetchPCFList]);
+
+  // Calculate status counts from current data
+  const statusCounts = {
+    inProgress: pcfRequests.filter((item) => item.status === "in-progress")
+      .length,
+    completed: pcfRequests.filter((item) => item.status === "completed").length,
+    pending: pcfRequests.filter((item) => item.status === "draft").length,
+  };
+
+  // Filter requests based on status filter
+  const filteredRequests =
+    statusFilter === "all"
+      ? pcfRequests
+      : pcfRequests.filter((item) => item.status === statusFilter);
 
   const getStatusTag = (status: string) => {
     const statusConfig = {
@@ -177,9 +218,18 @@ const PCFRequest: React.FC = () => {
       title: "Actions",
       key: "actions",
       width: 100,
-      render: () => (
-        <Button type="text" onClick={() => console.log("View clicked")}>
-          <Eye size={18} />
+      render: (_, record) => (
+        <Button
+          type="text"
+          onClick={() => navigate(`/pcf-request/${record.id}`)}
+          icon={
+            <Eye
+              size={16}
+              className="flex items-center justify-center mt-[5px]"
+            />
+          }
+        >
+          View
         </Button>
       ),
     },
@@ -213,7 +263,7 @@ const PCFRequest: React.FC = () => {
         },
       }}
     >
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="bg-gray-100 p-6">
         <div className="">
           {/* Header Section */}
           <Card className="mb-6">
@@ -343,6 +393,8 @@ const PCFRequest: React.FC = () => {
                   defaultValue="All Status"
                   className="w-[150px]"
                   size="large"
+                  value={statusFilter}
+                  onChange={(value) => setStatusFilter(value)}
                   options={[
                     { label: "All Status", value: "all" },
                     { label: "In Progress", value: "in-progress" },
@@ -362,25 +414,34 @@ const PCFRequest: React.FC = () => {
                     { label: "Power Systems", value: "power" },
                   ]}
                 />
-                <Button type="primary" icon={<Plus size={16} />} size="large">
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  size="large"
+                  onClick={() => navigate("/pcf-request/new")}
+                >
                   New Request
                 </Button>
               </Space>
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={pcfRequests}
-              pagination={false}
-              scroll={{ x: 1200 }}
-              rowKey="id"
-            />
+            <Spin spinning={isLoading}>
+              <Table
+                columns={columns}
+                dataSource={filteredRequests}
+                pagination={false}
+                scroll={{ x: 1200 }}
+                rowKey="id"
+                loading={isLoading}
+              />
+            </Spin>
 
             <div className="mt-6 pt-4 border-t border-gray-200">
               <Space className="w-full justify-between">
                 <div className="text-gray-600 text-sm">
                   Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                  {Math.min(currentPage * pageSize, 24)} of 24 entries
+                  {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
+                  entries
                 </div>
                 <div>
                   <Space size={4}>
@@ -391,7 +452,10 @@ const PCFRequest: React.FC = () => {
                     >
                       <div className="text-base">‹</div>
                     </Button>
-                    {[1, 2, 3].map((pageNum) => (
+                    {Array.from(
+                      { length: Math.min(totalPages, 10) },
+                      (_, i) => i + 1
+                    ).map((pageNum) => (
                       <Button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
@@ -402,7 +466,7 @@ const PCFRequest: React.FC = () => {
                       </Button>
                     ))}
                     <Button
-                      disabled={currentPage === 3}
+                      disabled={currentPage >= totalPages}
                       onClick={() => setCurrentPage(currentPage + 1)}
                       className="border-none py-1 px-2"
                     >

@@ -1,0 +1,607 @@
+Organization Questionnaire - Product Carbon Footprint 
+
+This questionnaire consolidates organizational and product-level data collection for calculating the Product Carbon Footprint (PCF) of automotive products or electronic components using a cradle-to-gate boundary condition. It integrates Scope 1, 2, 3, and avoided emissions, covering GHG Protocol, ISO 14067, and industry best practices.  
+
+General Information 
+
+Display Message as per GDPR: All information provided is confidential and used only for Corporate and product level sustainability assessment.  
+
+    Please enter the name of your organization? * 
+
+    Text 
+
+    What are your core business activities? * 
+
+Radio buttons:  
+
+    Manufacturing  
+
+    Food Processing  
+
+    Power generation sector  
+
+    Construction & Real Estate  
+
+    Logistics & Transportation  
+
+    Technology development & Services (IT)  
+
+    Others  
+
+ 
+
+    Please enter the Company site address? * 
+
+    Text 
+
+    Please enter your Designation/Role/Title? * 
+
+    Text 
+
+    Please enter your e-mail address? * 
+
+    Text 
+
+    What is the Annual Production Volume? 
+
+    Text 
+
+ 
+
+    Please Specify the Production Site Where the Product is manufactured? 
+
+    Text 
+
+ 
+
+    What is your organization's annual revenue? * 
+
+    $1 Million or less  
+
+    $1 Million to $2 Million  
+
+    $2 Million to $3 Million  
+
+    $3 Million to $4 Million  
+
+    $4 Million to $5 Million  
+
+ 
+
+    Please enter the organizational annual reporting period?  
+
+    Open text for numerical value [4 digits] – Dropdown box to select year  
+
+ 
+
+Material Composition 
+
+    What are the main raw materials used in your product? * 
+
+    Aluminum 
+
+    Iron 
+
+    Copper 
+
+    Alloy 
+
+    Contact Enviguide for support 
+
+ 
+
+    Does your company have Consumption of recycled material content/secondary materials used in your products? *  
+
+    Yes/no  
+
+ 
+
+    [IF YES in Q11] Please write the percentage of total recycled material content? *  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+    [IF YES in 11] Does your company know (or can give a rough estimate) of the percentage of pre-consumer, post-consumer and reutilization materials used in your products? *   
+
+    Y/N  
+
+ 
+
+    [IF YES in Q13] Please write the percentage of pre-consumer material? *  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+  
+
+ 
+
+    [IF YES in Q13] Please write the percentage of post-consumer material? *  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+  
+
+    [IF YES in Q13] Please write the percentage of reutilization material? *  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+ 
+
+    [IF NO in Q11] Does your company have Consumption of recycled copper used in your products? * 
+
+    Y/N  
+
+ 
+
+    [IF YES in Q17] Please write the percentage of recycled copper?  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+  
+
+    [IF NO in Q11] Does your company have Consumption of recycled Aluminum used in your products? *  
+
+    Y/N  
+
+  
+
+    [IF YES in Q19] Please write the percentage of recycled Aluminum?  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+  
+
+    [IF NO in Q11] Does your company have Consumption of recycled steel used in your products? *  
+
+    Y/N  
+
+  
+
+    [IF YES in Q21] Please write the percentage of recycled steel? *  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+    [IF NO in Q11] Does your company has consumption of recycled plastics (thermoplastics, filler & fiber) used in your products* 
+
+    Y/N  
+
+ 
+
+    [IF YES in Q23] Please write the percentage of total recycled plastics? * 
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+    [IF YES in Q23] Please write the percentage of recycled thermoplastics? * 
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+ 
+
+    [IF YES in Q23] Please write the percentage of recycled plastics filler (Talcum powder (filler), Limestone flour (0.1mm), Magnesium oxide (MgO, fine, filler), cellulose TS, Methylcellulose PE, Viscose (cellulose xanthate) PE, Jute hessian net TS)?  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+  
+
+    [IF YES in Q23] Please write the percentage of recycled fiber content (types: short, long & ultra-short fibers)?  
+
+    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+
+  
+
+    Does your company have a recycling process or program implemented and managed by your own/Partner/Contractor/3rd party?* 
+
+    Y/N  
+
+  
+
+     [IF NO in Q28] Do you have any future strategy regarding the recycling process or secondary material usage targets? *  
+
+    Y/N  
+
+  
+
+    [IF YES in Q29] Please write the year when do you implement the recycling process?  
+
+    Numerical year value – [4 digits]  
+
+ 
+
+    Do you track emissions from transporting raw materials to your facilities? If yes, provide estimated CO₂ emissions in metric tons.  
+
+    Text 
+
+ 
+
+    Do you need our team help to calculate your supply chain emissions?* 
+
+    Y/N  
+
+ 
+
+    [If YES in Q32] Please specify or explain your requirement below? 
+
+    Open text box to write (optional)  
+
+ 
+
+    Please specify % post-consumer recycling (PCR) and % post-industrial recycling (PIR). 
+
+    Numeric 
+
+ 
+
+    Do you use bio-based or renewable materials? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q35] Please specify the type and percentage of bio-based or renewable materials? * 
+
+    Add Button 
+
+ 
+
+    Please provide material safety data sheets (MSDS) or composition breakdowns if available? 
+
+    Link or attach MSDS copy 
+
+ 
+
+    Please Specify the metals which alloy is used most? 
+
+    Text 
+
+ 
+
+    What is the grade of metal used in manufacture? 
+
+    Text 
+
+ 
+
+Energy & Manufacturing 
+
+    What type of energy sources are used at your production site? * 
+
+    Solar Energy 
+
+    Wind Energy 
+
+    Hydro Electric Energy 
+
+    Geothermal Energy 
+
+    Bio Based Energy 
+
+    Tidal Energy 
+
+    Nuclear Energy 
+
+    Steam Energy 
+
+    Heat Energy 
+
+    Cooling Energy 
+
+    Add Button 
+
+ 
+
+    What is your site’s electricity consumption per year (kWh/year)? * 
+
+    Text  
+
+ 
+
+    Do you purchase renewable electricity? * 
+
+    Yes/no 
+
+ 
+
+    [If yes Q 42] what is the % of total electricity consumption? 
+
+    Add button 
+
+ 
+
+    Do u have any device or methodology to calculate from factory level to product level energy? * 
+
+    Yes/no 
+
+ 
+
+    [If yes Q44] Provide detailed Methodology? 
+
+    Link or document Add Button 
+
+ 
+
+    Energy intensity of production: estimated kWh or MJ per unit of product (if available). 
+
+    Text  
+
+ 
+
+    Process-specific energy usage? * 
+
+    casting, 
+
+    Moulding,  
+
+    machining,  
+
+    painting,  
+
+    surface treatment,  
+
+    curing,  
+
+    welding,  
+
+    Add Button 
+
+    Support from Enviguide  
+
+ 
+
+ 
+
+ 
+
+    Do you use any abatement systems (VOC treatment, heat recovery)? *  
+
+    Yes/no 
+
+ 
+
+ 
+
+    [If yes Q48] Provide energy consumption if applicable? 
+
+    Add Button 
+
+ 
+
+    Water consumption and treatment (if significant for your product). 
+
+    Text/Numeric 
+
+Packaging 
+
+    What type of packaging materials are used for delivering the product? * 
+
+    Cardboard,  
+
+    plastic film,  
+
+    wood pallets, 
+
+    another Component 
+
+    Support from Enviguide 
+
+ 
+
+    Approximate weight of packaging per unit product (kg/unit)? 
+
+    Text 
+
+ 
+
+    Do you use recycled material for packaging? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q53] What % recycled content in packaging materials?  
+
+    Add Button 
+
+ 
+
+Transportation & Logistics 
+
+    What is the Mode(s) of transport used for transportation goods/products? * 
+
+    truck,  
+
+    rail,  
+
+    ship,  
+
+    air, 
+
+    Multimode 
+
+    Support from Enviguide. 
+
+ 
+
+    Do you use logistics service providers with certified emission reporting (e.g., GLEC framework)? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q56] please Provide details? 
+
+    Add Button 
+
+ 
+
+Waste & By-products 
+
+    What types of production waste are generated? * 
+
+    scrap metal,  
+
+    plastic scrap,  
+
+    sludge,  
+
+    solvents, 
+
+    Add Button 
+
+ 
+
+    How is waste treated? *  
+
+    landfill,  
+
+    incineration,  
+
+    recycling,  
+
+    recovery, 
+
+    Add Button 
+
+ 
+
+    % of scrap/waste material that is internally recycled or externally sent for recycling. 
+
+    Text/Numeric 
+
+ 
+
+    Any by-products generated? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q61] specify type byproduct?* 
+
+    Add Button 
+
+ 
+
+    what is the Quantity of byproduct?* 
+
+    Text 
+
+ 
+
+ 
+
+ 
+
+End-of-Life & Circularity 
+
+    Is your product designed for disassembly, recycling, or reuse? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q64] Specify the details 
+
+    Add Button 
+
+ 
+
+ 
+
+    Do you provide take-back or recycling programs? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q66] Specify the details % recyclability of product (if known).  
+
+    Add Button 
+
+ 
+
+Emission Factors / LCA Data 
+
+ 
+
+    Do you already report Product Carbon Footprint (PCF) values for your product? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q68] share methodology (ISO 14067, GHG Protocol, Catena-X, etc.). 
+
+    Add Button  
+
+ 
+
+    Do you have site-level or product-level Scope 1, 2, and 3 emissions data available? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q70] provide the emission data? 
+
+    Add Button 
+
+Certifications & Standards 
+
+    Are you certified to ISO 14001 (Environmental Management) or ISO 50001 (Energy Management)? * 
+
+    Yes/no 
+
+ 
+
+    Do you follow ISO 14067, GHG Protocol, Catena-X PCF Guideline, or other recognized standards? * 
+
+    Yes/no 
+
+ 
+
+    Do you report to CDP (Carbon Disclosure Project), SBTi (Science-Based Targets initiative), or other ESG frameworks? * 
+
+    Yes/no 
+
+ 
+
+    [If YES in Q72, 73, 74] provide the previous report 
+
+    Add Button 
+
+ 
+
+Additional Notes 
+
+    What measures are you taking to reduce carbon emissions in your production processes? 
+
+    Text 
+
+ 
+
+    What renewable energy initiatives or recycling programs are in place at your facility? 
+
+    Text 
+
+ 
+
+    Are you willing to provide primary data directly into digital PCF platforms (e.g., Catena-X, SCIP, or OEM-specific PCF tools)? * 
+
+    Yes/no 
+
+ 
+
+    [If yes Q78] please provide the primary data? 
+
+    Add Button 
+
+ 

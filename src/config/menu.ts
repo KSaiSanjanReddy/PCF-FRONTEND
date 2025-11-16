@@ -72,6 +72,18 @@ export const menuItems: MenuItem[] = [
     icon: "BarChart3",
   },
   {
+    id: "supplier-questionnaire",
+    title: "Supplier Questionnaire",
+    path: "/supplier-questionnaire",
+    icon: "ClipboardList",
+  },
+  {
+    id: "data-quality-rating",
+    title: "Data Quality Rating",
+    path: "/data-quality-rating",
+    icon: "Star",
+  },
+  {
     id: "settings",
     title: "Settings",
     path: "/settings",

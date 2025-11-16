@@ -32,7 +32,11 @@ import DocumentMaster from "../pages/DocumentMaster";
 import TaskManagement from "../pages/TaskManagement";
 import ReportsMain from "../pages/Reports";
 import SupplierQuestionnaire from "../pages/SupplierQuestionnaire";
+import SupplierQuestionnaireList from "../pages/SupplierQuestionnaireList";
 import DataQualityRating from "../pages/DataQualityRating";
+import DataQualityRatingList from "../pages/DataQualityRatingList";
+import PCFRequestCreate from "../pages/PCFRequestCreate";
+import PCFRequestView from "../pages/PCFRequestView";
 
 export const router = createBrowserRouter([
   {
@@ -74,6 +78,14 @@ export const router = createBrowserRouter([
       {
         path: "pcf-request",
         element: <PCFRequest />,
+      },
+      {
+        path: "pcf-request/new",
+        element: <PCFRequestCreate />,
+      },
+      {
+        path: "pcf-request/:id",
+        element: <PCFRequestView />,
       },
       {
         path: "product-portfolio",
@@ -161,10 +173,26 @@ export const router = createBrowserRouter([
       },
       {
         path: "supplier-questionnaire",
+        element: <SupplierQuestionnaireList />,
+      },
+      {
+        path: "supplier-questionnaire/new",
+        element: <SupplierQuestionnaire />,
+      },
+      {
+        path: "supplier-questionnaire/edit",
+        element: <SupplierQuestionnaire />,
+      },
+      {
+        path: "supplier-questionnaire/view",
         element: <SupplierQuestionnaire />,
       },
       {
         path: "data-quality-rating",
+        element: <DataQualityRatingList />,
+      },
+      {
+        path: "data-quality-rating/view",
         element: <DataQualityRating />,
       },
     ],

@@ -32,6 +32,8 @@ import {
   Menu,
   X,
   ChevronLeft,
+  ClipboardList,
+  Star,
 } from "lucide-react";
 import { menuItems } from "../config/menu";
 import { cn } from "../lib/utils";
@@ -49,6 +51,8 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   Puzzle,
   CheckSquare,
   BarChart3,
+  ClipboardList,
+  Star,
   Settings,
   User,
   Users,
