@@ -29,6 +29,7 @@ import ActiveProjects from "../pages/ActiveProjects";
 import ArchivedProjects from "../pages/ArchivedProjects";
 import ComponentsMaster from "../pages/ComponentsMaster";
 import DocumentMaster from "../pages/DocumentMaster";
+import DocumentMasterCreate from "../pages/DocumentMasterCreate";
 import TaskManagement from "../pages/TaskManagement";
 import TaskCreate from "../pages/TaskCreate";
 import ReportsMain from "../pages/Reports";
@@ -116,6 +117,10 @@ export const router = createBrowserRouter([
       {
         path: "document-master",
         element: <DocumentMaster />,
+      },
+      {
+        path: "document-master/new",
+        element: <DocumentMasterCreate />,
       },
       {
         path: "task-management",
