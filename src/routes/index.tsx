@@ -30,6 +30,7 @@ import ArchivedProjects from "../pages/ArchivedProjects";
 import ComponentsMaster from "../pages/ComponentsMaster";
 import DocumentMaster from "../pages/DocumentMaster";
 import TaskManagement from "../pages/TaskManagement";
+import TaskCreate from "../pages/TaskCreate";
 import ReportsMain from "../pages/Reports";
 import SupplierQuestionnaire from "../pages/SupplierQuestionnaire";
 import SupplierQuestionnaireList from "../pages/SupplierQuestionnaireList";
@@ -37,6 +38,7 @@ import DataQualityRating from "../pages/DataQualityRating";
 import DataQualityRatingList from "../pages/DataQualityRatingList";
 import PCFRequestCreate from "../pages/PCFRequestCreate";
 import PCFRequestView from "../pages/PCFRequestView";
+import TaskView from "../pages/TaskView";
 
 export const router = createBrowserRouter([
   {
@@ -118,6 +120,14 @@ export const router = createBrowserRouter([
       {
         path: "task-management",
         element: <TaskManagement />,
+      },
+      {
+        path: "task-management/new",
+        element: <TaskCreate />,
+      },
+      {
+        path: "task-management/view/:id",
+        element: <TaskView />,
       },
       {
         path: "reports",
