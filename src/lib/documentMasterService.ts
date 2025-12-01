@@ -70,11 +70,14 @@ class DocumentMasterService {
     const token = localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `${token}`,
     };
   }
 
-  async getDocumentList(pageNumber: number = 1, pageSize: number = 10): Promise<DocumentListResponse> {
+  async getDocumentList(
+    pageNumber: number = 1,
+    pageSize: number = 10
+  ): Promise<DocumentListResponse> {
     try {
       // Assuming the list API follows this pattern based on other modules
       const response = await fetch(
@@ -85,15 +88,33 @@ class DocumentMasterService {
         }
       );
       const result = await response.json();
+      // Original: return {
+      // Original:   success: result.status,
+      // Original:   message: result.message,
+      // Original:   data: result.data?.data || [], // Adjusting based on likely pagination structure
+      // Original:   total_count: result.data?.total_count || 0,
+      // Original: };
+      const success = typeof result.status === "boolean" ? result.status : true;
+      const dataArray = Array.isArray(result.data)
+        ? result.data
+        : result.data?.data || [];
       return {
-        success: result.status,
-        message: result.message,
-        data: result.data?.data || [], // Adjusting based on likely pagination structure
-        total_count: result.data?.total_count || 0,
+        success,
+        message: result.message || "Document list fetched successfully",
+        data: dataArray,
+        total_count:
+          result.totalRecords ||
+          result.data?.total_count ||
+          dataArray.length ||
+          0,
       };
     } catch (error) {
       console.error("Error fetching document list:", error);
-      return { success: false, message: "Failed to fetch document list", data: [] };
+      return {
+        success: false,
+        message: "Failed to fetch document list",
+        data: [],
+      };
     }
   }
 
@@ -140,13 +161,18 @@ class DocumentMasterService {
     }
   }
 
-  async updateDocument(data: any): Promise<{ success: boolean; message: string }> {
+  async updateDocument(
+    data: any
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/document-master/update`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-master/update`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(data),
+        }
+      );
       const result = await response.json();
       return {
         success: result.status,
@@ -158,13 +184,18 @@ class DocumentMasterService {
     }
   }
 
-  async deleteDocument(id: string): Promise<{ success: boolean; message: string }> {
+  async deleteDocument(
+    id: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/document-master/delete`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ id }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-master/delete`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify({ id }),
+        }
+      );
       const result = await response.json();
       return {
         success: result.status,
@@ -178,10 +209,13 @@ class DocumentMasterService {
 
   async getCategoryList(): Promise<CategoryItem[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/data-setup/category/list`, {
-        method: "GET",
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/data-setup/category/list`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
       const result = await response.json();
       return result.data || [];
     } catch (error) {
