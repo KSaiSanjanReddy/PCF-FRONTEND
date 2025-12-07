@@ -23836,7 +23836,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"document_type\": \"Deleting\",\r\n    \"category\": \"01K5TRHWEASX3ME05RJD4AHP5T\",\r\n    \"product_code\": \"PO786TG\",\r\n    \"version\": \"V2.0\",\r\n    \"document_title\": \"Title King\",\r\n    \"description\": \"jhsvdsdvcujkuioyhvbhsad\",\r\n    \"tags\": [\r\n        \"01K5TRN1JQPS70CEPXNT27WR79\"\r\n    ],\r\n    \"access_level\": \"Public\",\r\n    \"document\": [\r\n        \"imag1.jpg\"\r\n    ],\r\n    \"file_size\": \"4 MB\"\r\n}",
+							"raw": "{\r\n    \"document_type\": \"Certificate\",\r\n    \"category\": \"01K6YMG012GACR87XQJ4F80E5C\",\r\n    \"product_code\": \"PO786TG\",\r\n    \"version\": \"V2.0\",\r\n    \"document_title\": \"Certificate\",\r\n    \"description\": \"KLJH\",\r\n    \"tags\": [\r\n        \"01K5TRN1JQAP0G5T7Q9V49P0B8\",\r\n        \"01K5TRN1JQPS70CEPXNT27WR79\"\r\n    ],\r\n    \"access_level\": \"Public\",\r\n    \"document\": [\r\n        \"imag1.jpg\"\r\n    ],\r\n    \"file_size\": \"4 MB\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -24448,6 +24448,175 @@
 							],
 							"cookie": [],
 							"body": "{\n    \"status\": true,\n    \"message\": \"Fetched successfully!\",\n    \"code\": 200,\n    \"data\": [\n        {\n            \"id\": \"01K5TRMB68X98Y5D057A8JMMBV\",\n            \"code\": \"FUL002\",\n            \"name\": \"Baterry Cell\",\n            \"description\": \"Individuals\"\n        },\n        {\n            \"id\": \"01K5TRN1JQPS70CEPXNT27WR79\",\n            \"code\": \"STHC121\",\n            \"name\": \"GFG Steam\",\n            \"description\": \"csc cssc\"\n        },\n        {\n            \"id\": \"01K5TRN1JQAP0G5T7Q9V49P0B8\",\n            \"code\": \"STHC122\",\n            \"name\": \"RF Steam\",\n            \"description\": \"No jj\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "{{access-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8000/api/document-master/list?pageNumber=1&pageSize=10",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"document-master",
+								"list"
+							],
+							"query": [
+								{
+									"key": "pageNumber",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": null,
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": null,
+									"disabled": true
+								},
+								{
+									"key": "category",
+									"value": null,
+									"disabled": true
+								},
+								{
+									"key": "sortBy",
+									"value": null,
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": null,
+									"description": "ASC / DESC",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "{{access-token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "http://localhost:8000/api/document-master/list?pageNumber=1&pageSize=10",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"document-master",
+										"list"
+									],
+									"query": [
+										{
+											"key": "pageNumber",
+											"value": "1"
+										},
+										{
+											"key": "pageSize",
+											"value": "10"
+										},
+										{
+											"key": "search",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "status",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "category",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "sortBy",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "sortOrder",
+											"value": null,
+											"description": "ASC / DESC",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3415"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"d57-5Phxv4SiSLO2to0qezAUK8/lFf8\""
+								},
+								{
+									"key": "Date",
+									"value": "Mon, 24 Nov 2025 04:46:31 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Document list fetched successfully\",\n    \"currentPage\": 1,\n    \"totalRecords\": 4,\n    \"totalPages\": 1,\n    \"recentActivity\": [\n        {\n            \"id\": \"01KAT2TTC219NSP3045TF62QBS\",\n            \"document_title\": \"Certificate\",\n            \"code\": \"DOC00004\",\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"created_date\": \"2025-11-24T04:44:26.258Z\"\n        },\n        {\n            \"id\": \"01KAT2QVWCGBBJQ24XCHYV6G4P\",\n            \"document_title\": \"Calculation\",\n            \"code\": \"DOC00003\",\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"created_date\": \"2025-11-24T04:42:49.492Z\"\n        },\n        {\n            \"id\": \"01KAT2PT3M1Q03C6HWMVY6P1M9\",\n            \"document_title\": \"PCF Report\",\n            \"code\": \"DOC00002\",\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"created_date\": \"2025-11-24T04:42:14.906Z\"\n        },\n        {\n            \"id\": \"01K5TTTCTHSMKYNERFYC4E243K\",\n            \"document_title\": \"Title King\",\n            \"code\": \"DOC00001\",\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3K6DJX3NF3Y5SRW1630KS5E\",\n            \"created_date\": \"2025-10-23T08:25:08.646Z\"\n        }\n    ],\n    \"stats\": {\n        \"totalDocuments\": 4,\n        \"pendingDocuments\": 4,\n        \"pcfDocuments\": 1,\n        \"daily\": {\n            \"current\": 3,\n            \"previous\": 0,\n            \"progress\": 100\n        },\n        \"weekly\": {\n            \"current\": 3,\n            \"previous\": 0,\n            \"progress\": 100\n        },\n        \"monthly\": {\n            \"current\": 3,\n            \"previous\": 1,\n            \"progress\": 100\n        },\n        \"yearly\": {\n            \"current\": 4,\n            \"previous\": 0,\n            \"progress\": 100\n        }\n    },\n    \"data\": [\n        {\n            \"id\": \"01KAT2TTC219NSP3045TF62QBS\",\n            \"code\": \"DOC00004\",\n            \"document_type\": \"Certificate\",\n            \"category\": \"01K6YMG012GACR87XQJ4F80E5C\",\n            \"product_code\": \"PO786TG\",\n            \"version\": \"V2.0\",\n            \"document_title\": \"Certificate\",\n            \"description\": \"KLJH\",\n            \"tags\": [\n                \"01K5TRN1JQAP0G5T7Q9V49P0B8\",\n                \"01K5TRN1JQPS70CEPXNT27WR79\"\n            ],\n            \"access_level\": \"Public\",\n            \"document\": [\n                \"imag1.jpg\"\n            ],\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"updated_by\": null,\n            \"file_size\": \"4 MB\",\n            \"update_date\": \"2025-11-24T04:44:26.258Z\",\n            \"created_date\": \"2025-11-24T04:44:26.258Z\",\n            \"category_details\": null,\n            \"tag_details\": [\n                {\n                    \"id\": \"01K5TRN1JQPS70CEPXNT27WR79\",\n                    \"code\": \"STHC121\",\n                    \"name\": \"GFG Steam\"\n                },\n                {\n                    \"id\": \"01K5TRN1JQAP0G5T7Q9V49P0B8\",\n                    \"code\": \"STHC122\",\n                    \"name\": \"RF Steam\"\n                }\n            ]\n        },\n        {\n            \"id\": \"01KAT2QVWCGBBJQ24XCHYV6G4P\",\n            \"code\": \"DOC00003\",\n            \"document_type\": \"Calculation\",\n            \"category\": \"01K5TRHWEASX3ME05RJD4AHP5T\",\n            \"product_code\": \"PO786TG\",\n            \"version\": \"V2.0\",\n            \"document_title\": \"Calculation\",\n            \"description\": \"KLJH\",\n            \"tags\": [\n                \"01K5TRN1JQPS70CEPXNT27WR79\"\n            ],\n            \"access_level\": \"Public\",\n            \"document\": [\n                \"imag1.jpg\"\n            ],\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"updated_by\": null,\n            \"file_size\": \"4 MB\",\n            \"update_date\": \"2025-11-24T04:42:49.492Z\",\n            \"created_date\": \"2025-11-24T04:42:49.492Z\",\n            \"category_details\": null,\n            \"tag_details\": [\n                {\n                    \"id\": \"01K5TRN1JQPS70CEPXNT27WR79\",\n                    \"code\": \"STHC121\",\n                    \"name\": \"GFG Steam\"\n                }\n            ]\n        },\n        {\n            \"id\": \"01KAT2PT3M1Q03C6HWMVY6P1M9\",\n            \"code\": \"DOC00002\",\n            \"document_type\": \"PCF Report\",\n            \"category\": \"01K5TRHWEASX3ME05RJD4AHP5T\",\n            \"product_code\": \"PO786TG\",\n            \"version\": \"V2.0\",\n            \"document_title\": \"PCF Report\",\n            \"description\": \"KLJH\",\n            \"tags\": [\n                \"01K5TRN1JQPS70CEPXNT27WR79\"\n            ],\n            \"access_level\": \"Public\",\n            \"document\": [\n                \"imag1.jpg\"\n            ],\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3KD85DVD6TRWHDF74KKRZYV\",\n            \"updated_by\": null,\n            \"file_size\": \"4 MB\",\n            \"update_date\": \"2025-11-24T04:42:14.906Z\",\n            \"created_date\": \"2025-11-24T04:42:14.906Z\",\n            \"category_details\": null,\n            \"tag_details\": [\n                {\n                    \"id\": \"01K5TRN1JQPS70CEPXNT27WR79\",\n                    \"code\": \"STHC121\",\n                    \"name\": \"GFG Steam\"\n                }\n            ]\n        },\n        {\n            \"id\": \"01K5TTTCTHSMKYNERFYC4E243K\",\n            \"code\": \"DOC00001\",\n            \"document_type\": \"Testing Updating\",\n            \"category\": \"01K5TRHWEASX3ME05RJD4AHP5T\",\n            \"product_code\": \"PO786TG\",\n            \"version\": \"V2.0\",\n            \"document_title\": \"Title King\",\n            \"description\": \"jhsvdsdvcujkuioyhvbhsad\",\n            \"tags\": [\n                \"01K5TRN1JQPS70CEPXNT27WR79\"\n            ],\n            \"access_level\": \"Public\",\n            \"document\": [\n                \"imag1.jpg\"\n            ],\n            \"status\": \"Pending\",\n            \"created_by\": \"01K3K6DJX3NF3Y5SRW1630KS5E\",\n            \"updated_by\": \"01K3K6DJX3NF3Y5SRW1630KS5E\",\n            \"file_size\": \"4 MB\",\n            \"update_date\": \"2025-09-23T08:25:27.942Z\",\n            \"created_date\": \"2025-10-23T08:25:08.646Z\",\n            \"category_details\": null,\n            \"tag_details\": [\n                {\n                    \"id\": \"01K5TRN1JQPS70CEPXNT27WR79\",\n                    \"code\": \"STHC121\",\n                    \"name\": \"GFG Steam\"\n                }\n            ]\n        }\n    ]\n}"
 						}
 					]
 				}
