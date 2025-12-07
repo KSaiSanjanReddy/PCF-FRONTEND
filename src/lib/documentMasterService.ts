@@ -18,31 +18,62 @@ export interface DocumentItem {
   file_size: string;
   update_date: string;
   created_date: string;
-  categoryDetails?: {
+  category_details: {
     id: string;
     code: string;
     name: string;
-  };
-  tagDetails?: {
+  } | null;
+  tag_details: {
     id: string;
     code: string;
     name: string;
   }[];
-  createdBy?: {
-    user_id: string;
-    user_name: string;
+}
+
+export interface DocumentStats {
+  totalDocuments: number;
+  pendingDocuments: number;
+  pcfDocuments: number;
+  daily: {
+    current: number;
+    previous: number;
+    progress: number;
   };
-  updatedBy?: {
-    user_id: string;
-    user_name: string;
+  weekly: {
+    current: number;
+    previous: number;
+    progress: number;
+  };
+  monthly: {
+    current: number;
+    previous: number;
+    progress: number;
+  };
+  yearly: {
+    current: number;
+    previous: number;
+    progress: number;
   };
 }
 
+export interface RecentActivity {
+  id: string;
+  document_title: string;
+  code: string;
+  status: string;
+  created_by: string;
+  created_date: string;
+}
+
 export interface DocumentListResponse {
-  success: boolean;
   message: string;
+  currentPage: number;
+  totalRecords: number;
+  totalPages: number;
+  recentActivity: RecentActivity[];
+  stats: DocumentStats;
   data: DocumentItem[];
-  total_count?: number;
+  success?: boolean; // Keeping optional for backward compatibility if needed
 }
 
 export interface DocumentResponse {
@@ -79,7 +110,6 @@ class DocumentMasterService {
     pageSize: number = 10
   ): Promise<DocumentListResponse> {
     try {
-      // Assuming the list API follows this pattern based on other modules
       const response = await fetch(
         `${API_BASE_URL}/api/document-master/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
         {
@@ -88,32 +118,26 @@ class DocumentMasterService {
         }
       );
       const result = await response.json();
-      // Original: return {
-      // Original:   success: result.status,
-      // Original:   message: result.message,
-      // Original:   data: result.data?.data || [], // Adjusting based on likely pagination structure
-      // Original:   total_count: result.data?.total_count || 0,
-      // Original: };
-      const success = typeof result.status === "boolean" ? result.status : true;
-      const dataArray = Array.isArray(result.data)
-        ? result.data
-        : result.data?.data || [];
-      return {
-        success,
-        message: result.message || "Document list fetched successfully",
-        data: dataArray,
-        total_count:
-          result.totalRecords ||
-          result.data?.total_count ||
-          dataArray.length ||
-          0,
-      };
+      return result;
     } catch (error) {
       console.error("Error fetching document list:", error);
       return {
-        success: false,
         message: "Failed to fetch document list",
+        currentPage: 1,
+        totalRecords: 0,
+        totalPages: 0,
+        recentActivity: [],
+        stats: {
+          totalDocuments: 0,
+          pendingDocuments: 0,
+          pcfDocuments: 0,
+          daily: { current: 0, previous: 0, progress: 0 },
+          weekly: { current: 0, previous: 0, progress: 0 },
+          monthly: { current: 0, previous: 0, progress: 0 },
+          yearly: { current: 0, previous: 0, progress: 0 },
+        },
         data: [],
+        success: false,
       };
     }
   }

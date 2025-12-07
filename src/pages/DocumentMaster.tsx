@@ -42,6 +42,9 @@ import {
 } from "../lib/documentMasterService";
 import type { DocumentItem as DocumentItemType } from "../lib/documentMasterService";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -56,20 +59,46 @@ const DocumentMaster: React.FC = () => {
     pageSize: 10,
     total: 0,
   });
+  const [stats, setStats] = useState({
+    totalDocuments: 0,
+    pendingDocuments: 0,
+    pcfDocuments: 0,
+    storageUsed: "45.2 GB", // Placeholder as API doesn't provide this yet
+  });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   const fetchDocuments = async (page: number = 1, pageSize: number = 10) => {
     setLoading(true);
     try {
       const result = await documentMasterService.getDocumentList(page, pageSize);
-      if (result.success) {
+      // The API might return success as undefined or true/false, check if we have data
+      if (result.data) {
         setDocuments(result.data);
         setPagination({
           ...pagination,
-          current: page,
-          total: result.total_count || 0,
+          current: result.currentPage || page,
+          total: result.totalRecords || 0,
         });
+        
+        if (result.stats) {
+          setStats({
+            totalDocuments: result.stats.totalDocuments,
+            pendingDocuments: result.stats.pendingDocuments,
+            pcfDocuments: result.stats.pcfDocuments,
+            storageUsed: "45.2 GB", // Keep placeholder
+          });
+        }
+
+        if (result.recentActivity) {
+          setRecentActivity(result.recentActivity.map(activity => ({
+            title: `${activity.document_title} (${activity.code})`,
+            time: dayjs(activity.created_date).fromNow(),
+            user: "User", // API doesn't provide user name in recent activity yet
+            status: activity.status
+          })));
+        }
       } else {
-        message.error(result.message);
+        message.error(result.message || "Failed to fetch documents");
       }
     } catch (error) {
       message.error("Failed to fetch documents");
@@ -105,13 +134,13 @@ const DocumentMaster: React.FC = () => {
       key: "view",
       label: "View Details",
       icon: <Eye size={16} />,
-      onClick: () => message.info(`Viewing ${record.document_title}`),
+      onClick: () => navigate(`/document-master/view/${record.id}`),
     },
     {
       key: "edit",
       label: "Edit",
       icon: <Edit size={16} />,
-      onClick: () => message.info(`Editing ${record.document_title}`),
+      onClick: () => navigate(`/document-master/edit/${record.id}`),
     },
     {
       key: "download",
@@ -171,7 +200,7 @@ const DocumentMaster: React.FC = () => {
     },
     {
       title: "Category",
-      dataIndex: "categoryDetails",
+      dataIndex: "category_details",
       key: "category",
       render: (category: any) => category?.name || "-",
       responsive: ["md"],
@@ -190,9 +219,9 @@ const DocumentMaster: React.FC = () => {
       render: (_: string, record: DocumentItemType) => (
         <Space>
           <Avatar size="small" style={{ backgroundColor: "#87d068" }}>
-            {record.createdBy?.user_name?.[0] || "U"}
+            U
           </Avatar>
-          <Text>{record.createdBy?.user_name || "Unknown"}</Text>
+          <Text>User</Text>
         </Space>
       ),
     },
@@ -226,18 +255,12 @@ const DocumentMaster: React.FC = () => {
     },
   ];
 
-  // Mock Data for Dashboard
-  const stats = [
-    { title: "Total Documents", value: "1,248", icon: FileText, color: "#1890ff" },
-    { title: "PCF Documents", value: "856", icon: File, color: "#52c41a" },
-    { title: "Pending Review", value: "42", icon: Clock, color: "#faad14" },
-    { title: "Storage Used", value: "45.2 GB", icon: HardDrive, color: "#722ed1" },
-  ];
-
-  const recentActivity = [
-    { title: "New PCF Report uploaded", time: "2 mins ago", user: "Sarah Smith" },
-    { title: "Safety Guidelines updated", time: "1 hour ago", user: "Mike Johnson" },
-    { title: "Q3 Audit Report approved", time: "3 hours ago", user: "Anna Davis" },
+  // Dashboard Stats
+  const statCards = [
+    { title: "Total Documents", value: stats.totalDocuments, icon: FileText, color: "#1890ff" },
+    { title: "PCF Documents", value: stats.pcfDocuments, icon: File, color: "#52c41a" },
+    { title: "Pending Review", value: stats.pendingDocuments, icon: Clock, color: "#faad14" },
+    { title: "Storage Used", value: stats.storageUsed, icon: HardDrive, color: "#722ed1" },
   ];
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
@@ -270,7 +293,7 @@ const DocumentMaster: React.FC = () => {
 
         {/* Stats Cards */}
         <Row gutter={[16, 16]}>
-          {stats.map((stat, index) => (
+          {statCards.map((stat, index) => (
             <Col xs={24} sm={12} md={6} key={index}>
               <Card bordered={false} hoverable>
                 <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>

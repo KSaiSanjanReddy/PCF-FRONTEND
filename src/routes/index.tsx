@@ -138,6 +138,14 @@ export const router = createBrowserRouter([
         element: <DocumentMasterCreate />,
       },
       {
+        path: "document-master/edit/:id",
+        element: <DocumentMasterCreate />,
+      },
+      {
+        path: "document-master/view/:id",
+        element: <DocumentMasterCreate />,
+      },
+      {
         path: "task-management",
         element: <TaskManagement />,
       },

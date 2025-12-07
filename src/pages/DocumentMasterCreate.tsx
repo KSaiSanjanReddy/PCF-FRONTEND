@@ -14,6 +14,7 @@ import {
   message,
   Breadcrumb,
   Divider,
+  Spin,
 } from "antd";
 import {
   Inbox,
@@ -24,7 +25,7 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { documentMasterService } from "../lib/documentMasterService";
 import type { CategoryItem, TagItem } from "../lib/documentMasterService";
 
@@ -35,11 +36,18 @@ const { TextArea } = Input;
 
 const DocumentMasterCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [fileList, setFileList] = useState<any[]>([]);
+  const [fetching, setFetching] = useState(false);
+
+  const isEdit = location.pathname.includes("/edit");
+  const isView = location.pathname.includes("/view");
+  const isNew = !isEdit && !isView;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +61,50 @@ const DocumentMasterCreate: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const fetchDocument = async () => {
+      if (id) {
+        setFetching(true);
+        try {
+          const result = await documentMasterService.getDocumentById(id);
+          if (result.success) {
+            const doc = result.data;
+            form.setFieldsValue({
+              document_type: doc.document_type,
+              category: doc.category,
+              product_code: doc.product_code,
+              version: doc.version,
+              document_title: doc.document_title,
+              description: doc.description,
+              tags: doc.tags,
+              access_level: doc.access_level,
+            });
+            // Mock file list for now as API returns file names
+            if (doc.document && doc.document.length > 0) {
+              setFileList(
+                doc.document.map((fileName, index) => ({
+                  uid: `-${index}`,
+                  name: fileName,
+                  status: "done",
+                  size: 1024 * 1024, // Mock size
+                }))
+              );
+            }
+          } else {
+            message.error(result.message);
+            navigate("/document-master");
+          }
+        } catch (error) {
+          message.error("Failed to fetch document details");
+          navigate("/document-master");
+        } finally {
+          setFetching(false);
+        }
+      }
+    };
+    fetchDocument();
+  }, [id, form, navigate]);
+
   const handleSave = async (addAnother: boolean = false) => {
     try {
       const values = await form.validateFields();
@@ -63,21 +115,24 @@ const DocumentMasterCreate: React.FC = () => {
 
       setLoading(true);
       
-      // In a real scenario, we would upload the file first or send it as FormData
-      // For this mock/demo, we'll just send the file name
       const payload = {
         ...values,
         document: fileList.map((file) => file.name),
         file_size: (fileList[0].size / 1024 / 1024).toFixed(2) + " MB", // Mock size
       };
 
-      const result = await documentMasterService.addDocument(payload);
+      let result;
+      if (isEdit && id) {
+        result = await documentMasterService.updateDocument({ ...payload, id });
+      } else {
+        result = await documentMasterService.addDocument(payload);
+      }
+
       if (result.success) {
-        message.success("Document added successfully");
-        if (addAnother) {
+        message.success(`Document ${isEdit ? "updated" : "added"} successfully`);
+        if (addAnother && isNew) {
           form.resetFields();
           setFileList([]);
-          // Keep some default values if needed
           form.setFieldsValue({ access_level: "Public" });
         } else {
           navigate("/document-master");
@@ -95,18 +150,41 @@ const DocumentMasterCreate: React.FC = () => {
 
   const uploadProps = {
     onRemove: (file: any) => {
+      if (isView) return false;
       const index = fileList.indexOf(file);
       const newFileList = fileList.slice();
       newFileList.splice(index, 1);
       setFileList(newFileList);
     },
     beforeUpload: (file: any) => {
+      if (isView) return false;
       setFileList([file]); // Allow only single file for now
       return false; // Prevent auto upload
     },
     fileList,
     showUploadList: false, // Custom render
+    disabled: isView,
   };
+
+  const getPageTitle = () => {
+    if (isView) return "View Document";
+    if (isEdit) return "Edit Document";
+    return "Upload New Document";
+  };
+
+  const getPageSubtitle = () => {
+    if (isView) return "View document details";
+    if (isEdit) return "Update document details";
+    return "Add a new document to the system";
+  };
+
+  if (fetching) {
+    return (
+      <Layout style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" tip="Loading document details..." />
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
@@ -116,7 +194,7 @@ const DocumentMasterCreate: React.FC = () => {
           <Breadcrumb
             items={[
               { title: <a onClick={() => navigate("/document-master")}>Document Master</a> },
-              { title: "Upload New Document" },
+              { title: getPageTitle() },
             ]}
             style={{ marginBottom: 16 }}
           />
@@ -124,27 +202,33 @@ const DocumentMasterCreate: React.FC = () => {
             <Space>
               {/* <Button icon={<ArrowLeft size={16} />} onClick={() => navigate("/document-master")} /> */}
               <div>
-                <Title level={2} style={{ margin: 0 }}>Upload New Document</Title>
-                <Text type="secondary">Add a new document to the system</Text>
+                <Title level={2} style={{ margin: 0 }}>{getPageTitle()}</Title>
+                <Text type="secondary">{getPageSubtitle()}</Text>
               </div>
             </Space>
             <Space>
-              <Button onClick={() => navigate("/document-master")}>Cancel</Button>
-              <Button 
-                icon={<Plus size={16} />} 
-                onClick={() => handleSave(true)} 
-                loading={loading}
-              >
-                Save & Add Another
-              </Button>
-              <Button 
-                type="primary" 
-                icon={<Save size={16} />} 
-                onClick={() => handleSave(false)} 
-                loading={loading}
-              >
-                Save Document
-              </Button>
+              <Button onClick={() => navigate("/document-master")}>{isView ? "Back" : "Cancel"}</Button>
+              {!isView && (
+                <>
+                  {isNew && (
+                    <Button 
+                      icon={<Plus size={16} />} 
+                      onClick={() => handleSave(true)} 
+                      loading={loading}
+                    >
+                      Save & Add Another
+                    </Button>
+                  )}
+                  <Button 
+                    type="primary" 
+                    icon={<Save size={16} />} 
+                    onClick={() => handleSave(false)} 
+                    loading={loading}
+                  >
+                    {isEdit ? "Update Document" : "Save Document"}
+                  </Button>
+                </>
+              )}
             </Space>
           </div>
         </div>
@@ -153,6 +237,7 @@ const DocumentMasterCreate: React.FC = () => {
           form={form}
           layout="vertical"
           initialValues={{ access_level: "Public" }}
+          disabled={isView}
         >
           <Row gutter={24}>
             {/* Left Column - Upload Area */}
@@ -163,21 +248,25 @@ const DocumentMasterCreate: React.FC = () => {
                     {...uploadProps} 
                     style={{ 
                       padding: "48px 0", 
-                      background: "#fafafa", 
+                      background: isView ? "#f5f5f5" : "#fafafa", 
                       border: "2px dashed #d9d9d9",
-                      borderRadius: "8px"
+                      borderRadius: "8px",
+                      cursor: isView ? "not-allowed" : "pointer"
                     }}
+                    disabled={isView}
                   >
                     <p className="ant-upload-drag-icon text-center flex items-center justify-center">
-                      <Inbox size={64} color="#1890ff" strokeWidth={1.5} />
+                      <Inbox size={64} color={isView ? "#d9d9d9" : "#1890ff"} strokeWidth={1.5} />
                     </p>
                     <p className="ant-upload-text" style={{ fontSize: 16, fontWeight: 500 }}>
-                      Click or drag file to this area to upload
+                      {isView ? "Document File" : "Click or drag file to this area to upload"}
                     </p>
-                    <p className="ant-upload-hint" style={{ padding: "0 24px" }}>
-                      Support for a single or bulk upload. Strictly prohibit from uploading company data or other
-                      banned files.
-                    </p>
+                    {!isView && (
+                      <p className="ant-upload-hint" style={{ padding: "0 24px" }}>
+                        Support for a single or bulk upload. Strictly prohibit from uploading company data or other
+                        banned files.
+                      </p>
+                    )}
                   </Dragger>
                 </Form.Item>
                 
@@ -201,7 +290,9 @@ const DocumentMasterCreate: React.FC = () => {
                         <Text type="secondary" style={{ fontSize: 12 }}>{(fileList[0].size / 1024).toFixed(2)} KB</Text>
                       </div>
                     </Space>
-                    <Button type="text" icon={<X size={16} />} onClick={() => setFileList([])} danger />
+                    {!isView && (
+                      <Button type="text" icon={<X size={16} />} onClick={() => setFileList([])} danger />
+                    )}
                   </div>
                 )}
               </Card>
@@ -213,7 +304,7 @@ const DocumentMasterCreate: React.FC = () => {
                 title={
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Document Details</span>
-                    <Button type="link" icon={<RotateCcw size={14} />} onClick={() => form.resetFields()}>Reset Form</Button>
+                    {!isView && <Button type="link" icon={<RotateCcw size={14} />} onClick={() => form.resetFields()}>Reset Form</Button>}
                   </div>
                 } 
                 bordered={false}
