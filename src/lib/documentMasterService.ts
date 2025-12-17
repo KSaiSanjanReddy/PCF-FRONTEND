@@ -18,31 +18,62 @@ export interface DocumentItem {
   file_size: string;
   update_date: string;
   created_date: string;
-  categoryDetails?: {
+  category_details: {
     id: string;
     code: string;
     name: string;
-  };
-  tagDetails?: {
+  } | null;
+  tag_details: {
     id: string;
     code: string;
     name: string;
   }[];
-  createdBy?: {
-    user_id: string;
-    user_name: string;
+}
+
+export interface DocumentStats {
+  totalDocuments: number;
+  pendingDocuments: number;
+  pcfDocuments: number;
+  daily: {
+    current: number;
+    previous: number;
+    progress: number;
   };
-  updatedBy?: {
-    user_id: string;
-    user_name: string;
+  weekly: {
+    current: number;
+    previous: number;
+    progress: number;
+  };
+  monthly: {
+    current: number;
+    previous: number;
+    progress: number;
+  };
+  yearly: {
+    current: number;
+    previous: number;
+    progress: number;
   };
 }
 
+export interface RecentActivity {
+  id: string;
+  document_title: string;
+  code: string;
+  status: string;
+  created_by: string;
+  created_date: string;
+}
+
 export interface DocumentListResponse {
-  success: boolean;
   message: string;
+  currentPage: number;
+  totalRecords: number;
+  totalPages: number;
+  recentActivity: RecentActivity[];
+  stats: DocumentStats;
   data: DocumentItem[];
-  total_count?: number;
+  success?: boolean; // Keeping optional for backward compatibility if needed
 }
 
 export interface DocumentResponse {
@@ -70,13 +101,15 @@ class DocumentMasterService {
     const token = localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `${token}`,
     };
   }
 
-  async getDocumentList(pageNumber: number = 1, pageSize: number = 10): Promise<DocumentListResponse> {
+  async getDocumentList(
+    pageNumber: number = 1,
+    pageSize: number = 10
+  ): Promise<DocumentListResponse> {
     try {
-      // Assuming the list API follows this pattern based on other modules
       const response = await fetch(
         `${API_BASE_URL}/api/document-master/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
         {
@@ -85,15 +118,27 @@ class DocumentMasterService {
         }
       );
       const result = await response.json();
-      return {
-        success: result.status,
-        message: result.message,
-        data: result.data?.data || [], // Adjusting based on likely pagination structure
-        total_count: result.data?.total_count || 0,
-      };
+      return result;
     } catch (error) {
       console.error("Error fetching document list:", error);
-      return { success: false, message: "Failed to fetch document list", data: [] };
+      return {
+        message: "Failed to fetch document list",
+        currentPage: 1,
+        totalRecords: 0,
+        totalPages: 0,
+        recentActivity: [],
+        stats: {
+          totalDocuments: 0,
+          pendingDocuments: 0,
+          pcfDocuments: 0,
+          daily: { current: 0, previous: 0, progress: 0 },
+          weekly: { current: 0, previous: 0, progress: 0 },
+          monthly: { current: 0, previous: 0, progress: 0 },
+          yearly: { current: 0, previous: 0, progress: 0 },
+        },
+        data: [],
+        success: false,
+      };
     }
   }
 
@@ -140,13 +185,18 @@ class DocumentMasterService {
     }
   }
 
-  async updateDocument(data: any): Promise<{ success: boolean; message: string }> {
+  async updateDocument(
+    data: any
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/document-master/update`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-master/update`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(data),
+        }
+      );
       const result = await response.json();
       return {
         success: result.status,
@@ -158,13 +208,18 @@ class DocumentMasterService {
     }
   }
 
-  async deleteDocument(id: string): Promise<{ success: boolean; message: string }> {
+  async deleteDocument(
+    id: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/document-master/delete`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ id }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-master/delete`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify({ id }),
+        }
+      );
       const result = await response.json();
       return {
         success: result.status,
@@ -178,10 +233,13 @@ class DocumentMasterService {
 
   async getCategoryList(): Promise<CategoryItem[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/data-setup/category/list`, {
-        method: "GET",
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/data-setup/category/list`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
       const result = await response.json();
       return result.data || [];
     } catch (error) {

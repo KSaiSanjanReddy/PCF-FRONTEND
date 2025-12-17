@@ -25,6 +25,9 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import PCFRequest from "../pages/PCFRequest";
 import ProductPortfolio from "../pages/ProductPortfolio";
 import AllProducts from "../pages/AllProducts";
+import ProductCreate from "../pages/ProductCreate";
+import ProductView from "../pages/ProductView";
+import ProductEdit from "../pages/ProductEdit";
 import ActiveProjects from "../pages/ActiveProjects";
 import ArchivedProjects from "../pages/ArchivedProjects";
 import ComponentsMaster from "../pages/ComponentsMaster";
@@ -99,6 +102,18 @@ export const router = createBrowserRouter([
         element: <AllProducts />,
       },
       {
+        path: "product-portfolio/new",
+        element: <ProductCreate />,
+      },
+      {
+        path: "product-portfolio/view/:id",
+        element: <ProductView />,
+      },
+      {
+        path: "product-portfolio/edit/:id",
+        element: <ProductEdit />,
+      },
+      {
         path: "projects",
         element: <Projects />,
       },
@@ -120,6 +135,14 @@ export const router = createBrowserRouter([
       },
       {
         path: "document-master/new",
+        element: <DocumentMasterCreate />,
+      },
+      {
+        path: "document-master/edit/:id",
+        element: <DocumentMasterCreate />,
+      },
+      {
+        path: "document-master/view/:id",
         element: <DocumentMasterCreate />,
       },
       {
