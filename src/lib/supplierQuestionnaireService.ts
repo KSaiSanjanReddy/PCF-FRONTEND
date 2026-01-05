@@ -16,118 +16,274 @@ interface ApiResponse<T = any> {
 }
 
 // Questionnaire data structure
+// Questionnaire data structure
 export interface SupplierQuestionnaireData {
-  bom_pcf_id?: string;
-  general_info: {
-    name_of_organization: string;
-    core_business_activities: string[];
-    company_site_address: string;
+  sgiq_id?: string;
+  general_information: {
+    gdpr_acknowledgement: boolean;
+    re_technologies_acknowledgement: boolean;
+    re_procurement_acknowledgement: boolean;
+    double_counting_acknowledgement: boolean;
+  };
+  organization_details: {
+    organization_name: string;
+    core_business_activities: string;
+    core_business_activities_other?: string;
     designation: string;
     email_address: string;
-    type_of_product_manufacture?: string[];
-    annul_or_monthly_product_volume_of_product?: string[];
-    weight_of_product?: string;
-    where_production_site_product_manufactured?: string;
-    price_of_product?: string;
-    organization_annual_revenue: string;
-    organization_annual_reporting_period?: string;
+    number_of_employees: string;
+    annual_revenue: string;
+    annual_reporting_period: string;
+    availability_of_emissions_data: boolean;
+    emission_data?: {
+      country: string;
+      scope_1: number;
+      scope_2: number;
+      scope_3: number;
+    }[];
   };
-  material_composition: {
-    main_raw_materials_used: string[];
-    contact_enviguide_support: boolean;
-    has_recycled_material_usage: boolean;
-    percentage_recycled_material?: number;
-    knows_material_breakdown?: boolean;
-    percentage_pre_consumer?: number;
-    percentage_post_consumer?: number;
-    percentage_reutilization?: number;
-    has_recycled_copper?: boolean;
-    percentage_recycled_copper?: number;
-    has_recycled_aluminum?: boolean;
-    percentage_recycled_aluminum?: number;
-    has_recycled_steel?: boolean;
-    percentage_recycled_steel?: number;
-    has_recycled_plastics?: boolean;
-    percentage_total_recycled_plastics?: number;
-    percentage_recycled_thermoplastics?: number;
-    percentage_recycled_plastic_fillers?: number;
-    percentage_recycled_fibers?: number;
-    has_recycling_process: boolean;
-    has_future_recycling_strategy?: boolean;
-    planned_recycling_year?: number;
-    track_transport_emissions?: boolean;
-    estimated_transport_emissions?: string;
-    need_support_for_emissions_calc: boolean;
-    emission_calc_requirement?: string;
-    percentage_pcr?: number;
-    percentage_pir?: number;
-    use_bio_based_materials: boolean;
-    bio_based_material_details?: string;
-    msds_or_composition_link?: string;
-    main_alloy_metals?: string;
-    metal_grade?: string;
+  product_details: {
+    existing_pcf_report: boolean;
+    pcf_methodology?: string;
+    pcf_report_file?: string;
+    production_site_details: {
+      component_name: string;
+      location: string;
+    }[];
+    required_environmental_impact_methods: string[];
+    products_manufactured: {
+      product_name: string;
+      production_period: string;
+      weight_per_unit: number;
+      unit: string;
+      price: number;
+      quantity: number;
+    }[];
   };
-  energy_manufacturing: {
-    energy_sources_used: string[];
-    electricity_consumption_per_year: string;
-    purchases_renewable_electricity: boolean;
-    renewable_electricity_percentage?: number;
-    has_energy_calculation_method: boolean;
-    energy_calculation_method_details?: string;
-    energy_intensity_per_unit?: string;
-    process_specific_energy_usage: string[];
-    enviguide_support: boolean;
-    uses_abatement_systems: boolean;
-    abatement_system_energy_consumption?: string;
-    water_consumption_and_treatment_details?: string;
+  scope_1: {
+    stationary_combustion: {
+      fuel_type: string;
+      sub_fuel_type: string;
+      quantity: number;
+      unit: string;
+    }[];
+    mobile_combustion: {
+      fuel_type: string;
+      quantity: number;
+    }[];
+    fugitive_emissions: {
+      refrigerant_top_ups: boolean;
+      refrigerants?: {
+        type: string;
+        quantity: number;
+        unit: string;
+      }[];
+    };
+    process_emissions: {
+      present: boolean;
+      sources?: {
+        source: string;
+        gas_type: string;
+        quantity: number;
+        unit: string;
+      }[];
+    };
   };
-  packaging: {
-    packaging_materials_used: string[];
-    enviguide_support: boolean;
-    packaging_weight_per_unit?: string;
-    packaging_size?: string[];
-    uses_recycled_packaging: boolean;
-    recycled_packaging_percentage?: string[];
+  scope_2: {
+    purchased_energy: {
+      energy_source: string;
+      energy_type: string;
+      quantity: number;
+      unit: string;
+    }[];
+    standardized_re_certificates: boolean;
+    certificates?: {
+      name: string;
+      procurement_mechanism: string;
+      serial_id: string;
+      generator_id: string;
+      generator_name: string;
+      location: string;
+      generation_date: string;
+      issuance_date: string;
+    }[];
+    manufacturing_process_specific_energy: {
+      allocation_methodology: boolean;
+      methodology_document?: string;
+      energy_intensity: {
+        product_name: string;
+        intensity: number;
+        unit: string;
+      }[];
+      process_specific_usage: {
+        process_type: string;
+        quantity: number;
+        unit: string;
+      }[];
+      abatement_systems: boolean;
+      abatement_consumption?: {
+        system: string;
+        quantity: number;
+        unit: string;
+      }[];
+      water_consumption_details: string;
+    };
+    quality_control: {
+      equipment: {
+        name: string;
+        quantity: number;
+        unit: string;
+        operating_hours: number;
+      }[];
+      electricity_consumption: {
+        type: string;
+        quantity: number;
+        unit: string;
+        period: string;
+      }[];
+      utilities: {
+        name: string;
+        quantity: number;
+        unit: string;
+      }[];
+      consumables: {
+        name: string;
+        quantity: number;
+        unit: string;
+      }[];
+      destructive_testing: boolean;
+      samples_destroyed?: {
+        weight: number;
+        unit: string;
+      }[];
+      defect_rate: {
+        product: string;
+        rate: number;
+      }[];
+      rework_rate: {
+        product: string;
+        rate: number;
+      }[];
+      waste_generated: {
+        type: string;
+        quantity: number;
+        treatment: string;
+      }[];
+    };
+    it_for_production: {
+      systems_used: string[];
+      energy_consumption_related: boolean;
+      included_in_total: boolean;
+      consumption_details?: {
+        source: string;
+        type: string;
+        quantity: number;
+        unit: string;
+      }[];
+    };
   };
-  transportation_logistics: {
-    transport_modes_used: string[];
-    enviguide_support: boolean;
-    uses_certified_logistics_provider: boolean;
-    logistics_provider_details?: string[];
+  scope_3: {
+    materials: {
+      raw_materials: {
+        material: string;
+        composition_percent: number;
+      }[];
+      metal_grade: string;
+      msds: string;
+      recycled_materials_used: boolean;
+      recycled_materials?: {
+        material: string;
+        recycled_percent: number;
+      }[];
+      material_type_breakdown_available: boolean;
+      material_type_percentages?: {
+        pre_consumer: number;
+        post_consumer: number;
+        reutilization: number;
+      };
+      pir_pcr_breakdown: {
+        material: string;
+        pir_percent: number;
+        pcr_percent: number;
+      }[];
+    };
+    packaging: {
+      materials: {
+        component: string;
+        type: string;
+        size: string;
+      }[];
+      weight_per_unit: {
+        component: string;
+        weight: number;
+        unit: string;
+      }[];
+      recycled_content_used: boolean;
+      recycled_percent?: number;
+      electricity_used: boolean;
+      included_in_total: boolean;
+      energy_consumption?: {
+        source: string;
+        type: string;
+        quantity: number;
+        unit: string;
+      }[];
+    };
+    waste_disposal: {
+      waste_details: {
+        type: string;
+        weight: number;
+        unit: string;
+        treatment: string;
+      }[];
+      recycled_percent: number;
+      by_products_generated: boolean;
+      by_products?: {
+        component: string;
+        name: string;
+        price: number;
+        quantity: number;
+      }[];
+    };
+    logistics: {
+      emissions_tracked: boolean;
+      emissions_data?: {
+        material: string;
+        weight: number;
+        mode: string;
+        source: string;
+        destination: string;
+        co2e: number;
+      }[];
+      transport_modes?: {
+        mode: string;
+        weight: number;
+        source: string;
+        destination: string;
+        distance: number;
+      }[];
+      destination_plant: {
+        country: string;
+        state: string;
+        city: string;
+        pin: string;
+      }[];
+    };
+    certifications: {
+      iso_certified: boolean;
+      standards_followed: boolean;
+      reporting_frameworks: boolean;
+      additional_notes: {
+        reduction_measures: string;
+        initiatives: string;
+        strategies: string;
+      };
+    };
   };
-  waste_by_products: {
-    waste_types_generated: string[];
-    waste_treatment_methods: string[];
-    recycling_percentage?: number;
-    has_byproducts: boolean;
-    byproduct_types?: string[];
-    byproduct_quantity?: string;
-    byproduct_price?: string[];
-  };
-  end_of_life_circularity: {
-    product_designed_for_recycling: boolean;
-    product_recycling_details?: string[];
-    has_takeback_program: boolean;
-    takeback_program_details?: string[];
-  };
-  emission_factors: {
-    reports_product_carbon_footprint: boolean;
-    pcf_methodologies_used?: string[];
-    has_scope_emission_data: boolean;
-    emission_data_details?: string[];
-    required_environmental_impact_methods?: string[];
-  };
-  certification_standards: {
-    certified_iso_environmental_or_energy: boolean;
-    follows_recognized_standards: boolean;
-    reports_to_esg_frameworks: boolean;
-    previous_reports?: string[];
-  };
-  additional_notes: {
-    carbon_reduction_measures?: string;
-    renewable_energy_or_recycling_programs?: string;
-    willing_to_provide_primary_data: boolean;
-    primary_data_details?: string[];
+  scope_4: {
+    products_reducing_customer_emissions: string;
+    circular_economy_practices: string;
+    offset_projects: string;
   };
 }
 
