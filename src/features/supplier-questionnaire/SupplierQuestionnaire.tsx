@@ -73,7 +73,13 @@ const SupplierQuestionnaire: React.FC = () => {
         const draft = supplierQuestionnaireService.loadDraft();
         if (draft) {
           setFormData(draft.formData);
-          setCurrentStep(draft.currentStep || 0);
+          // Validate step index against current schema
+          const savedStep = draft.currentStep || 0;
+          if (savedStep < QUESTIONNAIRE_SCHEMA.length) {
+            setCurrentStep(savedStep);
+          } else {
+            setCurrentStep(0);
+          }
         }
       }
     };

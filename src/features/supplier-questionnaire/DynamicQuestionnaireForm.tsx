@@ -19,6 +19,9 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   onFinish,
   form
 }) => {
+  if (!section) {
+    return null;
+  }
   
   const renderField = (field: QuestionnaireField) => {
     // Handle conditional rendering
@@ -87,7 +90,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         break;
       case 'select':
         inputComponent = (
-          <Select {...commonProps}>
+          <Select {...commonProps} mode={field.mode}>
             {field.options?.map((opt: any) => {
               const label = typeof opt === 'string' ? opt : opt.label;
               const value = typeof opt === 'string' ? opt : opt.value;
@@ -166,7 +169,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     className="mb-0" // Remove bottom margin for table layout
                   >
                     {col.type === 'select' ? (
-                      <Select placeholder={col.placeholder} style={{ minWidth: 120 }}>
+                      <Select placeholder={col.placeholder} style={{ minWidth: 120 }} mode={col.mode}>
                         {col.options?.map((opt: any) => {
                           const label = typeof opt === 'string' ? opt : opt.label;
                           const value = typeof opt === 'string' ? opt : opt.value;

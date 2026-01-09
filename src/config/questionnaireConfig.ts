@@ -160,6 +160,46 @@ export const QUESTIONNAIRE_OPTIONS = {
     "Ship",
     "Air Freight",
   ],
+
+  PROCESS_SPECIFIC_ENERGY_USAGE: [
+    "Compressed Air",
+    "Chillers / Cooling Towers",
+    "Boilers / Steam Systems",
+    "HVAC",
+    "Lighting",
+    "Motors / Drives",
+    "Process Heating",
+    "Refrigeration",
+    "Others",
+  ],
+
+  WASTE_TYPES: [
+    "Scrap metal",
+    "Plastic scrap",
+    "PCB",
+    "Solvents",
+    "Plastic",
+    "Sludge",
+    "Packaging waste",
+    "Others",
+  ],
+
+  WASTE_TREATMENT_TYPES: [
+    "Landfill",
+    "Incineration",
+    "Recycling",
+    "Composting",
+    "Reuse",
+    "Others",
+  ],
+
+  ENERGY_UNITS: [
+    "kWh",
+    "MWh",
+    "MJ",
+    "GJ",
+    "BTU",
+  ],
 };
 
 // Data Quality Rating Configuration
