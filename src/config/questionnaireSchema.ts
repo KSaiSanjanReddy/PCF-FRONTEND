@@ -43,6 +43,7 @@ export interface QuestionnaireField {
   // For info
   content?: React.ReactNode;
   className?: string;
+  mode?: 'multiple' | 'tags';
 }
 
 export interface QuestionnaireSection {
@@ -338,8 +339,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             type: 'select',
             // This needs dynamic options based on fuel_type row value. 
             // Complex dependency handling might be needed in the form component.
-            options: [], // Placeholder, handled in component
-            placeholder: 'Select sub-fuel type'
+            options: ["Petrol", "Diesel", "Kerosene", "Coal", "Wood", "Other"], // Placeholder, handled in component
+            placeholder: 'Select sub-fuel type',
+            mode: 'multiple'
           },
           {
             name: 'quantity',
@@ -527,17 +529,54 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             label: 'Serial ID',
             type: 'text',
             placeholder: 'Enter ID'
+          },
+          {
+            name: 'generator_id',
+            label: 'Generator ID',
+            type: 'text',
+            placeholder: 'Enter Generator ID'
+          },
+          {
+            name: 'generator_name',
+            label: 'Generator Name',
+            type: 'text',
+            placeholder: 'Enter Generator Name'
+          },
+          {
+            name: 'generator_location',
+            label: 'Generator Location',
+            type: 'text',
+            placeholder: 'Enter Location'
+          },
+          {
+            name: 'date_of_generation',
+            label: 'Date of Generation',
+            type: 'text',
+            placeholder: 'YYYY-MM-DD'
+          },
+          {
+            name: 'issuance_date',
+            label: 'Issuance Date',
+            type: 'text',
+            placeholder: 'YYYY-MM-DD'
           }
         ]
       },
+      // 4.1 Manufacturing Process-specific energy
+      {
+        name: 'scope_2.manufacturing_process_header',
+        type: 'info',
+        label: '4.1 Manufacturing Process-specific energy',
+        className: 'text-lg font-semibold text-gray-900 mt-6 mb-4'
+      },
       {
         name: 'scope_2.manufacturing_process_specific_energy.allocation_methodology',
-        label: 'Methodology to Allocate Factory Energy to Product Level?',
+        label: 'Do you have any device or methodology to calculate from factory level to product level energy?',
         type: 'checkbox',
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.methodology_document',
-        label: 'Methodology Details (Document URL)',
+        label: 'Provide detailed Methodology (Link or document)',
         type: 'text',
         placeholder: 'https://...',
         dependency: {
@@ -546,15 +585,582 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         }
       },
       {
+        name: 'scope_2.manufacturing_process_specific_energy.energy_intensity',
+        label: 'Energy intensity of production estimated kWh or MJ per unit of product',
+        type: 'table',
+        addButtonLabel: 'Add Product',
+        columns: [
+          {
+            name: 'product_name',
+            label: 'Product/Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'energy_intensity',
+            label: 'Energy intensity',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: 'Select unit'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.manufacturing_process_specific_energy.process_energy_usage',
+        label: 'Process-specific energy usage',
+        type: 'table',
+        addButtonLabel: 'Add Process',
+        columns: [
+          {
+            name: 'process_type',
+            label: 'Process-specific energy type',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.PROCESS_SPECIFIC_ENERGY_USAGE,
+            placeholder: 'Select type'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity Consumed per product',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: 'Select unit'
+          }
+        ]
+      },
+      {
         name: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
-        label: 'Abatement Systems Used (VOC treatment, heat recovery)?',
+        label: 'Do you use any abatement systems (VOC treatment, heat recovery)?',
         type: 'checkbox',
       },
       {
+        name: 'scope_2.manufacturing_process_specific_energy.abatement_energy_consumption',
+        label: 'Abatement source energy consumption',
+        type: 'table',
+        addButtonLabel: 'Add System',
+        dependency: {
+          field: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
+          value: true
+        },
+        columns: [
+          {
+            name: 'source',
+            label: 'Abatement system source',
+            type: 'text',
+            placeholder: 'Source'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: 'Select unit'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.water_consumption',
+        label: 'Provide Water consumption and treatment details (if significant for your product)',
+        type: 'textarea',
+        placeholder: 'Enter details...',
+      },
+      // 4.2 Quality control in production
+      {
+        name: 'scope_2.quality_control_header',
+        type: 'info',
+        label: '4.2 Quality control in production',
+        className: 'text-lg font-semibold text-gray-900 mt-6 mb-4'
+      },
+      {
+        name: 'scope_2.quality_control.equipment',
+        label: 'What types of quality control/testing equipment do you use?',
+        type: 'table',
+        addButtonLabel: 'Add Equipment',
+        columns: [
+          {
+            name: 'equipment_name',
+            label: 'Equipment Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity',
+            type: 'number',
+            placeholder: '0'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'text',
+            placeholder: 'Unit'
+          },
+          {
+            name: 'operating_hours',
+            label: 'Avg. Operating Hours per Month',
+            type: 'number',
+            placeholder: '0'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.electricity_consumption',
+        label: 'How much electricity is consumed for quality control activities?',
+        type: 'table',
+        addButtonLabel: 'Add Consumption',
+        columns: [
+          {
+            name: 'energy_type',
+            label: 'Energy Type',
+            type: 'text',
+            placeholder: 'Type'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: 'Select unit'
+          },
+          {
+            name: 'period',
+            label: 'Period',
+            type: 'select',
+            options: ['Monthly', 'Annually'],
+            placeholder: 'Select period'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.compressed_air',
+        label: 'Do your quality control processes use compressed air, nitrogen, or other utilities?',
+        type: 'table',
+        addButtonLabel: 'Add Utility',
+        columns: [
+          {
+            name: 'process_name',
+            label: 'Process Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: 'Select unit'
+          },
+          {
+            name: 'period',
+            label: 'Period',
+            type: 'select',
+            options: ['Monthly', 'Annually'],
+            placeholder: 'Select period'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.consumables',
+        label: 'Do quality control activities use any consumables?',
+        type: 'table',
+        addButtonLabel: 'Add Consumable',
+        columns: [
+          {
+            name: 'consumable_name',
+            label: 'Consumable Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'mass',
+            label: 'Mass of Consumables',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'text',
+            placeholder: 'kg'
+          },
+          {
+            name: 'period',
+            label: 'Period',
+            type: 'select',
+            options: ['Monthly', 'Annually'],
+            placeholder: 'Select period'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.destructive_testing',
+        label: 'Do you perform destructive testing?',
+        type: 'checkbox',
+      },
+      {
+        name: 'scope_2.quality_control.destructive_testing_details',
+        label: 'Weight of samples destroyed',
+        type: 'table',
+        addButtonLabel: 'Add Sample',
+        dependency: {
+          field: 'scope_2.quality_control.destructive_testing',
+          value: true
+        },
+        columns: [
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'weight',
+            label: 'Weight',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'text',
+            placeholder: 'kg'
+          },
+          {
+            name: 'period',
+            label: 'Period',
+            type: 'select',
+            options: ['Monthly', 'Annually'],
+            placeholder: 'Select period'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.defect_rate',
+        label: 'What is the defect or rejection rate identified by quality control inspections?',
+        type: 'table',
+        addButtonLabel: 'Add Rate',
+        columns: [
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'percentage',
+            label: 'Percentage (%) per product/component',
+            type: 'number',
+            placeholder: '0-100'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.rework_rate',
+        label: 'What is the rework rate due to quality control findings?',
+        type: 'table',
+        addButtonLabel: 'Add Rate',
+        columns: [
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
+            name: 'processes_involved',
+            label: 'Processes involved',
+            type: 'text',
+            placeholder: 'Processes'
+          },
+          {
+            name: 'percentage',
+            label: 'Percentage (%) per product/component',
+            type: 'number',
+            placeholder: '0-100'
+          }
+        ]
+      },
+      {
+        name: 'scope_2.quality_control.waste',
+        label: 'What are the types and weight of Quality control waste generated and treated?',
+        type: 'table',
+        addButtonLabel: 'Add Waste',
+        columns: [
+          {
+            name: 'waste_type',
+            label: 'Waste Type',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.WASTE_TYPES,
+            placeholder: 'Select type'
+          },
+          {
+            name: 'weight',
+            label: 'Waste Weight',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'unit',
+            label: 'Unit',
+            type: 'text',
+            placeholder: 'kg'
+          },
+          {
+            name: 'treatment_type',
+            label: 'Treatment type',
+            type: 'select',
+            options: QUESTIONNAIRE_OPTIONS.WASTE_TREATMENT_TYPES,
+            placeholder: 'Select treatment'
+          }
+        ]
+      },
+      // 4.3 IT for process and manufacturing control
+      {
+        name: 'scope_2.it_header',
+        type: 'info',
+        label: '4.3 Information Technology (IT) for process and manufacturing control',
+        className: 'text-lg font-semibold text-gray-900 mt-6 mb-4'
+      },
+      {
         name: 'scope_2.it_for_production.systems_used',
-        label: 'IT Systems Used',
-        type: 'checkbox', // Multi-select checkbox
+        label: 'What IT systems do you use for production control?',
+        type: 'checkbox', // Multi-select
         options: QUESTIONNAIRE_OPTIONS.IT_SYSTEMS
+      },
+      {
+        name: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
+        label: 'What is the total energy consumption of IT hardware or on-site servers or data centres related to production?',
+        type: 'checkbox', // Yes/No
+      },
+      {
+        name: 'scope_2.it_for_production.hardware_energy_included',
+        label: 'Is this Energy consumption included in the total energy purchased section-2?',
+        type: 'checkbox',
+        dependency: {
+            field: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
+            value: true
+        }
+      },
+      {
+        name: 'scope_2.it_for_production.hardware_energy_consumption',
+        label: 'Please write the energy consumption',
+        type: 'table',
+        addButtonLabel: 'Add Consumption',
+        dependency: {
+            field: 'scope_2.it_for_production.hardware_energy_included',
+            value: false // "If NO in Q43"
+        },
+        columns: [
+            {
+                name: 'energy_source',
+                label: 'Energy Source',
+                type: 'select',
+                options: ['Electricity', 'Heating', 'Cooling', 'Steam'],
+                placeholder: 'Select source'
+            },
+            {
+                name: 'energy_type',
+                label: 'Energy Type',
+                type: 'select',
+                options: ['Grid', 'Renewable'],
+                placeholder: 'Select type'
+            },
+            {
+                name: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                placeholder: '0.00'
+            },
+            {
+                name: 'unit',
+                label: 'Unit',
+                type: 'select',
+                options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+                placeholder: 'Select unit'
+            }
+        ]
+      },
+      {
+        name: 'scope_2.it_for_production.cloud_systems',
+        label: 'Do you use cloud-based systems for production or Quality control?',
+        type: 'checkbox',
+      },
+      {
+        name: 'scope_2.it_for_production.cloud_usage',
+        label: 'Cloud provider name and approximate monthly compute usage',
+        type: 'table',
+        addButtonLabel: 'Add Provider',
+        dependency: {
+            field: 'scope_2.it_for_production.cloud_systems',
+            value: true
+        },
+        columns: [
+            {
+                name: 'provider_name',
+                label: 'Cloud provider name',
+                type: 'text',
+                placeholder: 'AWS, Azure, etc.'
+            },
+            {
+                name: 'virtual_machines',
+                label: 'Virtual machines (CPU hours/month)',
+                type: 'number',
+                placeholder: '0'
+            },
+            {
+                name: 'data_storage',
+                label: 'Data storage (GB/month)',
+                type: 'number',
+                placeholder: '0'
+            },
+            {
+                name: 'data_transfer',
+                label: 'Data transfer (GB/month)',
+                type: 'number',
+                placeholder: '0'
+            }
+        ]
+      },
+      {
+        name: 'scope_2.it_for_production.sensors',
+        label: 'Are any dedicated monitoring sensors used for energy, temperature, pressure, or vibration?',
+        type: 'table',
+        addButtonLabel: 'Add Sensor',
+        columns: [
+            {
+                name: 'type',
+                label: 'Type of sensor',
+                type: 'text',
+                placeholder: 'Type'
+            },
+            {
+                name: 'quantity',
+                label: 'Sensor Quantity',
+                type: 'number',
+                placeholder: '0'
+            },
+            {
+                name: 'energy_consumption',
+                label: 'Energy Consumption',
+                type: 'number',
+                placeholder: '0.00'
+            },
+            {
+                name: 'unit',
+                label: 'Unit',
+                type: 'select',
+                options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+                placeholder: 'Select unit'
+            }
+        ]
+      },
+      {
+        name: 'scope_2.it_for_production.sensor_replacement',
+        label: 'What is the annual replacement rate for sensors or IT consumables?',
+        type: 'table',
+        addButtonLabel: 'Add Item',
+        columns: [
+            {
+                name: 'consumable_name',
+                label: 'Consumable Name',
+                type: 'text',
+                placeholder: 'Name'
+            },
+            {
+                name: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                placeholder: '0'
+            },
+            {
+                name: 'unit',
+                label: 'Unit',
+                type: 'text',
+                placeholder: 'Unit'
+            }
+        ]
+      },
+      {
+        name: 'scope_2.it_for_production.cooling_systems',
+        label: 'Do you use any cooling systems for server rooms?',
+        type: 'checkbox',
+      },
+      {
+        name: 'scope_2.it_for_production.cooling_energy_included',
+        label: 'Is this Energy consumption included in the total energy purchased section-2?',
+        type: 'checkbox',
+        dependency: {
+            field: 'scope_2.it_for_production.cooling_systems',
+            value: true
+        }
+      },
+      {
+        name: 'scope_2.it_for_production.cooling_energy_consumption',
+        label: 'Please write the energy consumption',
+        type: 'table',
+        addButtonLabel: 'Add Consumption',
+        dependency: {
+            field: 'scope_2.it_for_production.cooling_energy_included',
+            value: false // "If NO in 50"
+        },
+        columns: [
+            {
+                name: 'energy_source',
+                label: 'Energy Source',
+                type: 'select',
+                options: ['Electricity', 'Heating', 'Cooling', 'Steam'],
+                placeholder: 'Select source'
+            },
+            {
+                name: 'energy_type',
+                label: 'Energy Type',
+                type: 'select',
+                options: ['Grid', 'Renewable'],
+                placeholder: 'Select type'
+            },
+            {
+                name: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                placeholder: '0.00'
+            },
+            {
+                name: 'unit',
+                label: 'Unit',
+                type: 'select',
+                options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+                placeholder: 'Select unit'
+            }
+        ]
       }
     ]
   },
