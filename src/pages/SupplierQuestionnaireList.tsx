@@ -62,22 +62,19 @@ const SupplierQuestionnaireList: React.FC = () => {
         user.id
       );
 
-      if (result.success && result.data) {
-        // Handle different response structures
-        let questionnairesList: QuestionnaireItem[] = [];
-
-        if (Array.isArray(result.data)) {
-          // If data is directly an array
-          questionnairesList = result.data;
-        } else if (result.data.supplier_general_info_questions) {
-          // If data is nested under supplier_general_info_questions
-          if (Array.isArray(result.data.supplier_general_info_questions)) {
-            questionnairesList = result.data.supplier_general_info_questions;
-          } else {
-            // If it's a single object, wrap it in an array
-            questionnairesList = [result.data.supplier_general_info_questions];
-          }
-        }
+      if (result.success && Array.isArray(result.data)) {
+        const questionnairesList = result.data.map((item: any) => ({
+          _id: item.sgiq_id,
+          sgiq_id: item.sgiq_id,
+          name_of_organization:
+            item.supplier_general_info_questions?.organization_name || "N/A",
+          email_address:
+            item.supplier_general_info_questions?.email_address || "N/A",
+          created_at: item.created_at || new Date().toISOString(),
+          updated_at: item.updated_at || new Date().toISOString(),
+          status: item.status || "completed",
+          user_id: item.user_id || user.id,
+        }));
 
         setQuestionnaires(questionnairesList);
       } else {
