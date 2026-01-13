@@ -89,19 +89,49 @@ class PCFService {
 
       const result: any = await response.json();
 
-      if (result.success || result.status) {
-        // Response format: { success: true, message: "...", data: [...], current_page, total_pages, total_count }
-        const dataArray = Array.isArray(result.data) ? result.data : [];
+      // Debug logging
+      console.log("PCF Service Response:", result);
+
+      if (result.status || result.success) {
+        // Response format: { status: true, message: "...", data: { success: true, page: 1, pageSize: 10, data: [...] } }
+        // The actual data array is nested at result.data.data
+        let dataArray: any[] = [];
+        let pageInfo: any = {};
+
+        if (result.data) {
+          // Check if data.data exists (nested structure)
+          if (result.data.data && Array.isArray(result.data.data)) {
+            dataArray = result.data.data;
+            pageInfo = result.data;
+          } 
+          // Check if data is directly an array
+          else if (Array.isArray(result.data)) {
+            dataArray = result.data;
+          }
+          // Check if data is an object with a data property
+          else if (result.data && typeof result.data === 'object') {
+            pageInfo = result.data;
+            if (Array.isArray(result.data.data)) {
+              dataArray = result.data.data;
+            }
+          }
+        }
+        
+        console.log("Extracted data:", {
+          dataArrayLength: dataArray.length,
+          pageInfo,
+        });
         
         return {
           success: true,
           message: result.message || "PCF BOM list fetched successfully",
           data: dataArray as PCFBOMItem[],
-          current_page: result.current_page || 1,
-          total_pages: result.total_pages || 1,
-          total_count: result.total_count || dataArray.length,
+          current_page: pageInfo.page || result.current_page || 1,
+          total_pages: pageInfo.total_pages || result.total_pages || 1,
+          total_count: pageInfo.total_count || result.total_count || dataArray.length,
         };
       } else {
+        console.error("PCF Service Error:", result);
         return {
           success: false,
           message: result.message || "Failed to fetch PCF BOM list",
@@ -109,6 +139,82 @@ class PCFService {
       }
     } catch (error) {
       console.error("Get PCF BOM list error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Create a new PCF BOM request
+   */
+  async createPCFRequest(payload: any): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/create`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF request created successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to create PCF request",
+        };
+      }
+    } catch (error) {
+      console.error("Create PCF request error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Update an existing PCF BOM request
+   */
+  async updatePCFRequest(payload: any): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/update`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF request updated successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to update PCF request",
+        };
+      }
+    } catch (error) {
+      console.error("Update PCF request error:", error);
       return {
         success: false,
         message: "Network error occurred",

@@ -1,607 +1,533 @@
-Organization Questionnaire - Product Carbon Footprint 
+# Supplier Questionnaire – Product Carbon Footprint (PCF)
 
-This questionnaire consolidates organizational and product-level data collection for calculating the Product Carbon Footprint (PCF) of automotive products or electronic components using a cradle-to-gate boundary condition. It integrates Scope 1, 2, 3, and avoided emissions, covering GHG Protocol, ISO 14067, and industry best practices.  
+This questionnaire consolidates organizational and product-level data collection for calculating the **Product Carbon Footprint (PCF)** of automotive products or electronic components using a **cradle-to-gate** boundary condition. It integrates **Scope 1, 2, 3**, and **avoided emissions (Scope 4)**, covering **GHG Protocol Product Standards**, **ISO 14067**, and industry best practices.
 
-General Information 
+---
 
-Display Message as per GDPR: All information provided is confidential and used only for Corporate and product level sustainability assessment.  
+## General Information
 
-    Please enter the name of your organization? * 
+**GDPR Notice**
+All information provided is confidential and used only for corporate and product-level sustainability assessment.
 
-    Text 
+### Eligible Renewable Electricity (RE) Technologies
 
-    What are your core business activities? * 
+Please read and acknowledge the following eligible technologies considered as renewable electricity:
 
-Radio buttons:  
+* Wind
+* Hydro
+* Solar power
+* Geothermal
+* Biomass (solid, liquid, gaseous forms from woody waste, landfill gas, wastewater methane, animal & other organic waste, energy crops)
+* Ocean-based energy (tidal and wave technologies)
 
-    Manufacturing  
+### Excluded Technologies
 
-    Food Processing  
+* Electricity from nuclear power
+* Electricity from waste combustion
 
-    Power generation sector  
+**Acknowledgement (Checkbox):** I acknowledge that I have read and understood the eligible technologies considered as renewable electricity (RE).
 
-    Construction & Real Estate  
+---
 
-    Logistics & Transportation  
+## Renewable Electricity Procurement Mechanisms
 
-    Technology development & Services (IT)  
+Electricity is regarded as renewable if provided using one of the mechanisms below, respecting requirements regarding **double counting**.
 
-    Others  
+**Acronyms**
 
- 
+* **PPA**: Power Purchase Agreement
+* **EAC**: Energy Attribute Certificate
+* **iREC / I-REC**: International Renewable Energy Certificate
+* **GOO**: Guarantee of Origin
 
-    Please enter the Company site address? * 
+**Procurement Options**
 
-    Text 
+* Onsite generation (EACs generated)
+* Onsite generation (No EACs generated)
+* Off-site generation: PPA / sleeved PPA (proof of delivery required)
+* Off-site generation: Virtual PPA (proof via EAC required)
+* Off-site generation: Green power tariff / green power product
+* Utility-supplied renewable electricity (provider procures and retires bundled or unbundled EACs)
+* Unbundled EACs
+* Unbundled RECs / I-RECs
 
-    Please enter your Designation/Role/Title? * 
+**Acknowledgement (Checkbox):** I acknowledge that I have read and understood the procurement mechanisms mentioned above.
 
-    Text 
+---
 
-    Please enter your e-mail address? * 
+## Double Counting
 
-    Text 
+Please acknowledge that the mechanism used does **not** fall under double counting. Prohibited examples include:
 
-    What is the Annual Production Volume? 
+1. Same EAC sold to more than one party or conflicting contracts
+2. Same EAC claimed by more than one party for environmental claims or disclosure
+3. Same EAC used for regulatory mandates (e.g., RPS) and customer sales
+4. Separate attributes of the same MWh sold to different parties
 
-    Text 
+**Acknowledgement (Checkbox):** I acknowledge my mechanisms do not fall under double counting.
 
- 
+---
 
-    Please Specify the Production Site Where the Product is manufactured? 
+## Section 1: Organization Details
 
-    Text 
+1. **Organization Name** *(Open text)*
 
- 
+2. **Core Business Activities** *(Dropdown with search)*
 
-    What is your organization's annual revenue? * 
+   * Tier-1 Manufacturing
+   * Tier-2 Component Manufacturing
+   * Tier-3 Raw Material Supply
+   * Electronics Manufacturing
+   * Mechanical / Metal Manufacturing
+   * Plastics / Polymer Manufacturing
+   * Assembly & Integration
+   * Logistics & Warehousing
+   * Surface Treatment / Plating / Coating
+   * Chemical / Resin Production
+   * Battery / Energy Storage Production
+   * Recycling / Waste Treatment / Food Processing
+   * Power Generation Sector
+   * Construction & Real Estate
+   * Shipping Industry
+   * Pharmaceuticals Manufacturing
+   * Logistics & Transportation
+   * Technology Development & Services (IT)
+   * Others *(Open text)*
 
-    $1 Million or less  
+3. **Designation / Role / Title** *(Open text)*
 
-    $1 Million to $2 Million  
+4. **Email Address** *(Open text)*
 
-    $2 Million to $3 Million  
+5. **Number of Employees** *(Dropdown)*
 
-    $3 Million to $4 Million  
+   * 1–100
+   * 101–500
+   * 501–1000
+   * 1001–2000
+   * 2001–3000
+   * 3001–5000
+   * 5001–7000
+   * 7001–10,000
+   * > 10,000
+   * Specify exact number *(Numeric input)*
 
-    $4 Million to $5 Million  
+6. **Annual Revenue** *(Dropdown)*
 
- 
+   * ≤ $1M
+   * $1M–$2M
+   * $2M–$3M
+   * $3M–$4M
+   * $4M–$5M
+   * > $5M
+   * Specify exact amount *(Numeric input)*
 
-    Please enter the organizational annual reporting period?  
+7. **Annual Reporting Period** *(Dropdown: Years 2020–2050)*
 
-    Open text for numerical value [4 digits] – Dropdown box to select year  
+8. **Availability of Scope 1, 2, 3 Emissions Data** *(Yes / No)*
 
- 
+9. **Emission Data (if Yes in Q8)** *(Table – DQR Required)*
 
-Material Composition 
+   * Product manufacturing location (ISO3 country)
+   * Scope 1, Scope 2, Scope 3
 
-    What are the main raw materials used in your product? * 
+---
 
-    Aluminum 
+## Section 2: Product Details
 
-    Iron 
+10. **Existing PCF Report (within last 12 months)?** *(Yes / No)*
 
-    Copper 
+11. **PCF Methodology Used (if Yes in Q10)** *(ISO 14067, GHG Protocol, Catena-X, etc.) – Open text (DQR Required)*
 
-    Alloy 
+12. **Upload PCF Report (if Yes in Q10)** *(File upload – DQR Required)*
 
-    Contact Enviguide for support 
+13. **Production Site Details** *(Table – DQR Required)*
 
- 
+* Component / Product name
+* Location
 
-    Does your company have Consumption of recycled material content/secondary materials used in your products? *  
+14. **Required Environmental Impact Methods**
 
-    Yes/no  
+* Product Carbon Footprint (PCF)
+* Water Footprint
+* Land Use Impact
+* Full LCA (all categories)
+* Human Toxicity
+* Ecotoxicity
+* Acidification
+* Eutrophication
+* Ozone Depletion
+* Particulate Matter Formation
+* Resource Depletion – Fossil Fuels
+* Resource Depletion – Minerals & Metals
+* Other (Custom method)
 
- 
+15. **Products / Components Manufactured** *(Table – DQR Required)*
 
-    [IF YES in Q11] Please write the percentage of total recycled material content? *  
+| Product / Component | Production Period | Weight per Unit | Unit      | Price    | Quantity |
+| ------------------- | ----------------- | --------------- | --------- | -------- | -------- |
+| Open text           | Monthly / Annual  | Numeric         | kg / tons | Currency | PCS      |
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+---
 
- 
+## Section 3: Scope 1 – Direct Emissions
 
-    [IF YES in 11] Does your company know (or can give a rough estimate) of the percentage of pre-consumer, post-consumer and reutilization materials used in your products? *   
+### 3.1 Stationary Combustion (On-site Energy Use)
 
-    Y/N  
+16. **Fuel Types and Quantities Used for On-site Energy Generation** *(DQR Required)*
 
- 
+Provide open text with dropdown options to select fuel types as below.
 
-    [IF YES in Q13] Please write the percentage of pre-consumer material? *  
+**Table Format:**
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+* Fuel (dropdown)
+* Sub-fuel type (dropdown)
+* Consumption quantity (numeric)
+* Unit of measure (liquid / gas / solid – dropdown)
 
-  
+### Fuel Categories and Sub-types
 
- 
+**Oil Products**
 
-    [IF YES in Q13] Please write the percentage of post-consumer material? *  
+* Crude oil
+* Natural Gas Liquids
+* Motor gasoline / Petrol
+* Jet gasoline
+* Diesel fuel
+* Residual fuel oil
+* Liquefied Petroleum Gases (LPG)
+* Ethane
+* Refinery gas
+* Other petroleum products
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+**Coal Products**
 
- 
+* Anthracite
+* Coking coal
+* Sub-bituminous coal
+* Lignite
+* Oil shale and tar sands
+* Brown coal briquettes
+* Lignite coke
+* Blast furnace gas
+* Oxygen steel furnace gas
 
-  
+**Natural Gas**
 
-    [IF YES in Q13] Please write the percentage of reutilization material? *  
+* Compressed Natural Gas (CNG)
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+**Other Wastes**
 
- 
+* Municipal waste (non-biomass fraction)
+* Industrial wastes
+* Waste oils
 
- 
+**Biomass**
 
-    [IF NO in Q11] Does your company have Consumption of recycled copper used in your products? * 
+* Wood or wood waste
+* Other primary solid biomass fuels
+* Charcoal
+* Bio gasoline
+* Bio diesels
+* Municipal wastes (biomass fraction)
 
-    Y/N  
+*Add button for more selection options*
 
- 
+(Fuel categories include oil products, coal products, natural gas, wastes, biomass)
 
-    [IF YES in Q17] Please write the percentage of recycled copper?  
+### 3.2 Mobile Combustion (Company-owned Vehicles)
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+17. **Annual Fuel Consumption by Vehicles** *(Table – DQR Required)*
 
-  
+* Petrol
+* Diesel
+* LPG
+* CNG
+* LNG
+* Electric / Hydrogen
+* Ethanol blends
 
-    [IF NO in Q11] Does your company have Consumption of recycled Aluminum used in your products? *  
+### 3.3 Fugitive Emissions
 
-    Y/N  
+18. **Refrigerant Top-ups Performed?** *(Yes / No)*
 
-  
+19. **Refrigerant Types and Quantities (if Yes)** *(Table – DQR Required)*
 
-    [IF YES in Q19] Please write the percentage of recycled Aluminum?  
+* Refrigerant type
+* Quantity
+* Unit of measure
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+### 3.4 Process Emissions
 
-  
+20. **Industrial Process Emissions Present?** *(Yes / No)*
 
-    [IF NO in Q11] Does your company have Consumption of recycled steel used in your products? *  
+21. **Process Emission Sources (if Yes)** *(Table – DQR Required)*
 
-    Y/N  
+* Source
+* Gas type (CO₂, CH₄, N₂O)
+* Quantity
+* Unit
 
-  
+---
 
-    [IF YES in Q21] Please write the percentage of recycled steel? *  
+## Section 4: Scope 2 – Indirect Emissions from Purchased Energy
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+22. **Purchased / Acquired Energy Details** *(Table – DQR Required)*
 
- 
+| Energy Source | Energy Type      | Quantity | Unit |
+| ------------- | ---------------- | -------- | ---- |
+| Electricity   | Grid / Renewable | Numeric  | MWh  |
+| Heating       | —                | —        | —    |
+| Cooling       | —                | —        | —    |
+| Steam         | —                | —        | —    |
 
-    [IF NO in Q11] Does your company has consumption of recycled plastics (thermoplastics, filler & fiber) used in your products* 
+23. **Standardized RE Certificates Acquired?** *(Yes / No)*
 
-    Y/N  
+24. **Certificate Details (if Yes)** *(Table – DQR Required)*
 
- 
+* Certificate name
+* RE procurement mechanism
+* Serial ID
+* Generator ID
+* Generator name
+* Location
+* Date of generation
+* Issuance date
 
-    [IF YES in Q23] Please write the percentage of total recycled plastics? * 
+---
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+## Section 4.1: Manufacturing Process-Specific Energy
 
- 
+25. **Methodology to Allocate Factory Energy to Product Level?** *(Yes / No)*
 
-    [IF YES in Q23] Please write the percentage of recycled thermoplastics? * 
+26. **Methodology Details (if Yes)** *(Document upload – DQR Required)*
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+27. **Energy Intensity per Product** *(Table – DQR Required)*
 
- 
+* Product / Component
+* Energy intensity (kWh or MJ per unit)
 
-    [IF YES in Q23] Please write the percentage of recycled plastics filler (Talcum powder (filler), Limestone flour (0.1mm), Magnesium oxide (MgO, fine, filler), cellulose TS, Methylcellulose PE, Viscose (cellulose xanthate) PE, Jute hessian net TS)?  
+28. **Process-Specific Energy Usage** *(Table – DQR Required)*
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+* Process type
+* Quantity consumed per product
+* Energy unit
 
-  
+29. **Abatement Systems Used (VOC treatment, heat recovery)?** *(Yes / No)*
 
-    [IF YES in Q23] Please write the percentage of recycled fiber content (types: short, long & ultra-short fibers)?  
+30. **Abatement Energy Consumption (if applicable)** *(Table – DQR Required)*
 
-    Numerical (3 digits) - [Percentage answer between 0%-100%]  
+31. **Water Consumption and Treatment Details** *(Text / Numeric – DQR Required)*
 
-  
+---
 
-    Does your company have a recycling process or program implemented and managed by your own/Partner/Contractor/3rd party?* 
+## Section 4.2: Quality Control in Production
 
-    Y/N  
+32. **Quality Control / Testing Equipment Used** *(Table – DQR Required)*
 
-  
+* Equipment name
+* Quantity
+* Unit
+* Average operating hours per month
 
-     [IF NO in Q28] Do you have any future strategy regarding the recycling process or secondary material usage targets? *  
+33. **Electricity Consumption for Quality Control** *(Table – DQR Required)*
 
-    Y/N  
+* Energy type
+* Quantity
+* Unit
+* Period (monthly / annual)
 
-  
+34. **Utilities Used in Quality Control (compressed air, nitrogen, etc.)** *(Table – DQR Required)*
 
-    [IF YES in Q29] Please write the year when do you implement the recycling process?  
+35. **Consumables Used in Quality Control** *(Table – DQR Required)*
 
-    Numerical year value – [4 digits]  
+36. **Destructive Testing Performed?** *(Yes / No)*
 
- 
+37. **Weight of Samples Destroyed (if Yes)** *(Table – DQR Required)*
 
-    Do you track emissions from transporting raw materials to your facilities? If yes, provide estimated CO₂ emissions in metric tons.  
+38. **Defect / Rejection Rate** *(Table – DQR Required)*
 
-    Text 
+39. **Rework Rate due to QC Findings** *(Table – DQR Required)*
 
- 
+40. **Quality Control Waste Generated and Treatment** *(Table – DQR Required)*
 
-    Do you need our team help to calculate your supply chain emissions?* 
+---
 
-    Y/N  
+## Section 4.3: Information Technology (IT) for Production Control
 
- 
+41. **IT Systems Used**
 
-    [If YES in Q32] Please specify or explain your requirement below? 
+* PLCs
+* SCADA
+* MES
+* ERP
+* Automation controllers
+* IoT sensors
+* Others *(Open text)*
 
-    Open text box to write (optional)  
+42. **Energy Consumption of IT Hardware / On-site Servers / Data Centers Related to Production?** *(Yes / No)*
 
- 
+43. **Is this energy consumption included in the total energy purchased (Section 22)?** *(Yes / No)*
 
-    Please specify % post-consumer recycling (PCR) and % post-industrial recycling (PIR). 
+44. **IT / Cloud / Server Energy Consumption (if No in Q43)** *(DQR Required)*
 
-    Numeric 
+**Table Format:** Energy Purchased/acquired (Energy Source – dropdown), Energy_Type (dropdown), Quantity (numeric with decimals), Unit of Measure (energy unit dropdown)
 
- 
+**Example (default rows):**
 
-    Do you use bio-based or renewable materials? * 
+| Energy Source      | Energy Type                | Purchased/Acquired Quantity | Unit |
+| ------------------ | -------------------------- | --------------------------- | ---- |
+| Electricity Energy | Purchased Grid Electricity | 1000                        | MWh  |
 
-    Yes/no 
+---
 
- 
+*Note: Additional pages appended below.*
 
-    [If YES in Q35] Please specify the type and percentage of bio-based or renewable materials? * 
+---
 
-    Add Button 
+## Section 5: Scope 3 – Other Indirect Emissions
 
- 
+*(Emissions from activities not directly owned or controlled by the organization but part of its value chain.)*
 
-    Please provide material safety data sheets (MSDS) or composition breakdowns if available? 
+### 5.1 Materials Details
 
-    Link or attach MSDS copy 
+52. **Raw Materials Used in Component Manufacturing** *(DQR Required)*
 
- 
+* Aluminum
+* Steel
+* Copper
+* ABS – Acrylonitrile Butadiene Styrene
+* PP – Polypropylene
+* PVC – Polyvinyl Chloride
+* Rubber
+* Composite
+* Others *(Open text)*
 
-    Please Specify the metals which alloy is used most? 
+**Table Format:** Material selected (default) with % material composition of total component weight.
+*Enviguide support available.*
 
-    Text 
+53. **Grade of Metal Used** *(Open text – DQR Required)*
 
- 
+54. **Material Safety Data Sheets (MSDS) / Composition Breakdown** *(DQR Required)*
 
-    What is the grade of metal used in manufacture? 
+* Upload MSDS
+* Or provide link *(Open text)*
 
-    Text 
+55. **Use of Recycled / Secondary Materials?** *(Yes / No)*
 
- 
+56. **Recycled Materials Used (if Yes in Q55)** *(DQR Required)*
 
-Energy & Manufacturing 
+* Recycled Aluminum
+* Recycled Copper
+* Recycled Steel
+* Recycled Plastics (thermoplastics, filler & fiber)
+* Others
 
-    What type of energy sources are used at your production site? * 
+**Table Format:** Material with % recycled content (0–100%).
 
-    Solar Energy 
+58. **Estimate of Pre-consumer / Post-consumer / Reutilization Materials Available?** *(Yes / No)*
 
-    Wind Energy 
+59. **Material Type Percentages (if Yes in Q58)** *(DQR Required)*
 
-    Hydro Electric Energy 
+* Pre-consumer materials
+* Post-consumer materials
+* Reutilization materials
 
-    Geothermal Energy 
+**Table Format:** Material type with percentage (0–100%).
 
-    Bio Based Energy 
+33. **Post-Industrial Recycling (PIR) and Post-Consumer Recycling (PCR) Materials** *(DQR Required)*
 
-    Tidal Energy 
+* PIR material
+* PCR material
 
-    Nuclear Energy 
+**Table Format:** Material type with % recycled composition (0–100%).
 
-    Steam Energy 
+---
 
-    Heat Energy 
+### 5.2 Packaging Details
 
-    Cooling Energy 
+60. **Packaging Materials Used** *(DQR Required)*
+    **Table:** Component name, packaging type, packing size
 
-    Add Button 
+61. **Packaging Weight per Unit Product** *(DQR Required)*
+    **Table:** Component name, packaging weight, unit
 
- 
+62. **Packaging Size** *(DQR Required)*
+    **Table:** Component name, package size, unit
 
-    What is your site’s electricity consumption per year (kWh/year)? * 
+63. **Use of Recycled Material in Packaging?** *(Yes / No)*
 
-    Text  
+64. **Percentage of Recycled Content in Packaging (if Yes)** *(Open text – DQR Required)*
 
- 
+65. **Electricity Used for Packaging?** *(Yes / No)*
 
-    Do you purchase renewable electricity? * 
+66. **Is Packaging Energy Included in Total Purchased Energy?** *(Yes / No)*
 
-    Yes/no 
+67. **Packaging Energy Consumption (if No in Q66)** *(DQR Required)*
+    **Table:** Energy source, energy type, quantity, unit
 
- 
+---
 
-    [If yes Q 42] what is the % of total electricity consumption? 
+### 5.3 Disposal of Waste
 
-    Add button 
+68. **Types and Weight of Production & Packaging Waste** *(DQR Required)*
+    **Table:** Waste type, waste weight, unit, treatment type (landfill/incineration/recycling/other)
 
- 
+69. **Percentage of Waste Recycled (Internal / External)** *(Text / Numeric – DQR Required)*
 
-    Do u have any device or methodology to calculate from factory level to product level energy? * 
+70. **Any By-products Generated?** *(Yes / No)*
 
-    Yes/no 
+71. **By-product Details (if Yes)** *(DQR Required)*
+    **Table:** Component name, by-product, price, quantity
 
- 
+---
 
-    [If yes Q44] Provide detailed Methodology? 
+### 5.4 Logistics (Including Internal Logistics & Transport Packaging)
 
-    Link or document Add Button 
+72. **Emissions Tracked for Raw Material Transport?** *(Yes / No)*
 
- 
+73. **Estimated CO₂ Emissions for Raw Materials (if Yes)** *(DQR Required)*
+    **Table:** Raw material, weight, transport mode, source, destination, CO₂e (kg)
 
-    Energy intensity of production: estimated kWh or MJ per unit of product (if available). 
+74. **Modes of Transport Used (if No in Q72)** *(DQR Required)*
 
-    Text  
+* Road / Truck
+* Rail
+* Ship
+* Air Freight
 
- 
+**Table:** Mode, weight transported (tons), source, destination, distance (km)
 
-    Process-specific energy usage? * 
+75. **Destination Plant for Components** *(DQR Required)*
+    **Table:** Country, state, city, PIN code (auto-dropdown)
 
-    casting, 
+---
 
-    Moulding,  
+### 5.5 Certifications & Standards
 
-    machining,  
+76. **ISO 14001 or ISO 50001 Certified?** *(Yes / No)*
 
-    painting,  
+77. **Standards Followed (ISO 14067, GHG Protocol, Catena-X, etc.)?** *(Yes / No)*
 
-    surface treatment,  
+78. **Reporting to CDP / SBTi / Other ESG Frameworks?** *(Yes / No)*
 
-    curing,  
+---
 
-    welding,  
+### 5.6 Additional Notes
 
-    Add Button 
+79. **Measures to Reduce Carbon Emissions in Production** *(Text – DQR Required)*
 
-    Support from Enviguide  
+80. **Renewable Energy Initiatives / Recycling Programs** *(Text – DQR Required)*
 
- 
+81. **Company Sustainability Initiatives & Strategies** *(Open text – large box)*
 
- 
+---
 
- 
+## Section 6: Scope 4 – Avoided Emissions
 
-    Do you use any abatement systems (VOC treatment, heat recovery)? *  
+*(Climate Positive Impacts)*
 
-    Yes/no 
+82. **Products or Services that Help Reduce Customer Emissions** *(Open text)*
 
- 
+83. **Circular Economy Practices (Reuse, Take-back, EPR, Refurbishment)** *(Open text)*
 
- 
-
-    [If yes Q48] Provide energy consumption if applicable? 
-
-    Add Button 
-
- 
-
-    Water consumption and treatment (if significant for your product). 
-
-    Text/Numeric 
-
-Packaging 
-
-    What type of packaging materials are used for delivering the product? * 
-
-    Cardboard,  
-
-    plastic film,  
-
-    wood pallets, 
-
-    another Component 
-
-    Support from Enviguide 
-
- 
-
-    Approximate weight of packaging per unit product (kg/unit)? 
-
-    Text 
-
- 
-
-    Do you use recycled material for packaging? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q53] What % recycled content in packaging materials?  
-
-    Add Button 
-
- 
-
-Transportation & Logistics 
-
-    What is the Mode(s) of transport used for transportation goods/products? * 
-
-    truck,  
-
-    rail,  
-
-    ship,  
-
-    air, 
-
-    Multimode 
-
-    Support from Enviguide. 
-
- 
-
-    Do you use logistics service providers with certified emission reporting (e.g., GLEC framework)? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q56] please Provide details? 
-
-    Add Button 
-
- 
-
-Waste & By-products 
-
-    What types of production waste are generated? * 
-
-    scrap metal,  
-
-    plastic scrap,  
-
-    sludge,  
-
-    solvents, 
-
-    Add Button 
-
- 
-
-    How is waste treated? *  
-
-    landfill,  
-
-    incineration,  
-
-    recycling,  
-
-    recovery, 
-
-    Add Button 
-
- 
-
-    % of scrap/waste material that is internally recycled or externally sent for recycling. 
-
-    Text/Numeric 
-
- 
-
-    Any by-products generated? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q61] specify type byproduct?* 
-
-    Add Button 
-
- 
-
-    what is the Quantity of byproduct?* 
-
-    Text 
-
- 
-
- 
-
- 
-
-End-of-Life & Circularity 
-
-    Is your product designed for disassembly, recycling, or reuse? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q64] Specify the details 
-
-    Add Button 
-
- 
-
- 
-
-    Do you provide take-back or recycling programs? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q66] Specify the details % recyclability of product (if known).  
-
-    Add Button 
-
- 
-
-Emission Factors / LCA Data 
-
- 
-
-    Do you already report Product Carbon Footprint (PCF) values for your product? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q68] share methodology (ISO 14067, GHG Protocol, Catena-X, etc.). 
-
-    Add Button  
-
- 
-
-    Do you have site-level or product-level Scope 1, 2, and 3 emissions data available? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q70] provide the emission data? 
-
-    Add Button 
-
-Certifications & Standards 
-
-    Are you certified to ISO 14001 (Environmental Management) or ISO 50001 (Energy Management)? * 
-
-    Yes/no 
-
- 
-
-    Do you follow ISO 14067, GHG Protocol, Catena-X PCF Guideline, or other recognized standards? * 
-
-    Yes/no 
-
- 
-
-    Do you report to CDP (Carbon Disclosure Project), SBTi (Science-Based Targets initiative), or other ESG frameworks? * 
-
-    Yes/no 
-
- 
-
-    [If YES in Q72, 73, 74] provide the previous report 
-
-    Add Button 
-
- 
-
-Additional Notes 
-
-    What measures are you taking to reduce carbon emissions in your production processes? 
-
-    Text 
-
- 
-
-    What renewable energy initiatives or recycling programs are in place at your facility? 
-
-    Text 
-
- 
-
-    Are you willing to provide primary data directly into digital PCF platforms (e.g., Catena-X, SCIP, or OEM-specific PCF tools)? * 
-
-    Yes/no 
-
- 
-
-    [If yes Q78] please provide the primary data? 
-
-    Add Button 
-
- 
+84. **Renewable Energy / Carbon Offset Projects Implemented** *(Open text)*
