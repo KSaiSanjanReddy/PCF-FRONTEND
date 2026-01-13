@@ -19,6 +19,9 @@ import UsersEdit from "../pages/settings/UsersEdit";
 import Products from "../pages/settings/Products";
 import Components from "../pages/settings/Components";
 import Industry from "../pages/settings/Industry";
+import DataSetup from "../pages/settings/DataSetup";
+import DataSetupTabs from "../pages/settings/DataSetupTabs";
+import { dataSetupGroups } from "../config/dataSetupGroups";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 // New pages
@@ -209,6 +212,23 @@ export const router = createBrowserRouter([
         path: "settings/industry",
         element: <Industry />,
       },
+      // All data setup pages (single entity or grouped with tabs)
+      {
+        path: "settings/data-setup/:entity",
+        element: <DataSetup />,
+      },
+      // Tabbed data setup pages
+      ...dataSetupGroups.map((group) => ({
+        path: `settings/data-setup/${group.key}/:tab?`,
+        element: (
+          <DataSetupTabs
+            title={group.title}
+            description={group.description}
+            tabs={group.tabs}
+            defaultTab={group.tabs[0]?.key || ""}
+          />
+        ),
+      })),
       {
         path: "supplier-questionnaire",
         element: <SupplierQuestionnaireList />,

@@ -16,7 +16,32 @@ import {
   RefreshCw,
   FileText,
   Award,
+  Zap,
+  Fuel,
+  Factory,
+  Droplets,
+  Truck,
+  Gauge,
+  Layers,
+  Tag,
+  Globe,
+  Calculator,
+  Wrench,
+  Box,
+  Activity,
+  Wind,
+  Flame,
+  Battery,
+  Recycle,
+  Droplet,
+  GaugeCircle,
+  Route,
+  Car,
+  Clock,
+  CheckCircle,
+  FileCheck,
 } from "lucide-react";
+import { dataSetupGroups, singleEntityPages } from "../config/dataSetupGroups";
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -78,6 +103,40 @@ const Settings: React.FC = () => {
           badge: null,
           cardType: "default",
         },
+        // Grouped configurations
+        ...dataSetupGroups.map((group) => ({
+          name: group.title,
+          description: group.description,
+          path: `/settings/data-setup/${group.key}/${group.tabs[0]?.key || ""}`,
+          icon:
+            group.key === "emissions" ? Factory :
+            group.key === "electricity" ? Zap :
+            group.key === "energy" ? Battery :
+            group.key === "materials" ? Layers :
+            group.key === "transport" ? Truck :
+            group.key === "water-waste" ? Droplets :
+            group.key === "units" ? GaugeCircle :
+            group.key === "standards" ? FileCheck :
+            group.key === "lifecycle" ? Activity :
+            group.key === "manufacturing" ? Factory : Package,
+          badge: null,
+          cardType: "default" as const,
+        })),
+        // Single entity pages
+        ...singleEntityPages.map((page) => ({
+          name: page.title,
+          description: page.description,
+          path: page.path,
+          icon: page.key === "manufacturer" ? Factory :
+                page.key === "category" ? Tag :
+                page.key === "tag" ? Tag :
+                page.key === "supplier-tier" ? Building2 :
+                page.key === "refrigerent-type" ? Wind :
+                page.key === "country-iso-two" || page.key === "country-iso-three" ? Globe :
+                page.key === "time-zone" ? Clock : Tag,
+          badge: null,
+          cardType: "default" as const,
+        })),
       ],
     },
   ];

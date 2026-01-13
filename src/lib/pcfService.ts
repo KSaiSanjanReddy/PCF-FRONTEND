@@ -225,8 +225,11 @@ class PCFService {
   /**
    * Get PCF BOM request by ID
    */
+  /**
+   * Get PCF BOM request by ID
+   */
   async getPCFBOMById(
-    pcf_id: string
+    bom_pcf_id: string
   ): Promise<{
     success: boolean;
     message: string;
@@ -234,7 +237,7 @@ class PCFService {
   }> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/pcf-bom/get-by-id?pcf_id=${pcf_id}`,
+        `${API_BASE_URL}/api/pcf-bom/get-by-id?bom_pcf_id=${bom_pcf_id}`,
         {
           method: "GET",
           headers: this.getHeaders(),
@@ -257,6 +260,190 @@ class PCFService {
       }
     } catch (error) {
       console.error("Get PCF BOM by ID error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Verify (Approve) PCF BOM request
+   */
+  async verifyPCFRequest(
+    bom_pcf_id: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/verify`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          bom_pcf_id,
+          is_bom_verified: true,
+          is_approved: true,
+        }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF BOM verified successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to verify PCF BOM",
+        };
+      }
+    } catch (error) {
+      console.error("Verify PCF BOM error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Reject PCF BOM request
+   */
+  async rejectPCFRequest(
+    bom_pcf_id: string,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/reject`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          bom_pcf_id,
+          is_rejected: true,
+          reject_reason: reason,
+        }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF BOM rejected successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to reject PCF BOM",
+        };
+      }
+    } catch (error) {
+      console.error("Reject PCF BOM error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Add comment to PCF BOM request
+   */
+  async addPCFComment(
+    bom_pcf_id: string,
+    comment: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/add-comment`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          bom_pcf_id,
+          comment,
+        }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "Comment added successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to add comment",
+        };
+      }
+    } catch (error) {
+      console.error("Add PCF comment error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * List comments for PCF BOM request
+   */
+  async listPCFComments(
+    bom_pcf_id: string,
+    pageNumber: number = 1,
+    pageSize: number = 40
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any[];
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/pcf-bom/list-comment?bom_pcf_id=${bom_pcf_id}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        let comments = [];
+        if (result.data && Array.isArray(result.data.data)) {
+            comments = result.data.data;
+        } else if (Array.isArray(result.data)) {
+            comments = result.data;
+        }
+
+        return {
+          success: true,
+          message: result.message || "Comments fetched successfully",
+          data: comments,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch comments",
+        };
+      }
+    } catch (error) {
+      console.error("List PCF comments error:", error);
       return {
         success: false,
         message: "Network error occurred",
