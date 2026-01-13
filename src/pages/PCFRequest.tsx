@@ -68,12 +68,18 @@ const PCFRequest: React.FC = () => {
     return <Car className="text-indigo-600" size={20} />;
   };
 
-  // Helper function to determine status (default to draft if not available)
+  // Helper function to determine status from API response
   const getStatus = (
-    item: PCFBOMItem
+    item: any
   ): "in-progress" | "completed" | "draft" | "rejected" => {
-    // Since the list API doesn't provide status, we'll default to "draft"
-    // In a real scenario, you might need to fetch additional details or the API might include status
+    const status = item.status?.toLowerCase() || "";
+    
+    if (status === "rejected") return "rejected";
+    if (status === "approved" || status === "completed") return "completed";
+    if (status === "draft" || item.is_draft) return "draft";
+    if (status === "in-progress" || status === "in progress" || status === "pending") return "in-progress";
+    
+    // Default to draft if status is unclear
     return "draft";
   };
 
@@ -83,7 +89,7 @@ const PCFRequest: React.FC = () => {
     try {
       const result = await pcfService.getPCFBOMList(currentPage, pageSize);
 
-      if (result.success && result.data) {
+      if (result.success && result.data && Array.isArray(result.data)) {
         // Helper function to format date
         const formatDate = (dateString: string): string => {
           try {
@@ -117,23 +123,56 @@ const PCFRequest: React.FC = () => {
         };
 
         // Transform API data to PCFRequestItem
-        const transformedData: PCFRequestItem[] = result.data.map((item) => ({
-          id: item.id,
-          requestNumber: item.code,
-          productName:
-            item.product_category_name || item.component_category_name || "N/A",
-          productIcon: getProductIcon(item.product_category_name || ""),
-          status: getStatus(item),
-          submittedBy: item.created_by_name || "Unknown",
-          submittedOn: item.created_date
-            ? formatDate(item.created_date)
-            : "N/A",
-        }));
+        const transformedData: PCFRequestItem[] = result.data.map((item: any) => {
+          // Extract product category name from nested structure or direct field
+          const productCategoryName = 
+            item.product_category?.name || 
+            item.product_category_name || 
+            item.component_category?.name ||
+            item.component_category_name || 
+            "N/A";
+          
+          // Extract submitted by from nested structure
+          const submittedBy = 
+            item.pcf_request_stages?.pcf_request_created_by?.user_name ||
+            item.created_by_name ||
+            "Unknown";
+          
+          // Extract created date
+          const createdDate = 
+            item.pcf_request_stages?.pcf_request_created_date ||
+            item.created_date ||
+            item.createdDate;
+          
+          return {
+            id: item.id,
+            requestNumber: item.code || item.request_number || "N/A",
+            productName: productCategoryName,
+            productIcon: getProductIcon(productCategoryName),
+            status: getStatus(item),
+            submittedBy: submittedBy,
+            submittedOn: createdDate ? formatDate(createdDate) : "N/A",
+          };
+        });
 
         setPcfRequests(transformedData);
-        setTotalCount(result.total_count || 0);
+        setTotalCount(result.total_count || transformedData.length);
         setTotalPages(result.total_pages || 1);
+        
+        // Debug logging
+        console.log("PCF List fetched:", {
+          totalItems: transformedData.length,
+          totalCount: result.total_count,
+          totalPages: result.total_pages,
+          sampleItem: transformedData[0],
+        });
       } else {
+        console.error("PCF List fetch failed:", {
+          success: result.success,
+          hasData: !!result.data,
+          isArray: Array.isArray(result.data),
+          result,
+        });
         message.error(result.message || "Failed to fetch PCF requests");
         setPcfRequests([]);
       }

@@ -8,7 +8,8 @@ export type SetupEntity =
   | "product-sub-category"
   | "component-type"
   | "component-category"
-  | "industry";
+  | "industry"
+  | "manufacturer";
 
 export interface SetupItem {
   id?: string;
@@ -27,7 +28,7 @@ function getAuthHeaders() {
 
 function endpoint(
   entity: SetupEntity,
-  action: "list/search" | "add" | "update" | "delete"
+  action: "list" | "add" | "update" | "delete"
 ) {
   return `${API_BASE_URL}/api/data-setup/${entity}/${action}`;
 }
@@ -36,7 +37,7 @@ export async function listSetup(
   entity: SetupEntity,
   params?: { searchValue?: string }
 ): Promise<SetupItem[]> {
-  const url = new URL(endpoint(entity, "list/search"));
+  const url = new URL(endpoint(entity, "list"));
   if (params?.searchValue)
     url.searchParams.set("searchValue", params.searchValue);
   const res = await fetch(url.toString(), {
