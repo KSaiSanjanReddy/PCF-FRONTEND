@@ -730,17 +730,8 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
         }
       >
         {/* BOM Table */}
-        <div className="mt-4">
-          <div className="flex justify-end mb-4">
-            <Button
-              icon={<FileExcelOutlined />}
-              onClick={() => setIsBomModalVisible(true)}
-            >
-              Import BOM
-            </Button>
-          </div>
+
           <BomTable bomData={bomData} />
-        </div>
       </Card>
 
       <div className="flex justify-end gap-3">
@@ -748,7 +739,8 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
           <Button
             icon={<ArrowLeftOutlined />}
             onClick={onBack}
-            className="border-green-500 text-green-600"
+            className="border-green-500 text-green-600 "
+            size="large"
           >
             Back
           </Button>

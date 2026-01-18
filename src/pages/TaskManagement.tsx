@@ -96,10 +96,19 @@ const TaskManagement: React.FC = () => {
               item.assigned_entities?.map((entity) => entity.name).join(", ") ||
               "Unassigned";
 
+            // Map API status to UI status
+            const statusMap: Record<string, "To Do" | "Under Review" | "In Progress" | "Completed"> = {
+              "Created": "To Do",
+              "To Do": "To Do",
+              "Under Review": "Under Review",
+              "In Progress": "In Progress",
+              "Completed": "Completed",
+            };
+            
             return {
               id: item.id,
               taskName: item.task_title || "N/A",
-              status: item.status || "To Do",
+              status: statusMap[item.status || "Created"] || "To Do",
               priority: item.priority || "Low",
               assignee: assigneeNames,
               category: item.category_name || "N/A",
@@ -132,7 +141,7 @@ const TaskManagement: React.FC = () => {
 
   // Calculate status counts from current data
   const statusCounts = {
-    toDo: tasks.filter((item) => item.status === "To Do").length,
+    toDo: tasks.filter((item) => item.status === "To Do" || item.status === "Created").length,
     underReview: tasks.filter((item) => item.status === "Under Review").length,
     inProgress: tasks.filter((item) => item.status === "In Progress").length,
     completed: tasks.filter((item) => item.status === "Completed").length,

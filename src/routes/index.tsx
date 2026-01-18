@@ -72,6 +72,11 @@ export const router = createBrowserRouter([
     path: "/mfa-verification",
     element: <MFAVerification />,
   },
+  // Public supplier questionnaire route (no login required when accessed via link with sup_id and bom_pcf_id)
+  {
+    path: "/supplier-questionnaire",
+    element: <SupplierQuestionnaire />,
+  },
   {
     path: "/",
     element: (
@@ -229,22 +234,6 @@ export const router = createBrowserRouter([
           />
         ),
       })),
-      {
-        path: "supplier-questionnaire",
-        element: <SupplierQuestionnaireList />,
-      },
-      {
-        path: "supplier-questionnaire/new",
-        element: <SupplierQuestionnaire />,
-      },
-      {
-        path: "supplier-questionnaire/edit",
-        element: <SupplierQuestionnaire />,
-      },
-      {
-        path: "supplier-questionnaire/view",
-        element: <SupplierQuestionnaire />,
-      },
       {
         path: "data-quality-rating",
         element: <DataQualityRatingList />,

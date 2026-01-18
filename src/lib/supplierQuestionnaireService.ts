@@ -46,11 +46,13 @@ export interface SupplierQuestionnaireData {
     pcf_methodology?: string[];
     pcf_report_file?: string[];
     production_site_details: {
+      mpn?: string;
       product_name: string; // Added
       location: string;
     }[];
     required_environmental_impact_methods: string[];
     products_manufactured: {
+      mpn?: string;
       product_name: string;
       production_period: string;
       weight_per_unit: number;
@@ -371,11 +373,13 @@ interface SupplierQuestionnaireApiPayload {
         pcf_methodology_used: string[];
         upload_pcf_report: string[];
         production_site_details_questions: {
+            mpn?: string;
             product_name: string;
             location: string;
         }[];
         required_environmental_impact_methods: string[];
         product_component_manufactured_questions: {
+            mpn?: string;
             product_name: string;
             production_period: string;
             weight_per_unit: number;
@@ -652,9 +656,11 @@ class SupplierQuestionnaireService {
   }
 
   // Helper to map UI data to API payload
-  private mapToApiPayload(data: SupplierQuestionnaireData): SupplierQuestionnaireApiPayload {
+  private mapToApiPayload(data: SupplierQuestionnaireData, sup_id?: string, bom_pcf_id?: string): SupplierQuestionnaireApiPayload {
       return {
           supplier_general_info_questions: {
+              ...(sup_id && { sup_id }),
+              ...(bom_pcf_id && { bom_pcf_id }),
               ere_acknowledge: data.general_information.re_technologies_acknowledgement,
               repm_acknowledge: data.general_information.re_procurement_acknowledgement,
               dc_acknowledge: data.general_information.double_counting_acknowledgement,
@@ -681,11 +687,13 @@ class SupplierQuestionnaireService {
               pcf_methodology_used: data.product_details.pcf_methodology || [],
               upload_pcf_report: data.product_details.pcf_report_file || [],
               production_site_details_questions: (data.product_details.production_site_details || []).map(item => ({
+                  ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   location: item.location
               })),
               required_environmental_impact_methods: data.product_details.required_environmental_impact_methods || [],
               product_component_manufactured_questions: (data.product_details.products_manufactured || []).map(item => ({
+                  ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   production_period: item.production_period,
                   weight_per_unit: item.weight_per_unit,
@@ -994,11 +1002,13 @@ class SupplierQuestionnaireService {
               pcf_methodology: prodInfo.pcf_methodology_used,
               pcf_report_file: prodInfo.upload_pcf_report,
               production_site_details: (prodInfo.production_site_details_questions || []).map((item: any) => ({
+                  ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   location: item.location
               })),
               required_environmental_impact_methods: prodInfo.required_environmental_impact_methods,
               products_manufactured: (prodInfo.product_component_manufactured_questions || []).map((item: any) => ({
+                  ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   production_period: item.production_period,
                   weight_per_unit: item.weight_per_unit,
@@ -1288,13 +1298,54 @@ class SupplierQuestionnaireService {
   }
 
   /**
+   * Get PCF BOM list for auto-population
+   */
+  async getPCFBOMListToAutoPopulate(
+    bom_pcf_id: string,
+    sup_id: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/supplier/auto-populate-bom-details?bom_pcf_id=${encodeURIComponent(bom_pcf_id)}&sup_id=${encodeURIComponent(sup_id)}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "BOM data fetched successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch BOM data",
+        };
+      }
+    } catch (error) {
+      console.error("Get PCF BOM list error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
    * Create a new supplier questionnaire
    */
   async createQuestionnaire(
-    data: SupplierQuestionnaireData
+    data: SupplierQuestionnaireData,
+    sup_id?: string,
+    bom_pcf_id?: string
   ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      const payload = this.mapToApiPayload(data);
+      const payload = this.mapToApiPayload(data, sup_id, bom_pcf_id);
       const response = await fetch(
         `${API_BASE_URL}/api/create-supplier-input-questions`,
         {

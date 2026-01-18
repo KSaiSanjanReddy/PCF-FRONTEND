@@ -20,33 +20,43 @@ import {
   SaveOutlined,
   CloudUploadOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckSquare } from "lucide-react";
 import dayjs from "dayjs";
 import taskService from "../lib/taskService";
-import { listSetup, type SetupItem } from "../lib/dataSetupService";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 interface PCFOption {
-  pcf_id: string;
-  pcf_code: string;
+  id: string;
+  code: string;
   request_title: string | null;
   priority: string | null;
   request_organization: string | null;
-  bom_id: string;
-  bom_code: string;
-  component_name: string;
-  material_number: string;
+}
+
+interface ProductOption {
+  id: string;
+  product_code: string;
+  product_name: string;
+}
+
+interface CategoryOption {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
 }
 
 const TaskCreate: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<SetupItem[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [pcfOptions, setPcfOptions] = useState<PCFOption[]>([]);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [bomSuppliers, setBomSuppliers] = useState<Array<{
     id: string;
     name: string;
@@ -59,16 +69,16 @@ const TaskCreate: React.FC = () => {
     user_role: string;
   }>>([]);
   const [selectedPCF, setSelectedPCF] = useState<string | undefined>();
-  const [selectedBOM, setSelectedBOM] = useState<string | undefined>();
-  const [bomOptions, setBomOptions] = useState<Array<{ bom_id: string; bom_code: string; component_name: string; material_number: string }>>([]);
 
   // Load dropdown data
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
         // Load categories
-        const categoryList = await listSetup("product-category");
-        setCategories(categoryList);
+        const categoryResult = await taskService.getCategoryDropdown();
+        if (categoryResult.success && categoryResult.data) {
+          setCategories(categoryResult.data);
+        }
 
         // Load PCF dropdown
         const pcfResult = await taskService.getPCFDropdown();
@@ -76,10 +86,31 @@ const TaskCreate: React.FC = () => {
           setPcfOptions(pcfResult.data);
         }
 
+        // Load product dropdown
+        const productResult = await taskService.getProductDropdown();
+        if (productResult.success && productResult.data) {
+          setProductOptions(productResult.data);
+        }
+
         // Load users list
         const usersResult = await taskService.getUsersList();
         if (usersResult.success && usersResult.data) {
           setUsers(usersResult.data);
+        }
+
+        // Pre-select PCF if bom_pcf_id is in query params
+        const bomPcfId = searchParams.get("bom_pcf_id");
+        if (bomPcfId) {
+          setSelectedPCF(bomPcfId);
+          form.setFieldsValue({ bom_pcf_id: bomPcfId });
+          
+          // Load BOM suppliers for pre-selected PCF
+          const bomSuppliersResult = await taskService.getBOMSupplierDropdown(bomPcfId);
+          if (bomSuppliersResult.success && bomSuppliersResult.data) {
+            setBomSuppliers(bomSuppliersResult.data);
+            const supplierIds = bomSuppliersResult.data.map((supplier) => supplier.id);
+            form.setFieldsValue({ assign_to: supplierIds });
+          }
         }
       } catch (error) {
         console.error("Error loading dropdowns:", error);
@@ -88,27 +119,14 @@ const TaskCreate: React.FC = () => {
     };
 
     loadDropdowns();
-  }, []);
+  }, [searchParams, form]);
 
-  // Load BOM suppliers when BOM is selected
+  // Load BOM suppliers when PCF is selected (this will be triggered by handlePCFChange)
   useEffect(() => {
-    const loadBOMSuppliers = async () => {
-      if (selectedBOM) {
-        try {
-          const result = await taskService.getBOMSupplierDropdown(selectedBOM);
-          if (result.success && result.data) {
-            setBomSuppliers(result.data);
-          }
-        } catch (error) {
-          console.error("Error loading BOM suppliers:", error);
-        }
-      } else {
-        setBomSuppliers([]);
-      }
-    };
-
-    loadBOMSuppliers();
-  }, [selectedBOM]);
+    if (!selectedPCF) {
+      setBomSuppliers([]);
+    }
+  }, [selectedPCF]);
 
   const handleSave = async () => {
     try {
@@ -136,9 +154,8 @@ const TaskCreate: React.FC = () => {
         assign_to: values.assign_to || [],
         due_date: dueDate,
         description: values.description,
-        pcf_id: values.pcf_id,
-        bom_id: values.bom_id,
-        related_product: values.related_product,
+        bom_pcf_id: values.bom_pcf_id,
+        product: values.product,
         estimated_hour: values.estimated_hour ? Number(values.estimated_hour) : undefined,
         tags: tags.length > 0 ? tags : undefined,
         attachments: values.attachments,
@@ -160,35 +177,33 @@ const TaskCreate: React.FC = () => {
     }
   };
 
-  const handlePCFChange = (value: string) => {
+  const handlePCFChange = async (value: string) => {
     setSelectedPCF(value);
-    // Get BOMs for selected PCF
-    const pcfItem = pcfOptions.find((pcf) => pcf.pcf_id === value);
-    if (pcfItem) {
-      // Get all BOMs for this PCF
-      const bomsForPCF = pcfOptions
-        .filter((pcf) => pcf.pcf_id === value)
-        .map((pcf) => ({
-          bom_id: pcf.bom_id,
-          bom_code: pcf.bom_code,
-          component_name: pcf.component_name,
-          material_number: pcf.material_number,
-        }));
-      // Remove duplicates based on bom_id
-      const uniqueBoms = Array.from(
-        new Map(bomsForPCF.map((bom) => [bom.bom_id, bom])).values()
-      );
-      setBomOptions(uniqueBoms);
+    
+    // Load BOM suppliers immediately when PCF changes
+    if (value) {
+      try {
+        const result = await taskService.getBOMSupplierDropdown(value);
+        if (result.success && result.data) {
+          setBomSuppliers(result.data);
+          
+          // Automatically select all suppliers in the "Assign To" field
+          const supplierIds = result.data.map((supplier) => supplier.id);
+          const currentAssignTo = form.getFieldValue("assign_to") || [];
+          
+          // Combine existing assignees with new suppliers (avoid duplicates)
+          const allAssignees = Array.from(
+            new Set([...currentAssignTo, ...supplierIds])
+          );
+          
+          form.setFieldsValue({ assign_to: allAssignees });
+        }
+      } catch (error) {
+        console.error("Error loading BOM suppliers:", error);
+      }
     } else {
-      setBomOptions([]);
+      setBomSuppliers([]);
     }
-    // Reset BOM when PCF changes
-    form.setFieldsValue({ bom_id: undefined });
-    setSelectedBOM(undefined);
-  };
-
-  const handleBOMChange = (value: string) => {
-    setSelectedBOM(value);
   };
 
   // Get assignee options - combine BOM suppliers and users
@@ -206,28 +221,6 @@ const TaskCreate: React.FC = () => {
         value: user.user_id,
       })),
   ];
-
-  // Load BOM options when PCF is selected
-  useEffect(() => {
-    if (selectedPCF) {
-      // Get all BOMs for selected PCF from pcfOptions
-      const bomsForPCF = pcfOptions
-        .filter((pcf) => pcf.pcf_id === selectedPCF)
-        .map((pcf) => ({
-          bom_id: pcf.bom_id,
-          bom_code: pcf.bom_code,
-          component_name: pcf.component_name,
-          material_number: pcf.material_number,
-        }));
-      // Remove duplicates based on bom_id
-      const uniqueBoms = Array.from(
-        new Map(bomsForPCF.map((bom) => [bom.bom_id, bom])).values()
-      );
-      setBomOptions(uniqueBoms);
-    } else {
-      setBomOptions([]);
-    }
-  }, [selectedPCF, pcfOptions]);
 
   // Upload props
   const uploadProps = {
@@ -316,15 +309,12 @@ const TaskCreate: React.FC = () => {
                   estimated_hour: 0,
                 }}
               >
-                {/* Task Information Section */}
+                {/* Task Details Section */}
                 <div className="mb-6">
-                  <Title level={4} style={{ marginBottom: 16 }}>
-                    Task Information
-                  </Title>
                   <Row gutter={[16, 16]}>
                     <Col xs={24} md={12}>
                       <Form.Item
-                        label="Task Title"
+                        label="Task Title*"
                         name="task_title"
                         rules={[
                           { required: true, message: "Enter task title" },
@@ -338,7 +328,23 @@ const TaskCreate: React.FC = () => {
                     </Col>
                     <Col xs={24} md={12}>
                       <Form.Item
-                        label="Category"
+                        label="Due Date*"
+                        name="due_date"
+                        rules={[
+                          { required: true, message: "Select due date" },
+                        ]}
+                      >
+                        <DatePicker
+                          className="w-full"
+                          placeholder="mm/dd/yyyy"
+                          size="large"
+                          format="MM/DD/YYYY"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item
+                        label="Category*"
                         name="category_id"
                         rules={[
                           { required: true, message: "Select category" },
@@ -356,7 +362,7 @@ const TaskCreate: React.FC = () => {
                     </Col>
                     <Col xs={24} md={12}>
                       <Form.Item
-                        label="Priority"
+                        label="Priority*"
                         name="priority"
                         rules={[
                           { required: true, message: "Select priority" },
@@ -373,47 +379,9 @@ const TaskCreate: React.FC = () => {
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        label="Assign To"
-                        name="assign_to"
-                        rules={[
-                          { required: true, message: "Select assignee" },
-                        ]}
-                      >
-                        <Select
-                          mode="multiple"
-                          placeholder="Select assignee..."
-                          size="large"
-                          options={assigneeOptions}
-                          disabled={assigneeOptions.length === 0}
-                          notFoundContent={
-                            assigneeOptions.length === 0
-                              ? "Loading assignees..."
-                              : "No assignees found"
-                          }
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        label="Due Date"
-                        name="due_date"
-                        rules={[
-                          { required: true, message: "Select due date" },
-                        ]}
-                      >
-                        <DatePicker
-                          className="w-full"
-                          placeholder="mm/dd/yyyy"
-                          size="large"
-                          format="MM/DD/YYYY"
-                        />
-                      </Form.Item>
-                    </Col>
                     <Col span={24}>
                       <Form.Item
-                        label="Description"
+                        label="Description*"
                         name="description"
                         rules={[
                           { required: true, message: "Enter description" },
@@ -442,7 +410,7 @@ const TaskCreate: React.FC = () => {
                             Related Product <Text type="secondary">(Optional)</Text>
                           </span>
                         }
-                        name="related_product"
+                        name="product"
                       >
                         <Select
                           placeholder="Select product..."
@@ -451,12 +419,10 @@ const TaskCreate: React.FC = () => {
                           filterOption={(input, option) =>
                             (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                           }
-                          options={pcfOptions
-                            .filter((pcf) => pcf.pcf_id)
-                            .map((pcf) => ({
-                              label: pcf.request_title || pcf.pcf_code || (pcf.pcf_id ? `PCF-${pcf.pcf_id.substring(0, 8)}` : "Unknown"),
-                              value: pcf.pcf_id,
-                            }))}
+                          options={productOptions.map((product) => ({
+                            label: `${product.product_code} - ${product.product_name}`,
+                            value: product.id,
+                          }))}
                         />
                       </Form.Item>
                     </Col>
@@ -472,52 +438,45 @@ const TaskCreate: React.FC = () => {
                     </Col>
                     <Col xs={24} md={12}>
                       <Form.Item
-                        label={
-                          <span>
-                            PCF Request <Text type="secondary">(Optional)</Text>
-                          </span>
-                        }
-                        name="pcf_id"
+                        label="PCF Request*"
+                        name="bom_pcf_id"
+                        rules={[
+                          { required: true, message: "Select PCF Request" },
+                        ]}
                       >
                         <Select
-                          placeholder="Select PCF request..."
+                          placeholder="Select PCF..."
                           size="large"
                           showSearch
                           filterOption={(input, option) =>
                             (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                           }
-                          options={pcfOptions
-                            .filter((pcf) => pcf.pcf_id)
-                            .map((pcf) => ({
-                              label: pcf.request_title || pcf.pcf_code || (pcf.pcf_id ? `PCF-${pcf.pcf_id.substring(0, 8)}` : "Unknown"),
-                              value: pcf.pcf_id,
-                            }))}
+                          options={pcfOptions.map((pcf) => ({
+                            label: pcf.request_title || pcf.code || `PCF-${pcf.id.substring(0, 8)}`,
+                            value: pcf.id,
+                          }))}
                           onChange={handlePCFChange}
                         />
                       </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
                       <Form.Item
-                        label={
-                          <span>
-                            BOM <Text type="secondary">(Optional)</Text>
-                          </span>
-                        }
-                        name="bom_id"
+                        label="Assign To*"
+                        name="assign_to"
+                        rules={[
+                          { required: true, message: "Select assignee" },
+                        ]}
                       >
                         <Select
-                          placeholder="Select BOM..."
+                          mode="multiple"
+                          placeholder="Select assignee..."
                           size="large"
-                          onChange={handleBOMChange}
-                          disabled={!selectedPCF}
-                          options={bomOptions.map((bom) => ({
-                            label: `${bom.bom_code} - ${bom.component_name} (${bom.material_number})`,
-                            value: bom.bom_id,
-                          }))}
+                          options={assigneeOptions}
+                          disabled={assigneeOptions.length === 0}
                           notFoundContent={
-                            selectedPCF
-                              ? "No BOMs found for this PCF"
-                              : "Please select a PCF first"
+                            assigneeOptions.length === 0
+                              ? "Loading assignees..."
+                              : "No assignees found"
                           }
                         />
                       </Form.Item>
@@ -568,6 +527,7 @@ const TaskCreate: React.FC = () => {
                   <Button
                     size="large"
                     onClick={() => navigate("/task-management")}
+                    style={{ borderColor: "#52c41a", color: "#52c41a" }}
                   >
                     <LeftOutlined /> Back
                   </Button>

@@ -52,6 +52,7 @@ const TaskView: React.FC = () => {
 
   const getStatusTag = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
+      "Created": { color: "default", label: "To-Do" },
       "To Do": { color: "default", label: "To-Do" },
       "Under Review": { color: "orange", label: "Under Review" },
       "In Progress": { color: "blue", label: "In Progress" },

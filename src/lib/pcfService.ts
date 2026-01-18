@@ -55,6 +55,14 @@ export interface PCFBOMItem {
   boms?: any[];
 }
 
+// Upload response interface
+export interface UploadResponse {
+  status: boolean;
+  message: string;
+  url: string;
+  key: string;
+}
+
 class PCFService {
   private getHeaders() {
     const token = authService.getToken();
@@ -62,6 +70,112 @@ class PCFService {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `${token}` } : {}),
     };
+  }
+
+  /**
+   * Upload BOM image or file
+   * POST /api/upload-bom-image-or-file
+   */
+  async uploadBOMFile(file: File): Promise<{
+    success: boolean;
+    message: string;
+    url?: string;
+    key?: string;
+  }> {
+    try {
+      const token = authService.getToken();
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch(`${API_BASE_URL}/api/upload-bom-image-or-file`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      const result: UploadResponse = await response.json();
+
+      if (result.status) {
+        return {
+          success: true,
+          message: result.message || "File uploaded successfully",
+          url: result.url,
+          key: result.key,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to upload file",
+        };
+      }
+    } catch (error) {
+      console.error("Upload BOM file error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Get image URL by key (for reference only - use fetchImage for actual fetching)
+   * GET /api/get-image?key=...
+   */
+  getImageUrl(key: string): string {
+    return `${API_BASE_URL}/api/get-image?key=${encodeURIComponent(key)}`;
+  }
+
+  /**
+   * Fetch image/file by key and return signed URL for preview/download
+   * GET /api/get-image?key=...
+   * Returns: { status: true, url: "signed-url" }
+   */
+  async fetchImage(key: string): Promise<{
+    success: boolean;
+    url?: string;
+    message?: string;
+  }> {
+    try {
+      const token = authService.getToken();
+      const response = await fetch(
+        `${API_BASE_URL}/api/get-image?key=${encodeURIComponent(key)}`,
+        {
+          method: "GET",
+          headers: {
+            ...(token ? { Authorization: `${token}` } : {}),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: "Failed to fetch image",
+        };
+      }
+
+      const result = await response.json();
+      
+      if (result.status && result.url) {
+        return {
+          success: true,
+          url: result.url,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to get image URL",
+        };
+      }
+    } catch (error) {
+      console.error("Fetch image error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
   }
 
   /**

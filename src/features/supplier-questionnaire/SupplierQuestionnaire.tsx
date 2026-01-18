@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { Steps, Button, message, Spin, Modal, Form } from "antd";
-import { SaveOutlined, ArrowLeftOutlined, ArrowRightOutlined, CheckOutlined } from '@ant-design/icons';
+import { Steps, Button, message, Spin, Modal, Form, Progress, Drawer, Badge, Tooltip, Alert } from "antd";
+import { SaveOutlined, ArrowLeftOutlined, ArrowRightOutlined, CheckOutlined, MenuOutlined, CheckCircleOutlined, ClockCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import authService from "../../lib/authService";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
@@ -16,29 +16,37 @@ const SupplierQuestionnaire: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
 
-  // Get sgiq_id from search params
+  // Get URL params
   let sgiq_id = searchParams.get("sgiq_id");
-  if (!sgiq_id && location.search) {
-    const urlParams = new URLSearchParams(location.search);
-    sgiq_id = urlParams.get("sgiq_id");
-  }
-
-  // Get user_id from search params
+  let sup_id = searchParams.get("sup_id");
+  let bom_pcf_id = searchParams.get("bom_pcf_id");
   let user_id = searchParams.get("user_id");
-  if (!user_id && location.search) {
+  
+  if (location.search) {
     const urlParams = new URLSearchParams(location.search);
-    user_id = urlParams.get("user_id");
+    sgiq_id = sgiq_id || urlParams.get("sgiq_id");
+    sup_id = sup_id || urlParams.get("sup_id");
+    bom_pcf_id = bom_pcf_id || urlParams.get("bom_pcf_id");
+    user_id = user_id || urlParams.get("user_id");
   }
 
   const isViewMode = location.pathname.includes("/view");
   const isEditMode = location.pathname.includes("/edit");
-  const isCreateMode = location.pathname.includes("/new");
+  const isCreateMode = !sgiq_id && (location.pathname.includes("/new") || !isViewMode && !isEditMode);
+  const isPublicRoute = !!(sup_id && bom_pcf_id); // Public route when accessed via supplier link
 
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [questionnaireId, setQuestionnaireId] = useState<string | null>(sgiq_id);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
 
   // Load data
   useEffect(() => {
@@ -60,37 +68,260 @@ const SupplierQuestionnaire: React.FC = () => {
               // But form values are set via initialValues prop on the DynamicForm
               // However, when switching steps, we need to ensure data is preserved
             } else {
-              message.error(result.message || "Failed to load questionnaire");
+              message.error({
+                content: result.message || "Unable to load the questionnaire. Please try refreshing the page or contact support if the issue persists.",
+                duration: 5,
+              });
             }
           }
         } catch (error) {
           console.error("Error loading questionnaire:", error);
-          message.error("An error occurred while loading the questionnaire");
+          message.error({
+            content: "Failed to load the questionnaire. Please check your internet connection and try again. If the problem persists, contact support.",
+            duration: 5,
+          });
         } finally {
           setIsLoading(false);
         }
       } else if (isCreateMode) {
+        // Auto-populate product details if sup_id and bom_pcf_id are provided
+        if (sup_id && bom_pcf_id) {
+          setIsLoading(true);
+          try {
+            const result = await supplierQuestionnaireService.getPCFBOMListToAutoPopulate(bom_pcf_id, sup_id);
+            if (result.success && result.data) {
+              // Map the API response to form data structure
+              const autoPopulatedData: any = {
+                product_details: {
+                  production_site_details: result.data.production_site_details || [],
+                  products_manufactured: result.data.products_manufactured || [],
+                }
+              };
+              
+              // Merge with existing form data
+              setFormData(prevData => ({
+                ...prevData,
+                ...autoPopulatedData
+              }));
+              
+              // Set form values
+              form.setFieldsValue(autoPopulatedData);
+              
+              // Track auto-populated fields
+              const autoPopulatedFieldNames = new Set<string>();
+              if (autoPopulatedData.product_details?.production_site_details) {
+                autoPopulatedFieldNames.add('product_details.production_site_details');
+              }
+              if (autoPopulatedData.product_details?.products_manufactured) {
+                autoPopulatedFieldNames.add('product_details.products_manufactured');
+              }
+              setAutoPopulatedFields(autoPopulatedFieldNames);
+            } else {
+              console.warn("Auto-populate failed:", result.message);
+            }
+          } catch (error) {
+            console.error("Error auto-populating data:", error);
+            message.warning({
+              content: "Some product details could not be auto-populated. Please fill them in manually.",
+              duration: 4,
+            });
+          } finally {
+            setIsLoading(false);
+          }
+        }
+        
+        // Load draft if exists
         const draft = supplierQuestionnaireService.loadDraft();
         if (draft) {
-          setFormData(draft.formData);
+          setFormData(prevData => ({
+            ...prevData,
+            ...draft.formData
+          }));
           // Validate step index against current schema
           const savedStep = draft.currentStep || 0;
           if (savedStep < QUESTIONNAIRE_SCHEMA.length) {
             setCurrentStep(savedStep);
-          } else {
-            setCurrentStep(0);
           }
         }
       }
     };
 
     loadData();
-  }, [sgiq_id, user_id, isViewMode, isEditMode, isCreateMode]);
+  }, [sgiq_id, sup_id, bom_pcf_id, user_id, isViewMode, isEditMode, isCreateMode, form]);
 
   // Update form values when step changes or data loads
   useEffect(() => {
     form.setFieldsValue(formData);
   }, [currentStep, formData, form]);
+
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (isCreateMode && !isViewMode) {
+      // Clear existing timer
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+
+      // Set new timer for auto-save
+      autoSaveTimerRef.current = setTimeout(() => {
+        const values = form.getFieldsValue();
+        const updatedData = { ...formData, ...values };
+        
+        if (Object.keys(updatedData).length > 0) {
+          setAutoSaveStatus('saving');
+          supplierQuestionnaireService.saveDraft(updatedData, currentStep);
+          setFormData(updatedData);
+          setAutoSaveStatus('saved');
+          setLastSaved(new Date());
+          
+          // Reset to idle after 2 seconds
+          setTimeout(() => setAutoSaveStatus('idle'), 2000);
+        }
+      }, 2000); // Auto-save after 2 seconds of inactivity
+
+      return () => {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+      };
+    }
+  }, [formData, currentStep, isCreateMode, isViewMode, form]);
+
+  // Track completed steps
+  useEffect(() => {
+    const checkStepCompletion = async () => {
+      try {
+        const values = form.getFieldsValue();
+        const section = QUESTIONNAIRE_SCHEMA[currentStep];
+        if (section) {
+          const requiredFields = section.fields.filter(f => f.required && !f.dependency);
+          const hasRequiredData = requiredFields.every(field => {
+            const fieldValue = form.getFieldValue(field.name.split('.'));
+            return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
+          });
+          
+          if (hasRequiredData) {
+            setCompletedSteps(prev => new Set([...prev, currentStep]));
+          }
+        }
+      } catch (error) {
+        // Ignore validation errors for completion check
+      }
+    };
+    
+    checkStepCompletion();
+  }, [currentStep, formData, form]);
+
+  // Calculate progress based on questions answered
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
+
+  useEffect(() => {
+    const calculateProgress = () => {
+      let totalQuestions = 0;
+      let answeredQuestions = 0;
+
+      // Get all current form values
+      const allFormValues = form.getFieldsValue();
+      const mergedValues = { ...formData, ...allFormValues };
+
+      const getNestedValue = (obj: any, path: string): any => {
+        return path.split('.').reduce((acc, part) => {
+          if (acc === null || acc === undefined) return undefined;
+          return acc[part];
+        }, obj);
+      };
+
+      const isFieldVisible = (field: any): boolean => {
+        // Check if field has dependency and if it's met
+        if (field.dependency) {
+          const dependencyValue = getNestedValue(mergedValues, field.dependency.field);
+          const expectedValue = field.dependency.value;
+          
+          // Check if dependency field has been answered
+          const isAnswered = dependencyValue !== undefined && 
+                            dependencyValue !== null && 
+                            dependencyValue !== '';
+          
+          if (!isAnswered) return false;
+          
+          if (typeof expectedValue === 'boolean') {
+            if (dependencyValue !== expectedValue) return false;
+          } else if (Array.isArray(dependencyValue)) {
+            if (!dependencyValue.includes(expectedValue)) return false;
+          } else {
+            if (dependencyValue !== expectedValue) return false;
+          }
+        }
+        return true;
+      };
+
+      const isFieldAnswered = (field: any): boolean => {
+        const fieldValue = getNestedValue(mergedValues, field.name);
+        
+        // Check if field has a value
+        if (field.type === 'table') {
+          // For tables, check if there's at least one row
+          return Array.isArray(fieldValue) && fieldValue.length > 0;
+        } else if (field.type === 'checkbox' && field.options) {
+          // For multi-select checkboxes, check if at least one is selected
+          return Array.isArray(fieldValue) && fieldValue.length > 0;
+        } else if (field.type === 'checkbox') {
+          // For single checkbox, check if it's checked
+          return fieldValue === true;
+        } else {
+          // For other fields, check if value exists and is not empty
+          return fieldValue !== undefined && 
+                 fieldValue !== null && 
+                 fieldValue !== '' &&
+                 !(Array.isArray(fieldValue) && fieldValue.length === 0);
+        }
+      };
+
+      // Iterate through all sections and fields
+      QUESTIONNAIRE_SCHEMA.forEach((section) => {
+        section.fields.forEach((field) => {
+          // Skip info fields (they're not questions)
+          if (field.type === 'info') {
+            return;
+          }
+
+          // Check if field is visible (dependencies met)
+          if (isFieldVisible(field)) {
+            totalQuestions++;
+            
+            // Check if field is answered
+            if (isFieldAnswered(field)) {
+              answeredQuestions++;
+            }
+          }
+        });
+      });
+
+      const percentage = totalQuestions === 0 ? 0 : Math.round((answeredQuestions / totalQuestions) * 100);
+      setProgressPercentage(percentage);
+      setAnsweredCount(answeredQuestions);
+      setTotalQuestionsCount(totalQuestions);
+    };
+
+    calculateProgress();
+  }, [formData, form, currentStep]);
+
+  // Also recalculate when form values change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const allFormValues = form.getFieldsValue();
+      if (Object.keys(allFormValues).length > 0) {
+        setFormData(prev => ({ ...prev, ...allFormValues }));
+      }
+    }, 500); // Debounce form value updates
+
+    return () => clearTimeout(timer);
+  }, [form]);
+
+  const completedCount = completedSteps.size;
 
   const handleNext = async () => {
     try {
@@ -100,16 +331,46 @@ const SupplierQuestionnaire: React.FC = () => {
       // Merge current step values into global form data
       const updatedData = { ...formData, ...values };
       setFormData(updatedData);
+      setFormErrors({});
 
       if (isCreateMode) {
         supplierQuestionnaireService.saveDraft(updatedData, currentStep + 1);
+        setLastSaved(new Date());
       }
 
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
       setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0);
-    } catch (error) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error: any) {
       console.error("Validation failed:", error);
-      message.error("Please fill in all required fields");
+      
+      // Extract and display field errors
+      if (error.errorFields) {
+        const errors: Record<string, string[]> = {};
+        error.errorFields.forEach((field: any) => {
+          const fieldName = field.name.join('.');
+          if (!errors[fieldName]) {
+            errors[fieldName] = [];
+          }
+          errors[fieldName].push(field.errors[0]);
+        });
+        setFormErrors(errors);
+      }
+      
+      const errorCount = error.errorFields?.length || 0;
+      if (errorCount > 0) {
+        message.error({
+          content: `Please complete ${errorCount} required ${errorCount === 1 ? 'field' : 'fields'} before continuing.`,
+          duration: 4,
+        });
+      } else {
+        message.error("Please fill in all required fields before continuing.");
+      }
+      // Scroll to first error
+      const firstErrorField = document.querySelector('.ant-form-item-has-error');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   };
 
@@ -117,21 +378,45 @@ const SupplierQuestionnaire: React.FC = () => {
     // Save current values before moving back
     const values = form.getFieldsValue();
     setFormData({ ...formData, ...values });
+    setFormErrors({});
     setCurrentStep(currentStep - 1);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStepJump = (step: number) => {
+    if (step < currentStep || completedSteps.has(step)) {
+      const values = form.getFieldsValue();
+      setFormData({ ...formData, ...values });
+      setFormErrors({});
+      setCurrentStep(step);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setSidebarVisible(false); // Close mobile sidebar
+    }
   };
 
   const handleSaveDraft = async () => {
     setIsSaving(true);
+    setAutoSaveStatus('saving');
     try {
       const values = form.getFieldsValue();
       const updatedData = { ...formData, ...values };
       setFormData(updatedData);
       
       supplierQuestionnaireService.saveDraft(updatedData, currentStep);
-      message.success("Draft saved successfully!");
+      setLastSaved(new Date());
+      setAutoSaveStatus('saved');
+      message.success({
+        content: "Draft saved successfully! Your progress has been saved.",
+        duration: 2,
+      });
+      
+      setTimeout(() => setAutoSaveStatus('idle'), 2000);
     } catch (error) {
-      message.error("Failed to save draft");
+      setAutoSaveStatus('idle');
+      message.error({
+        content: "Unable to save your draft. Please check your internet connection and try again. Your progress may be lost if you leave this page.",
+        duration: 5,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -143,17 +428,21 @@ const SupplierQuestionnaire: React.FC = () => {
       const finalData = { ...formData, ...values };
       
       setIsSaving(true);
+      setFormErrors({});
       
       let result;
       if (questionnaireId) {
         result = await supplierQuestionnaireService.updateQuestionnaire(questionnaireId, finalData);
       } else {
-        result = await supplierQuestionnaireService.createQuestionnaire(finalData);
+        result = await supplierQuestionnaireService.createQuestionnaire(finalData, sup_id || undefined, bom_pcf_id || undefined);
       }
 
       if (result.success) {
         supplierQuestionnaireService.clearDraft();
-        message.success("Questionnaire submitted successfully!");
+        message.success({
+          content: "Questionnaire submitted successfully! Thank you for completing the form.",
+          duration: 4,
+        });
         
         // Navigate to DQR or list
         const newId = result.data?.general_info?.sgiq_id || result.data?.sgiq_id || questionnaireId;
@@ -162,15 +451,76 @@ const SupplierQuestionnaire: React.FC = () => {
              navigate('/supplier-questionnaire');
         }
       } else {
-        message.error(`Failed to submit: ${result.message}`);
+        message.error({
+          content: result.message 
+            ? `Submission failed: ${result.message}. Please review your answers and try again.`
+            : "Unable to submit the questionnaire. Please check your internet connection and try again. If the problem persists, contact support.",
+          duration: 6,
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submit error:", error);
-      message.error("Please fix validation errors before submitting");
+      
+      // Extract and display field errors
+      if (error.errorFields) {
+        const errors: Record<string, string[]> = {};
+        error.errorFields.forEach((field: any) => {
+          const fieldName = field.name.join('.');
+          if (!errors[fieldName]) {
+            errors[fieldName] = [];
+          }
+          errors[fieldName].push(field.errors[0]);
+        });
+        setFormErrors(errors);
+      }
+      
+      const errorCount = error.errorFields?.length || 0;
+      if (errorCount > 0) {
+        message.error({
+          content: `Cannot submit: ${errorCount} required ${errorCount === 1 ? 'field' : 'fields'} ${errorCount === 1 ? 'is' : 'are'} incomplete. Please review and complete all required fields.`,
+          duration: 5,
+        });
+      } else {
+        message.error("Please fix all validation errors before submitting the questionnaire.");
+      }
+      // Scroll to first error
+      const firstErrorField = document.querySelector('.ant-form-item-has-error');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Keyboard shortcuts - using refs to avoid dependency issues
+  const handleNextRef = useRef(handleNext);
+  const handleSubmitRef = useRef(handleSubmit);
+  
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+    handleSubmitRef.current = handleSubmit;
+  });
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter to submit
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (currentStep === QUESTIONNAIRE_SCHEMA.length - 1) {
+          handleSubmitRef.current();
+        } else {
+          handleNextRef.current();
+        }
+      }
+      // Escape to close sidebar on mobile
+      if (e.key === 'Escape' && sidebarVisible) {
+        setSidebarVisible(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentStep, sidebarVisible]);
 
   if (isLoading) {
     return (
@@ -182,108 +532,284 @@ const SupplierQuestionnaire: React.FC = () => {
 
   const currentSection = QUESTIONNAIRE_SCHEMA[currentStep];
 
+  const renderSidebar = () => {
+    const sidebarContent = (
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        {/* Progress Section */}
+        <div className="mb-6 pb-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Progress</span>
+            <span className="text-sm text-gray-500">{currentStep + 1} of {QUESTIONNAIRE_SCHEMA.length}</span>
+          </div>
+          <Progress 
+            percent={progressPercentage} 
+            showInfo={false}
+            strokeColor={{
+              '0%': '#52c41a',
+              '100%': '#73d13d',
+            }}
+            className="mb-2"
+          />
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>{answeredCount} of {totalQuestionsCount} questions answered</span>
+            <span>{progressPercentage}%</span>
+          </div>
+        </div>
+
+        {/* Steps */}
+        <Steps 
+          direction="vertical" 
+          current={currentStep}
+          onChange={handleStepJump}
+        >
+          {QUESTIONNAIRE_SCHEMA.map((section, index) => (
+            <Step 
+              key={section.id} 
+              title={
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-sm">{section.title}</span>
+                  {completedSteps.has(index) && (
+                    <CheckCircleOutlined className="text-green-500 ml-2" />
+                  )}
+                </div>
+              }
+              status={
+                completedSteps.has(index) 
+                  ? 'finish' 
+                  : index === currentStep 
+                    ? 'process' 
+                    : index < currentStep 
+                      ? 'finish' 
+                      : 'wait'
+              }
+            />
+          ))}
+        </Steps>
+      </div>
+    );
+
+    return sidebarContent;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <Button 
-              icon={<ArrowLeftOutlined />} 
-              type="text" 
-              onClick={() => navigate('/supplier-questionnaire')}
-              className="mr-4"
-            />
-            <h1 className="text-xl font-bold text-gray-900">Supplier Questionnaire</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {isCreateMode && (
+      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {/* Mobile Menu Button - Always show */}
               <Button 
-                icon={<SaveOutlined />} 
-                onClick={handleSaveDraft}
-                loading={isSaving}
-              >
-                Save Draft
-              </Button>
-            )}
+                icon={<MenuOutlined />} 
+                type="text" 
+                onClick={() => setSidebarVisible(true)}
+                className="lg:hidden mr-2"
+              />
+              {!isPublicRoute && (
+                <Button 
+                  icon={<ArrowLeftOutlined />} 
+                  type="text" 
+                  onClick={() => navigate('/dashboard')}
+                  className="mr-2 hidden lg:inline-flex"
+                />
+              )}
+              <h1 className="text-xl font-bold text-gray-900">Supplier Questionnaire</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Auto-save Status */}
+              {isCreateMode && (
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
+                  {autoSaveStatus === 'saving' && (
+                    <Tooltip title="Saving...">
+                      <ClockCircleOutlined className="animate-spin" />
+                    </Tooltip>
+                  )}
+                  {autoSaveStatus === 'saved' && (
+                    <Tooltip title={`Saved at ${lastSaved?.toLocaleTimeString()}`}>
+                      <CheckCircleOutlined className="text-green-500" />
+                    </Tooltip>
+                  )}
+                  {lastSaved && autoSaveStatus === 'idle' && (
+                    <Tooltip title={`Last saved: ${lastSaved.toLocaleTimeString()}`}>
+                      <span className="text-xs">Auto-saved</span>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
+              {isCreateMode && (
+                <Button 
+                  icon={<SaveOutlined />} 
+                  onClick={handleSaveDraft}
+                  loading={isSaving}
+                >
+                  <span className="hidden sm:inline">Save Draft</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Steps */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
-              <Steps 
-                direction="vertical" 
-                current={currentStep} 
-                onChange={(step) => {
-                    // Allow navigation to any previous step, or next step if current is valid?
-                    // For now, strict linear navigation is safer for validation
-                    if (step < currentStep) {
-                        handlePrev(); // This only goes back one step, need logic for jump
-                        // Simple jump logic:
-                        const values = form.getFieldsValue();
-                        setFormData({ ...formData, ...values });
-                        setCurrentStep(step);
-                    }
-                }}
-              >
-                {QUESTIONNAIRE_SCHEMA.map(section => (
-                  <Step key={section.id} title={section.title} />
-                ))}
-              </Steps>
+          {/* Desktop Sidebar - Always show */}
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="sticky top-24">
+              {renderSidebar()}
             </div>
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm p-8">
+            <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 transition-all duration-300">
+              {/* Error Summary */}
+              {Object.keys(formErrors).length > 0 && (
+                <Alert
+                  message={
+                    <span className="font-semibold">
+                      {Object.keys(formErrors).length} {Object.keys(formErrors).length === 1 ? 'Error' : 'Errors'} Found
+                    </span>
+                  }
+                  description={
+                    <div className="mt-2">
+                      <p className="text-sm mb-2 text-gray-700">
+                        Please review and fix the following {Object.keys(formErrors).length === 1 ? 'error' : 'errors'} before continuing:
+                      </p>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        {Object.entries(formErrors).map(([field, errors]) => {
+                          // Try to get the field label from the current section
+                          const fieldConfig = currentSection?.fields.find(f => f.name === field);
+                          const fieldLabel = fieldConfig?.label || field.split('.').pop() || field;
+                          const questionNumber = fieldLabel.match(/^\d+\./)?.[0] || '';
+                          
+                          return (
+                            <li key={field} className="text-sm text-gray-800">
+                              <span className="font-medium">
+                                {questionNumber ? `${questionNumber} ` : ''}
+                                {fieldLabel.replace(/^\d+\.\s*/, '')}:
+                              </span>{' '}
+                              <span className="text-red-600">{errors.join(', ')}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  }
+                  type="error"
+                  showIcon
+                  closable
+                  onClose={() => setFormErrors({})}
+                  className="mb-6"
+                  action={
+                    <Button 
+                      size="small" 
+                      type="text" 
+                      onClick={() => {
+                        const firstErrorField = document.querySelector('.ant-form-item-has-error');
+                        if (firstErrorField) {
+                          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                      }}
+                    >
+                      Go to first error
+                    </Button>
+                  }
+                />
+              )}
+
               <DynamicQuestionnaireForm
                 section={currentSection}
                 initialValues={formData}
                 form={form}
-                onFinish={() => {}} // We handle submit manually via footer buttons
+                onFinish={() => {}}
+                onValuesChange={(changedValues, allValues) => {
+                  // Update formData when values change to trigger progress recalculation
+                  setFormData(prev => ({ ...prev, ...allValues }));
+                }}
+                autoPopulatedFields={autoPopulatedFields}
+                formErrors={formErrors}
               />
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
-                <Button 
-                  onClick={handlePrev} 
-                  disabled={currentStep === 0}
-                  icon={<ArrowLeftOutlined />}
-                  size="large"
-                >
-                  Previous
-                </Button>
+              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handlePrev} 
+                    disabled={currentStep === 0}
+                    icon={<ArrowLeftOutlined />}
+                    size="large"
+                  >
+                    Previous
+                  </Button>
+                  {isCreateMode && !isPublicRoute && (
+                    <Button 
+                      onClick={() => {
+                        Modal.confirm({
+                          title: 'Save and Continue Later?',
+                          content: 'Your progress will be saved and you can continue later.',
+                          onOk: () => {
+                            handleSaveDraft();
+                            navigate('/dashboard');
+                          },
+                        });
+                      }}
+                      size="large"
+                    >
+                      Save & Exit
+                    </Button>
+                  )}
+                </div>
                 
-                {currentStep < QUESTIONNAIRE_SCHEMA.length - 1 ? (
-                  <Button 
-                    type="primary" 
-                    onClick={handleNext}
-                    icon={<ArrowRightOutlined />}
-                    size="large"
-                  >
-                    Next
-                  </Button>
-                ) : (
-                  <Button 
-                    type="primary" 
-                    onClick={handleSubmit}
-                    loading={isSaving}
-                    icon={<CheckOutlined />}
-                    size="large"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Submit Questionnaire
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {currentStep < QUESTIONNAIRE_SCHEMA.length - 1 ? (
+                    <>
+                      <Button 
+                        onClick={handleNext}
+                        type="primary"
+                        icon={<ArrowRightOutlined />}
+                        size="large"
+                      >
+                        Next
+                      </Button>
+                      <Tooltip title="Press Ctrl+Enter">
+                        <span className="text-xs text-gray-400 self-center hidden sm:inline">Ctrl+Enter</span>
+                      </Tooltip>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        type="primary" 
+                        onClick={handleSubmit}
+                        loading={isSaving}
+                        icon={<CheckOutlined />}
+                        size="large"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Submit Questionnaire
+                      </Button>
+                      <Tooltip title="Press Ctrl+Enter">
+                        <span className="text-xs text-gray-400 self-center hidden sm:inline">Ctrl+Enter</span>
+                      </Tooltip>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Mobile Sidebar Drawer - Always show */}
+      <Drawer
+        title="Navigation"
+        placement="left"
+        onClose={() => setSidebarVisible(false)}
+        open={sidebarVisible}
+        width={300}
+        className="lg:hidden"
+      >
+        {renderSidebar()}
+      </Drawer>
     </div>
   );
 };

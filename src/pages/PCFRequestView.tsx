@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
+import taskService, { type TaskItem } from "../lib/taskService";
+import { CheckSquare, ArrowRight } from "lucide-react";
 
 const { Step } = Steps;
 const { TextArea } = Input;
@@ -52,12 +54,21 @@ const PCFRequestView: React.FC = () => {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [newComment, setNewComment] = useState("");
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchData(id);
     }
   }, [id]);
+
+  // Fetch tasks when BOM is verified
+  useEffect(() => {
+    if (id && requestData?.pcf_request_stages?.is_bom_verified) {
+      fetchTasks(id);
+    }
+  }, [id, requestData?.pcf_request_stages?.is_bom_verified]);
 
   const fetchData = async (pcfId: string) => {
     setLoading(true);
@@ -85,6 +96,20 @@ const PCFRequestView: React.FC = () => {
       message.error("An error occurred while loading data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTasks = async (pcfId: string) => {
+    setTasksLoading(true);
+    try {
+      const result = await taskService.getTasksByBomPcfId(pcfId);
+      if (result.success && result.data) {
+        setTasks(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    } finally {
+      setTasksLoading(false);
     }
   };
 
@@ -207,7 +232,7 @@ const PCFRequestView: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen">
+    <div className="p-6 mx-auto bg-gray-50 min-h-screen">
       {/* Back Button */}
       <Button
         type="text"
@@ -219,7 +244,7 @@ const PCFRequestView: React.FC = () => {
       </Button>
 
       {/* Header Card */}
-      <Card className="mb-6 shadow-sm rounded-xl border-gray-200">
+      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-100 rounded-xl">
@@ -236,8 +261,10 @@ const PCFRequestView: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="bg-green-50 px-4 py-2 rounded-lg flex items-center gap-2 border border-green-100">
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-green-100">
+              <span className="bg-green-50 p-2 rounded-md text-green-600 w-10 h-10 flex items-center justify-center">
               <Clock size={16} className="text-green-600" />
+              </span>
               <div>
                 <div className="text-xs text-gray-500 font-medium">
                   Stages Complete
@@ -247,8 +274,10 @@ const PCFRequestView: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 border border-blue-100">
-              <Calendar size={16} className="text-blue-600" />
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-blue-100">
+              <span className="bg-blue-50 p-2 rounded-md text-blue-600 w-10 h-10 flex items-center justify-center">
+                <Calendar size={16} className="text-blue-600" />
+              </span>
               <div>
                 <div className="text-xs text-gray-500 font-medium">
                   Due Date
@@ -258,8 +287,10 @@ const PCFRequestView: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-orange-50 px-4 py-2 rounded-lg flex items-center gap-2 border border-orange-100">
-              <AlertTriangle size={16} className="text-orange-600" />
+              <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-orange-100">
+              <span className="bg-orange-50 p-2 rounded-md text-orange-600 w-10 h-10 flex items-center justify-center">
+                <AlertTriangle size={16} className="text-orange-600" />
+              </span>
               <div>
                 <div className="text-xs text-gray-500 font-medium">Priority</div>
                 <div className="text-sm font-bold text-gray-800">
@@ -267,8 +298,10 @@ const PCFRequestView: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-purple-50 px-4 py-2 rounded-lg flex items-center gap-2 border border-purple-100">
-              <User size={16} className="text-purple-600" />
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-purple-100">
+              <span className="bg-purple-50 p-2 rounded-md text-purple-600 w-10 h-10 flex items-center justify-center">
+                <User size={16} className="text-purple-600" />
+              </span>
               <div>
                 <div className="text-xs text-gray-500 font-medium">
                   Submitted By
@@ -357,30 +390,60 @@ const PCFRequestView: React.FC = () => {
       </Card>
 
       {/* Stage Stepper */}
-      <Card className="mb-6 shadow-sm rounded-xl border-gray-200">
+      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
         <Title level={4} className="mb-6">
           PCF Request Stage
         </Title>
         <div className="overflow-x-auto pb-4">
-          <Steps current={getCurrentStep()} labelPlacement="vertical" size="small">
-            {steps.map((step, index) => (
-              <Step
-                key={index}
-                title={step.title}
-                icon={
-                  <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                      index <= getCurrentStep()
-                        ? "border-green-500 bg-green-50 text-green-600"
-                        : "border-gray-300 bg-white text-gray-400"
-                    }`}
-                  >
-                    {step.icon}
-                  </div>
-                }
-              />
-            ))}
-          </Steps>
+          <style>{`
+            .pcf-steps-container .ant-steps-item-icon {
+              margin-top: 0 !important;
+              width: 32px !important;
+              height: 32px !important;
+              line-height: 32px !important;
+
+            }
+            .pcf-steps-container .ant-steps-item-tail {
+              top: 16px !important;
+              height: 2px !important;
+              margin-top: 0 !important;
+              padding: 0 !important;
+              transform: translateY(0) !important;
+            }
+            .pcf-steps-container .ant-steps-item:not(:last-child) .ant-steps-item-tail {
+              right: calc(-50% + 16px) !important;
+            }
+            .pcf-steps-container .ant-steps-item-content {
+              margin-top: 8px !important;
+            }
+            .pcf-steps-container .ant-steps-item-process .ant-steps-item-icon {
+              background: transparent !important;
+            }
+            .pcf-steps-container .ant-steps-item-finish .ant-steps-item-icon {
+              background: transparent !important;
+            }
+          `}</style>
+          <div className="pcf-steps-container">
+            <Steps current={getCurrentStep()} labelPlacement="vertical" size="small">
+              {steps.map((step, index) => (
+                <Step
+                  key={index}
+                  title={step.title}
+                  icon={
+                    <div
+                      className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                        index <= getCurrentStep()
+                          ? "border-green-500 bg-green-50 text-green-600"
+                          : "border-gray-300 bg-white text-gray-400"
+                      }`}
+                    >
+                      {step.icon}
+                    </div>
+                  }
+                />
+              ))}
+            </Steps>
+          </div>
         </div>
 
         {/* Current Stage Details - Placeholder for now */}
@@ -400,8 +463,157 @@ const PCFRequestView: React.FC = () => {
         </div>
       </Card>
 
+      {/* Task Management Section - Show after BOM is verified */}
+      {requestData?.pcf_request_stages?.is_bom_verified && (
+        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckSquare size={24} className="text-green-600" />
+            </div>
+            <Title level={4} className="m-0">
+              Task Management
+            </Title>
+          </div>
+
+          <Spin spinning={tasksLoading}>
+            {tasks.length > 0 ? (
+              <div className="space-y-4">
+                {tasks.map((task) => (
+                  <Card
+                    key={task.id}
+                    className="border border-gray-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Title level={5} className="m-0">
+                            {task.task_title}
+                          </Title>
+                          <Tag
+                            color={
+                              task.priority === "High"
+                                ? "red"
+                                : task.priority === "Medium"
+                                ? "orange"
+                                : "green"
+                            }
+                          >
+                            {task.priority}
+                          </Tag>
+                          <Tag
+                            color={
+                              task.status === "Completed"
+                                ? "green"
+                                : task.status === "In Progress"
+                                ? "blue"
+                                : task.status === "Under Review"
+                                ? "orange"
+                                : "default"
+                            }
+                          >
+                            {task.status}
+                          </Tag>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Task Code
+                            </Text>
+                            <Text className="font-medium">{task.code}</Text>
+                          </div>
+                          <div>
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Category
+                            </Text>
+                            <Text className="font-medium">
+                              {task.category_name || "N/A"}
+                            </Text>
+                          </div>
+                          <div>
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Due Date
+                            </Text>
+                            <Text className="font-medium">
+                              {task.due_date
+                                ? formatDate(task.due_date)
+                                : "N/A"}
+                            </Text>
+                          </div>
+                          <div>
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Progress
+                            </Text>
+                            <Text className="font-medium">
+                              {task.progress ?? 0}%
+                            </Text>
+                          </div>
+                        </div>
+                        {task.description && (
+                          <div className="mt-3">
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Description
+                            </Text>
+                            <Text className="text-gray-700">
+                              {task.description}
+                            </Text>
+                          </div>
+                        )}
+                        {task.assigned_entities && task.assigned_entities.length > 0 && (
+                          <div className="mt-3">
+                            <Text type="secondary" className="block text-xs mb-1">
+                              Assigned To
+                            </Text>
+                            <div className="flex flex-wrap gap-2">
+                              {task.assigned_entities.map((entity) => (
+                                <Tag key={entity.id} color="blue">
+                                  {entity.name} ({entity.type})
+                                </Tag>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        type="link"
+                        icon={<ArrowRight size={16} />}
+                        onClick={() =>
+                          navigate(`/task-management/view/${task.id}`)
+                        }
+                        className="ml-4"
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="mb-4">
+                  <CheckSquare size={48} className="text-gray-400 mx-auto" />
+                </div>
+                <Text type="secondary" className="block mb-4">
+                  No tasks have been created for this PCF request yet.
+                </Text>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<CheckSquare size={18} />}
+                  onClick={() =>
+                    navigate(`/task-management/new?bom_pcf_id=${id}`)
+                  }
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Create Task
+                </Button>
+              </div>
+            )}
+          </Spin>
+        </Card>
+      )}
+
       {/* Completed Stages List */}
-      <Card className="mb-6 shadow-sm rounded-xl border-gray-200">
+      {/* <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
         <Title level={4} className="mb-6">
           Completed Stages
         </Title>
@@ -424,9 +636,9 @@ const PCFRequestView: React.FC = () => {
               <Tag color="success">Approved</Tag>
             </div>
           )}
-          {/* Add more completed stages logic here based on flags */}
+
         </div>
-      </Card>
+      </Card> */}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-4 mb-8">
@@ -453,7 +665,7 @@ const PCFRequestView: React.FC = () => {
       </div>
 
       {/* Comments Section */}
-      <Card className="mb-6 shadow-sm rounded-xl border-gray-200">
+      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
         <Title level={4} className="mb-6">
           Comments
         </Title>
