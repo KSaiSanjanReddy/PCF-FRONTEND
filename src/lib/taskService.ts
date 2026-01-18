@@ -457,11 +457,11 @@ class TaskService {
     success: boolean;
     message: string;
     data?: Array<{
-      sup_id: string;
-      supplier_code: string;
-      supplier_name: string | null;
-      supplier_email: string | null;
-      supplier_phone_number: string | null;
+      id: string;
+      name: string;
+      type: "supplier";
+      email?: string | null;
+      phone_number?: string | null;
     }>;
   }> {
     try {
@@ -479,11 +479,11 @@ class TaskService {
         // Transform API response to match expected format
         const transformedData = Array.isArray(result.data) 
           ? result.data.map((item: any) => ({
-              id: item.sup_id || item.supplier_id,
-              name: item.supplier_name || item.supplier_email || "Unknown",
+              id: item.supplier_id || item.sup_id,
+              name: item.supplier_name || item.supplier_code || item.supplier_email || "Unknown Supplier",
               type: "supplier" as const,
-              email: item.supplier_email,
-              phone_number: item.supplier_phone_number,
+              email: item.supplier_email || null,
+              phone_number: item.supplier_phone_number || null,
             }))
           : [];
         

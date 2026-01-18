@@ -27,6 +27,21 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 }) => {
   const [charCounts, setCharCounts] = useState<Record<string, number>>({});
 
+  // Sync initialValues when they change (for auto-population)
+  // This is important for Form.List components that need to be updated when data is auto-populated
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      // Only update if there are actual values to set
+      const currentValues = form.getFieldsValue();
+      const hasNewData = JSON.stringify(currentValues) !== JSON.stringify(initialValues);
+      
+      if (hasNewData) {
+        console.log("DynamicQuestionnaireForm: Updating form values from initialValues", initialValues);
+        form.setFieldsValue(initialValues);
+      }
+    }
+  }, [initialValues, form]);
+
   // Track character counts for textareas
   useEffect(() => {
     if (!section) return;
@@ -371,11 +386,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               </Tooltip>
             )}
           </div>
-          {isAutoPopulated && (
+          {/* {isAutoPopulated && (
             <div className="text-xs text-green-600 mt-2">
               This table was automatically populated from your BOM data. You can modify or add more entries.
             </div>
-          )}
+          )} */}
         </div>
         
         <div className="p-4">

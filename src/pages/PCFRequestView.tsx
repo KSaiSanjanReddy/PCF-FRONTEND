@@ -38,6 +38,7 @@ import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
 import taskService, { type TaskItem } from "../lib/taskService";
 import { CheckSquare, ArrowRight } from "lucide-react";
+import BomTable from "../features/pcf-create/BomTable";
 
 const { Step } = Steps;
 const { TextArea } = Input;
@@ -83,6 +84,8 @@ const PCFRequestView: React.FC = () => {
         const data = Array.isArray(requestResult.data)
           ? requestResult.data[0]
           : requestResult.data;
+        console.log("PCF Request Data:", data);
+        console.log("BOM List Data:", data.bom_list);
         setRequestData(data);
       } else {
         message.error(requestResult.message || "Failed to load request details");
@@ -639,6 +642,101 @@ const PCFRequestView: React.FC = () => {
 
         </div>
       </Card> */}
+
+      {/* BOM Table - Show when approve buttons are visible (at PCF Request Submitted stage) */}
+      {(() => {
+        const stages = requestData?.pcf_request_stages || {};
+        const showApproveButtons = !requestData?.is_rejected && !requestData?.is_approved;
+        // Show BOM at "PCF Request Submitted" stage (step 1) when approve buttons are visible
+        const isSubmittedStage = stages.is_pcf_request_submitted && !stages.is_bom_verified;
+        const shouldShowBOM = showApproveButtons && isSubmittedStage;
+        
+        // Get BOM data from bom_list field (as per API response structure)
+        const bomData = requestData?.bom_list || [];
+        
+        console.log("BOM Table Check:", {
+          showApproveButtons,
+          isSubmittedStage,
+          shouldShowBOM,
+          bomDataLength: bomData.length,
+          stages,
+          currentStep: getCurrentStep(),
+          bomData: bomData
+        });
+        
+        // Transform BOM data to match BomTable expected format
+        const transformedBomData = bomData.map((item: any) => {
+          // Handle supplier object structure
+          const supplier = item.supplier || {};
+          
+          // Calculate total weight and price if quantity is available
+          const quantity = parseFloat(item.quantity) || 1;
+          const weightGms = parseFloat(item.weight_gms) || 0;
+          const price = parseFloat(item.price) || 0;
+          const totalWeight = item.total_weight_gms && item.total_weight_gms !== "NaN" 
+            ? parseFloat(item.total_weight_gms) 
+            : (weightGms * quantity);
+          const totalPrice = item.total_price && item.total_price !== "NaN"
+            ? parseFloat(item.total_price)
+            : (price * quantity);
+          
+          return {
+            key: item.id || Math.random().toString(),
+            id: item.id,
+            componentName: item.component_name || "-",
+            materialNumber: item.material_number || "-",
+            quantity: item.quantity?.toString() || "1",
+            totalWeight: totalWeight.toString(),
+            totalPrice: totalPrice.toString(),
+            emission: item.emission?.toString() || "0",
+            productionLocation: item.production_location || "-",
+            manufacturer: item.manufacturer || "-",
+            detailedDescription: item.detail_description || "-",
+            category: item.component_category || "-",
+            supplierEmail: supplier.supplier_email || "-",
+            supplierName: supplier.supplier_name || "-",
+            supplierNumber: supplier.supplier_phone_number || "-",
+            weight: weightGms.toString(),
+            price: price.toString(),
+          };
+        });
+
+        if (shouldShowBOM) {
+          if (transformedBomData.length > 0) {
+            return (
+              <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Layers size={24} className="text-green-600" />
+                  </div>
+                  <Title level={4} className="m-0">
+                    Bill of Materials
+                  </Title>
+                </div>
+                <BomTable bomData={transformedBomData} readOnly={true} />
+              </Card>
+            );
+          } else {
+            // Show empty state if no BOM data
+            return (
+              <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Layers size={24} className="text-green-600" />
+                  </div>
+                  <Title level={4} className="m-0">
+                    Bill of Materials
+                  </Title>
+                </div>
+                <div className="text-center py-8 text-gray-500">
+                  No BOM data available
+                </div>
+              </Card>
+            );
+          }
+        }
+        return null;
+      })()}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-4 mb-8">

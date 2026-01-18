@@ -90,32 +90,95 @@ const SupplierQuestionnaire: React.FC = () => {
           try {
             const result = await supplierQuestionnaireService.getPCFBOMListToAutoPopulate(bom_pcf_id, sup_id);
             if (result.success && result.data) {
-              // Map the API response to form data structure
+              console.log("Auto-populate API response:", result.data);
+              
+              // Transform API response array to form data structure
+              // API returns: [{ bom_id, bom_code, material_number, component_name, supplier_id }, ...]
+              const bomList = Array.isArray(result.data) ? result.data : [];
+              
+              console.log("BOM list from API:", bomList);
+              
+              // Map to production_site_details table format
+              // Schema expects: [{ mpn, component_name, location }, ...]
+              // The table columns are: mpn, component_name, location
+              const productionSiteDetails = bomList.map((item: any, index: number) => {
+                const mapped = {
+                  mpn: item.material_number || '',
+                  component_name: item.component_name || '',
+                  location: item.production_location || item.location || '', // May not be in API response
+                };
+                console.log(`Mapped item ${index}:`, { original: item, mapped });
+                return mapped;
+              });
+              
+              console.log("Final productionSiteDetails array:", productionSiteDetails);
+              
+              // Map to products_manufactured table format (if needed)
+              // Expected: [{ mpn, product_name, production_period, weight_per_unit, unit, price, quantity }, ...]
+              const productsManufactured = bomList.map((item: any) => ({
+                mpn: item.material_number || '',
+                product_name: item.component_name || '',
+                production_period: '',
+                weight_per_unit: 0,
+                unit: '',
+                price: 0,
+                quantity: 0,
+              }));
+              
               const autoPopulatedData: any = {
                 product_details: {
-                  production_site_details: result.data.production_site_details || [],
-                  products_manufactured: result.data.products_manufactured || [],
+                  production_site_details: productionSiteDetails,
+                  products_manufactured: productsManufactured,
                 }
               };
               
-              // Merge with existing form data
-              setFormData(prevData => ({
-                ...prevData,
-                ...autoPopulatedData
-              }));
+              console.log("Transformed auto-populated data:", autoPopulatedData);
+              console.log("Production site details:", productionSiteDetails);
+              console.log("Products manufactured:", productsManufactured);
               
-              // Set form values
-              form.setFieldsValue(autoPopulatedData);
+              // Merge with existing form data
+              const mergedFormData = {
+                ...formData,
+                ...autoPopulatedData
+              };
+              
+              console.log("Merged form data:", mergedFormData);
+              console.log("Production site details in merged data:", mergedFormData.product_details?.production_site_details);
+              
+              // Update formData state - this will trigger the useEffect that sets form values
+              setFormData(mergedFormData);
+              
+              // Also directly set form values to ensure they're applied
+              // Use setTimeout to ensure form is ready and current step is loaded
+              setTimeout(() => {
+                const currentValues = form.getFieldsValue();
+                console.log("Current form values before update:", currentValues);
+                
+                // Set the values
+                form.setFieldsValue(mergedFormData);
+                
+                // Force update by getting values again
+                const updatedValues = form.getFieldsValue();
+                console.log("Form values after update:", updatedValues);
+                console.log("Production site details in form:", updatedValues.product_details?.production_site_details);
+              }, 200);
               
               // Track auto-populated fields
               const autoPopulatedFieldNames = new Set<string>();
-              if (autoPopulatedData.product_details?.production_site_details) {
+              if (productionSiteDetails.length > 0) {
                 autoPopulatedFieldNames.add('product_details.production_site_details');
               }
-              if (autoPopulatedData.product_details?.products_manufactured) {
+              if (productsManufactured.length > 0) {
                 autoPopulatedFieldNames.add('product_details.products_manufactured');
               }
               setAutoPopulatedFields(autoPopulatedFieldNames);
+              
+              if (bomList.length > 0) {
+                message.success({
+                  content: `Successfully auto-populated ${bomList.length} item(s) from BOM data.`,
+                  duration: 3,
+                });
+              }
             } else {
               console.warn("Auto-populate failed:", result.message);
             }
