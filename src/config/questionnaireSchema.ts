@@ -61,62 +61,65 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'gdpr_notice',
         type: 'info',
-        content: 'All information provided is confidential and used only for corporate and product-level sustainability assessment.',
-        label: 'GDPR Notice',
+        content: 'All information provided is confidential and used only for Corporate and product level sustainability assessment.',
+        label: 'Display Message as per GDPR',
         className: 'bg-blue-50 border-l-4 border-blue-400 p-4 text-blue-700'
       },
       {
         name: 're_technologies_info',
         type: 'info',
-        label: 'Eligible Renewable Electricity (RE) Technologies',
-        content: 'Please read and acknowledge the following eligible technologies considered as renewable electricity: Wind, Hydro, Solar power, Geothermal, Biomass, Ocean-based energy. Excluded: Nuclear, Waste combustion.',
+        label: 'Please read following eligible technologies to be considered as renewable electricity (RE) and acknowledge them.',
+        content: '1. Wind\n2. Hydro\n3. Solar power\n4. Geothermal\n5. Solid, liquid, and gaseous forms of Biomass from the fuels (woody waste, land fill gas, wastewater methane, animal & other organic waste, energy crops)\n6. Ocean-based energy resources captured through tidal and wave technologies.\n\nExcluded technologies:\n1. Electricity from nuclear power is not regarded as renewable electricity.\n2. Electricity from waste combustion is not regarded as renewable electricity.',
         className: 'bg-white p-6 rounded-lg border border-gray-200 mb-4'
       },
       {
         name: 'general_information.re_technologies_acknowledgement',
-        label: 'I acknowledge that I have read and understood the eligible technologies considered as renewable electricity (RE).',
+        label: 'I acknowledge that I have read and understood the Eligible technologies consider as renewable electricity (RE) mentioned above.',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 're_procurement_info',
         type: 'info',
-        label: 'Renewable Electricity Procurement Mechanisms',
-        content: 'Electricity is regarded as renewable if provided using one of the mechanisms below (PPA, EAC, iREC, GOO).',
+        label: 'Please read following Procurement mechanisms and acknowledge them.',
+        content: 'Electricity will be regarded as renewable electricity if provided using one of the mechanisms stated below and respecting the requirements regarding double counting. Please select which ones apply to your processes. If none apply in the country carbon emissions occur, at the end an alternative locally accepted at the time of production type of proof:\n\nAcronyms used:\nPPA: Power Purchase Agreements\nEAC: Energy Attribute Certificates\niREC or I-REC: International Green Energy Certificates\nGOO: Guarantee of Origin\n\n1. Onsite generation: EACs generated\n2. Onsite generation: No EACs generated\n3. Off-Site generation: PPA / sleeved PPA (Proof of delivery necessary)\n4. Off-Site generation: Virtual PPA (Proof via EAC necessary)\n5. Off-Site generation: Green Power Tariff / Green Power Product\n6. Power supplied by an electricity provider where the provider takes over the responsibility to provide the electricity either directly from renewable sources (e.g. through PPAs) or procures and deletes unbundled EACs for the supplied electricity.\n7. Unbundled EACs\n8. Unbundled REC\'s / I-REC\'s',
         className: 'bg-white p-6 rounded-lg border border-gray-200 mb-4'
       },
       {
         name: 'general_information.re_procurement_acknowledgement',
         label: 'I acknowledge that I have read and understood the procurement mechanisms mentioned above.',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'double_counting_info',
         type: 'info',
-        label: 'Double Counting',
-        content: 'Please acknowledge that the mechanism used does not fall under double counting.',
+        label: 'DOUBLE COUNTING',
+        content: 'Please acknowledge that the mechanism you use does not fall under Double Counting. Examples of prohibited double uses include, but are not limited to:\n1. When the same EAC is sold by one party to more than one party, or any case where another party has a conflicting contract for the EACs or the renewable electricity;\n2. When the same EAC is claimed by more than one party, including any expressed or implied environmental claims made pursuant to electricity coming from a renewable energy resource, environmental labelling or disclosure requirements. This includes representing the energy from which EACs are derived as renewable in calculating another entity\'s product or portfolio resource mix for the purposes of marketing or disclosure;\n3. When the same EAC is used by an electricity provider or utility to meet an environmental mandate, such as an RPS, and is also used to satisfy customer sales or\n4. Use of one or more attributes of the renewable energy or EAC by another party. This includes when an EAC is simultaneously sold to represent "renewable electricity" to one party, and one or more Attributes associated with the same MWh of generation (such as CO2 reduction) are also sold, to another party.',
         className: 'bg-white p-6 rounded-lg border border-gray-200 mb-4'
       },
       {
         name: 'general_information.double_counting_acknowledgement',
-        label: 'I acknowledge my mechanisms do not fall under double counting.',
+        label: 'I acknowledge my mechanisms do not fall under double counting',
         type: 'checkbox',
+        required: true,
       }
     ]
   },
   {
     id: 'organization_details',
-    title: 'Organization Details',
+    title: 'Section 1: Organization Details',
     fields: [
       {
         name: 'organization_details.organization_name',
-        label: '1. Organization Name',
+        label: '1. Please enter the name of your organization?',
         type: 'text',
         required: true,
         placeholder: 'Enter organization name',
       },
       {
         name: 'organization_details.core_business_activities',
-        label: '2. Core Business Activities',
+        label: '2. What is your core business activities?',
         type: 'select',
         options: QUESTIONNAIRE_OPTIONS.CORE_BUSINESS_ACTIVITIES,
         required: true,
@@ -126,7 +129,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'organization_details.core_business_activities_other',
         label: 'Specify Other Activity',
         type: 'text',
-        placeholder: 'Specify other activity',
+        placeholder: 'Enter other activity',
         dependency: {
           field: 'organization_details.core_business_activities',
           value: 'Others'
@@ -134,21 +137,21 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'organization_details.designation',
-        label: '3. Designation / Role / Title',
+        label: '3. Please enter your Designation/Role/Title?',
         type: 'text',
         required: true,
         placeholder: 'Enter designation',
       },
       {
         name: 'organization_details.email_address',
-        label: '4. Email Address',
-        type: 'text', // Could be email type if supported
+        label: '4. Please enter your e-mail address?',
+        type: 'text',
         required: true,
         placeholder: 'Enter email address',
       },
       {
         name: 'organization_details.number_of_employees',
-        label: '5. Number of Employees',
+        label: '5. How many employees does your organization have?',
         type: 'select',
         options: QUESTIONNAIRE_OPTIONS.NUMBER_OF_EMPLOYEES,
         required: true,
@@ -156,7 +159,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'organization_details.annual_revenue',
-        label: '6. Annual Revenue',
+        label: '6. What is your organization\'s annual revenue?',
         type: 'select',
         options: QUESTIONNAIRE_OPTIONS.ANNUAL_REVENUE,
         required: true,
@@ -164,7 +167,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'organization_details.annual_reporting_period',
-        label: '7. Annual Reporting Period',
+        label: '7. Please enter the organizational annual reporting period?',
         type: 'select',
         options: QUESTIONNAIRE_OPTIONS.ANNUAL_REPORTING_PERIOD,
         required: true,
@@ -172,14 +175,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'organization_details.availability_of_emissions_data',
-        label: '8. Availability of Scope 1, 2, 3 Emissions Data',
+        label: '8. Do you have Site or Organizational level Scope 1, 2, and 3 emissions data available?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'organization_details.emission_data',
-        label: '9. Emission Data',
+        label: '9. provide the emission data?',
         type: 'table',
         addButtonLabel: 'Add Row',
+        required: true,
         dependency: {
           field: 'organization_details.availability_of_emissions_data',
           value: true
@@ -187,25 +192,25 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: 'country',
-            label: 'Country (ISO3)',
+            label: 'Product Manufacturing location (ISO3 digits Country)',
             type: 'text',
             placeholder: 'ISO3 Code'
           },
           {
             name: 'scope_1',
-            label: 'Scope 1',
+            label: 'Scope-1',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'scope_2',
-            label: 'Scope 2',
+            label: 'Scope-2',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'scope_3',
-            label: 'Scope 3',
+            label: 'Scope-3',
             type: 'number',
             placeholder: '0.00'
           }
@@ -215,27 +220,30 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
   },
   {
     id: 'product_details',
-    title: 'Product Details',
+    title: 'Section 2: Product Details',
     fields: [
       {
         name: 'product_details.existing_pcf_report',
-        label: '10. Do you have an existing PCF Report (within last 12 months)?',
+        label: '10. Do you already have a Product Carbon Footprint (PCF) report for requested product(s) within 12 months?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'product_details.pcf_methodology',
-        label: '11. PCF Methodology Used',
+        label: '11. share methodology (ISO 14067, GHG Protocol, Catena-X, etc.)',
         type: 'text',
-        placeholder: 'e.g., ISO 14067, GHG Protocol',
+        placeholder: 'Open Text',
+        required: true,
         dependency: {
           field: 'product_details.existing_pcf_report',
           value: true
         }
       },
       {
-        name: 'product_details.pcf_report_file', // Placeholder for file
-        label: '12. Upload PCF Report',
+        name: 'product_details.pcf_report_file',
+        label: '12. please provide/upload the Product Carbon Footprint (PCF) report for your product(s)?',
         type: 'file',
+        required: true,
         dependency: {
           field: 'product_details.existing_pcf_report',
           value: true
@@ -243,19 +251,26 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'product_details.production_site_details',
-        label: '13. Production Site Details',
+        label: '13. Please Specify the Production Site Where the Product is manufactured/ assembled?',
         type: 'table',
         addButtonLabel: 'Add Site',
+        required: true,
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'component_name',
-            label: 'Component / Product Name',
+            label: 'component/Product Name',
             type: 'text',
             placeholder: 'Enter name'
           },
           {
             name: 'location',
-            label: 'Location',
+            label: 'location',
             type: 'text',
             placeholder: 'Enter location'
           }
@@ -263,20 +278,27 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'product_details.required_environmental_impact_methods',
-        label: '14. Required Environmental Impact Methods',
-        type: 'checkbox', // This needs to be a multi-select checkbox group
+        label: '14. Which Environmental Impact method is required for your product?',
+        type: 'checkbox',
         options: QUESTIONNAIRE_OPTIONS.REQUIRED_ENVIRONMENTAL_IMPACT_METHODS,
-        // Special handling might be needed for multi-checkbox
+        required: true,
       },
       {
         name: 'product_details.products_manufactured',
-        label: '15. Products / Components Manufactured',
+        label: '15. Please list all the products/components you manufacture and provide the corresponding details for each.',
         type: 'table',
-        addButtonLabel: 'Add Product',
+        addButtonLabel: 'Add product or component',
+        required: true,
         columns: [
           {
+            name: 'mpn',
+            label: 'Material Number (MPN)',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'product_name',
-            label: 'Product / Component',
+            label: 'Product/ Component Name',
             type: 'text',
             placeholder: 'Enter name'
           },
@@ -289,26 +311,75 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'weight_per_unit',
-            label: 'Weight per Unit',
+            label: 'Weight per Component/ Product',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'select',
-            options: ['kg', 'tons'],
+            options: ['kg', 'Tons'],
             placeholder: 'Select unit'
           },
           {
             name: 'price',
-            label: 'Price',
+            label: 'Price of each component / Product',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'quantity',
-            label: 'Quantity',
+            label: 'Quantity/ Volume (Pcs)',
+            type: 'number',
+            placeholder: '0'
+          }
+        ]
+      },
+      {
+        name: 'product_details.any_co_product_have_economic_value',
+        label: '15.1 Any Co-products generated which have economic value?',
+        type: 'checkbox',
+        required: true,
+      },
+      {
+        name: 'product_details.co_products',
+        label: '15.2 specify type of Co-products details?',
+        type: 'table',
+        addButtonLabel: 'Add Co-product',
+        required: true,
+        dependency: {
+          field: 'product_details.any_co_product_have_economic_value',
+          value: true
+        },
+        columns: [
+          {
+            name: 'product_name',
+            label: 'Name of component',
+            type: 'text',
+            placeholder: 'Select from Q15 or enter name'
+          },
+          {
+            name: 'co_product_name',
+            label: 'Co-product Name',
+            type: 'text',
+            placeholder: 'Enter co-product name'
+          },
+          {
+            name: 'weight',
+            label: 'Weight',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'price_per_product',
+            label: 'Price per product',
+            type: 'number',
+            placeholder: '0.00'
+          },
+          {
+            name: 'quantity',
+            label: 'Quantity/Volume (Pcs)',
             type: 'number',
             placeholder: '0'
           }
@@ -318,40 +389,39 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
   },
   {
     id: 'scope_1',
-    title: 'Scope 1 Emissions',
+    title: 'Section 3: Scope 1 - Direct Emissions',
     fields: [
       {
         name: 'scope_1.stationary_combustion',
-        label: '16. Fuel Types and Quantities Used for On-site Energy Generation',
+        label: '16. What type and quantity of fuel does your company use for energy generation (e.g., boilers, furnaces, Generators, any on-site operations)?',
         type: 'table',
-        addButtonLabel: 'Add Fuel',
+        addButtonLabel: 'add button for more selection options',
+        required: true,
         columns: [
           {
             name: 'fuel_type',
-            label: 'Fuel Category',
+            label: 'Fuel',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.FUEL_TYPES,
-            placeholder: 'Select fuel category'
+            placeholder: 'Select fuel'
           },
           {
             name: 'sub_fuel_type',
-            label: 'Sub-fuel Type',
+            label: 'Sub-Fuel Type',
             type: 'select',
-            // This needs dynamic options based on fuel_type row value. 
-            // Complex dependency handling might be needed in the form component.
-            options: ["Petrol", "Diesel", "Kerosene", "Coal", "Wood", "Other"], // Placeholder, handled in component
+            options: ["Petrol", "Diesel", "Kerosene", "Coal", "Wood", "Other"],
             placeholder: 'Select sub-fuel type',
             mode: 'multiple'
           },
           {
             name: 'quantity',
-            label: 'Consumption Quantity',
+            label: 'consumption Quantity of fuel',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'select',
             options: ['liters', 'kg', 'm3', 'kWh'],
             placeholder: 'Select unit'
@@ -360,35 +430,45 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_1.mobile_combustion',
-        label: '17. Annual Fuel Consumption by Vehicles',
+        label: '17. What type and quantity of fuel is consumed annually by company-owned vehicles (e.g., fleet, delivery trucks) in litres?',
         type: 'table',
-        addButtonLabel: 'Add Vehicle Fuel',
+        addButtonLabel: 'add button for more selection options',
+        required: true,
         columns: [
           {
             name: 'fuel_type',
-            label: 'Fuel Type',
+            label: 'Fuel',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.VEHICLE_FUEL_TYPES,
             placeholder: 'Select fuel type'
           },
           {
             name: 'quantity',
-            label: 'Annual Consumption',
+            label: 'Quantity',
             type: 'number',
             placeholder: 'Quantity'
+          },
+          {
+            name: 'unit',
+            label: 'Unit of Measure',
+            type: 'select',
+            options: ['Litres', 'm3'],
+            placeholder: 'Select unit'
           }
         ]
       },
       {
         name: 'scope_1.fugitive_emissions.refrigerant_top_ups',
-        label: '18. Refrigerant Top-ups Performed?',
+        label: '18. Have you performed refrigerant top-ups for air conditioning, refrigeration, or fire suppression systems?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_1.fugitive_emissions.refrigerants',
-        label: '19. Refrigerant Types and Quantities',
+        label: '19. What types and quantities of refrigerants (e.g., HFCs) have been used?',
         type: 'table',
-        addButtonLabel: 'Add Refrigerant',
+        addButtonLabel: 'add button for more selection options',
+        required: true,
         dependency: {
           field: 'scope_1.fugitive_emissions.refrigerant_top_ups',
           value: true
@@ -402,13 +482,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'quantity',
-            label: 'Quantity',
+            label: 'consumption quantity',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'text',
             placeholder: 'Enter unit'
           }
@@ -416,14 +496,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_1.process_emissions.present',
-        label: '20. Industrial Process Emissions Present?',
+        label: '20. Are there emissions from industrial processes (e.g., chemical reactions, material processing)?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_1.process_emissions.sources',
-        label: '21. Process Emissions Sources',
+        label: '21. What are the sources and types of gases emitted (e.g., CO₂, CH₄, N₂O)?',
         type: 'table',
-        addButtonLabel: 'Add Source',
+        addButtonLabel: 'add button for more selection option',
+        required: true,
         dependency: {
           field: 'scope_1.process_emissions.present',
           value: true
@@ -431,26 +513,26 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: 'source',
-            label: 'Source',
+            label: 'Sources',
             type: 'text',
             placeholder: 'Enter source'
           },
           {
             name: 'gas_type',
-            label: 'Gas Type',
+            label: 'Gas type',
             type: 'select',
-            options: ['CO2', 'CH4', 'N2O'],
+            options: ['CO₂', 'CH₄', 'N₂O'],
             placeholder: 'Select gas'
           },
           {
             name: 'quantity',
-            label: 'Quantity',
+            label: 'quantity',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'text',
             placeholder: 'Enter unit'
           }
@@ -460,37 +542,38 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
   },
   {
     id: 'scope_2',
-    title: 'Scope 2 Emissions',
+    title: 'Section 4: Scope 2: Indirect Emissions from Purchased Energy',
     fields: [
       {
         name: 'scope_2.purchased_energy',
-        label: '22. Purchased / Acquired Energy Details',
+        label: '22. Please enter the details of Energy purchased or acquired below and select the respective correct energy unit.',
         type: 'table',
-        addButtonLabel: 'Add Energy',
+        addButtonLabel: 'add button for more selection options for same Energy source with different Energy_type selection',
+        required: true,
         columns: [
           {
             name: 'energy_source',
-            label: 'Energy Source',
+            label: 'Energy Source Purchased/acquired',
             type: 'select',
-            options: ['Electricity', 'Heating', 'Cooling', 'Steam'],
+            options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
             placeholder: 'Select source'
           },
           {
             name: 'energy_type',
-            label: 'Energy Type',
+            label: 'Energy_Type',
             type: 'select',
-            options: ['Grid', 'Renewable'],
+            options: ['Purchased Grid Electricity', 'Renewable Electricity'],
             placeholder: 'Select type'
           },
           {
             name: 'quantity',
-            label: 'Quantity',
+            label: 'Purchased/Acquired Quantity',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'text',
             placeholder: 'e.g. MWh'
           }
@@ -500,12 +583,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.standardized_re_certificates',
         label: '23. Do you acquire any standardized certificate related to RE?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.certificates',
         label: '24. Provide the details of standardized Certificate below:',
         type: 'table',
-        addButtonLabel: 'Add Certificate',
+        addButtonLabel: 'add button for more',
+        required: true,
         dependency: {
           field: 'scope_2.standardized_re_certificates',
           value: true
@@ -513,20 +598,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: 'name',
-            label: 'Certificate Name',
+            label: 'Name of the certificate',
             type: 'text',
             placeholder: 'Enter name'
           },
           {
             name: 'procurement_mechanism',
-            label: 'Mechanism',
+            label: 'RE Procurement mechanism',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.RE_PROCUREMENT_MECHANISMS,
             placeholder: 'Select mechanism'
           },
           {
             name: 'serial_id',
-            label: 'Serial ID',
+            label: 'Serial Identity (ID)',
             type: 'text',
             placeholder: 'Enter ID'
           },
@@ -552,17 +637,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'date_of_generation',
             label: 'Date of Generation',
             type: 'text',
-            placeholder: 'YYYY-MM-DD'
+            placeholder: 'Enter date'
           },
           {
             name: 'issuance_date',
             label: 'Issuance Date',
             type: 'text',
-            placeholder: 'YYYY-MM-DD'
+            placeholder: 'Enter date'
           }
         ]
       },
-      // 4.1 Manufacturing Process-specific energy
       {
         name: 'scope_2.manufacturing_process_header',
         type: 'info',
@@ -573,12 +657,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.manufacturing_process_specific_energy.allocation_methodology',
         label: '25. Do you have any device or methodology to calculate from factory level to product level energy?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.methodology_document',
-        label: '26. Provide detailed Methodology (Link or document)',
+        label: '26. Provide detailed Methodology?',
         type: 'text',
-        placeholder: 'https://...',
+        placeholder: 'Link or document to upload',
+        required: true,
         dependency: {
           field: 'scope_2.manufacturing_process_specific_energy.allocation_methodology',
           value: true
@@ -586,10 +672,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.energy_intensity',
-        label: '27. Please write the energy intensity of production estimated kWh or MJ per unit of product',
+        label: '27. Please write the energy intensity of production estimated kWh or MJ per unit of product (if available)?',
         type: 'table',
         addButtonLabel: 'Add Product',
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
           {
             name: 'product_name',
             label: 'Product/Component Name',
@@ -600,11 +692,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'energy_intensity',
             label: 'Energy intensity',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -613,7 +705,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.process_energy_usage',
-        label: '28. Please write the Process-specific energy usage',
+        label: '28. Please write the Process-specific energy usage (if available)?',
         type: 'table',
         addButtonLabel: 'Add Process',
         columns: [
@@ -628,11 +720,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'quantity',
             label: 'Quantity Consumed per product',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -643,12 +735,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
         label: '29. Do you use any abatement systems (VOC treatment, heat recovery)?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.abatement_energy_consumption',
         label: '30. Provide abatement source energy consumption if applicable?',
         type: 'table',
         addButtonLabel: 'Add System',
+        required: true,
         dependency: {
           field: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
           value: true
@@ -664,11 +758,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'quantity',
             label: 'Quantity',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -677,11 +771,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_2.water_consumption',
-        label: '31. Provide Water consumption and treatment details (if significant for your product)',
+        label: '31. Provide Water consumption and treatment details (if significant for your product).',
         type: 'textarea',
-        placeholder: 'Enter details...',
+        placeholder: 'Text/Numeric',
       },
-      // 4.2 Quality control in production
       {
         name: 'scope_2.quality_control_header',
         type: 'info',
@@ -693,6 +786,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '32. What types of quality control/testing equipment do you use?',
         type: 'table',
         addButtonLabel: 'Add Equipment',
+        required: true,
         columns: [
           {
             name: 'equipment_name',
@@ -704,11 +798,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'quantity',
             label: 'Quantity',
             type: 'number',
-            placeholder: '0'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'text',
             placeholder: 'Unit'
           },
@@ -725,6 +819,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '33. How much electricity is consumed for quality control activities?',
         type: 'table',
         addButtonLabel: 'Add Consumption',
+        required: true,
         columns: [
           {
             name: 'energy_type',
@@ -736,11 +831,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'quantity',
             label: 'Quantity',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -749,7 +844,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'period',
             label: 'Period',
             type: 'select',
-            options: ['Monthly', 'Annually'],
+            options: ['monthly', 'annually'],
             placeholder: 'Select period'
           }
         ]
@@ -759,6 +854,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '34. Do your quality control processes use compressed air, nitrogen, or other utilities?',
         type: 'table',
         addButtonLabel: 'Add Utility',
+        required: true,
         columns: [
           {
             name: 'process_name',
@@ -770,11 +866,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'quantity',
             label: 'Quantity',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -783,7 +879,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'period',
             label: 'Period',
             type: 'select',
-            options: ['Monthly', 'Annually'],
+            options: ['monthly', 'annually'],
             placeholder: 'Select period'
           }
         ]
@@ -793,6 +889,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '35. Do quality control activities use any consumables?',
         type: 'table',
         addButtonLabel: 'Add Consumable',
+        required: true,
         columns: [
           {
             name: 'consumable_name',
@@ -804,19 +901,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'mass',
             label: 'Mass of Consumables',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'text',
-            placeholder: 'kg'
+            placeholder: 'Unit'
           },
           {
             name: 'period',
             label: 'Period',
             type: 'select',
-            options: ['Monthly', 'Annually'],
+            options: ['monthly', 'annually'],
             placeholder: 'Select period'
           }
         ]
@@ -825,20 +922,28 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.destructive_testing',
         label: '36. Do you perform destructive testing?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.quality_control.destructive_testing_details',
         label: '37. Please write the weight of samples destroyed?',
         type: 'table',
         addButtonLabel: 'Add Sample',
+        required: true,
         dependency: {
           field: 'scope_2.quality_control.destructive_testing',
           value: true
         },
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'component_name',
-            label: 'Component Name',
+            label: 'component Name',
             type: 'text',
             placeholder: 'Name'
           },
@@ -846,19 +951,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'weight',
             label: 'Weight',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'Numerical value'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measure',
             type: 'text',
-            placeholder: 'kg'
+            placeholder: 'Unit'
           },
           {
             name: 'period',
             label: 'Period',
             type: 'select',
-            options: ['Monthly', 'Annually'],
+            options: ['monthly', 'annually'],
             placeholder: 'Select period'
           }
         ]
@@ -868,10 +973,17 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '38. What is the defect or rejection rate identified by quality control inspections?',
         type: 'table',
         addButtonLabel: 'Add Rate',
+        required: true,
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'component_name',
-            label: 'Component Name',
+            label: 'component Name',
             type: 'text',
             placeholder: 'Name'
           },
@@ -888,10 +1000,17 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '39. What is the rework rate due to quality control findings?',
         type: 'table',
         addButtonLabel: 'Add Rate',
+        required: true,
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'component_name',
-            label: 'Component Name',
+            label: 'component Name',
             type: 'text',
             placeholder: 'Name'
           },
@@ -914,6 +1033,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '40. What are the types and weight of Quality control waste generated and treated?',
         type: 'table',
         addButtonLabel: 'Add Waste',
+        required: true,
         columns: [
           {
             name: 'waste_type',
@@ -930,9 +1050,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measurement',
             type: 'text',
-            placeholder: 'kg'
+            placeholder: 'Unit'
           },
           {
             name: 'treatment_type',
@@ -943,28 +1063,30 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           }
         ]
       },
-      // 4.3 IT for process and manufacturing control
       {
         name: 'scope_2.it_header',
         type: 'info',
-        label: '4.3 Information Technology (IT) for process and manufacturing control',
+        label: 'Information Technology (IT) for process and manufacturing control',
         className: 'text-lg font-semibold text-gray-900 mt-6 mb-4'
       },
       {
         name: 'scope_2.it_for_production.systems_used',
         label: '41. What IT systems do you use for production control?',
+        required: true,
         type: 'checkbox', // Multi-select
         options: QUESTIONNAIRE_OPTIONS.IT_SYSTEMS
       },
       {
         name: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
         label: '42. What is the total energy consumption of IT hardware or on-site servers or data centres related to production?',
-        type: 'checkbox', // Yes/No
+        type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.it_for_production.hardware_energy_included',
         label: '43. Is this Energy consumption included in the total energy purchased section-2?',
         type: 'checkbox',
+        required: true,
         dependency: {
             field: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
             value: true
@@ -972,9 +1094,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_2.it_for_production.hardware_energy_consumption',
-        label: '44. Please write the energy consumption',
+        label: '44. Please write the energy consumption?',
         type: 'table',
         addButtonLabel: 'Add Consumption',
+        required: true,
         dependency: {
             field: 'scope_2.it_for_production.hardware_energy_included',
             value: false // "If NO in Q43"
@@ -982,27 +1105,27 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
             {
                 name: 'energy_source',
-                label: 'Energy Source',
+                label: 'Energy Source Purchased/acquired',
                 type: 'select',
-                options: ['Electricity', 'Heating', 'Cooling', 'Steam'],
+                options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
                 placeholder: 'Select source'
             },
             {
                 name: 'energy_type',
-                label: 'Energy Type',
+                label: 'Energy_Type',
                 type: 'select',
-                options: ['Grid', 'Renewable'],
+                options: ['Purchased Grid Electricity', 'Renewable Electricity'],
                 placeholder: 'Select type'
             },
             {
                 name: 'quantity',
-                label: 'Quantity',
+                label: 'Purchased/Acquired Quantity',
                 type: 'number',
-                placeholder: '0.00'
+                placeholder: 'numerical values with decimals'
             },
             {
                 name: 'unit',
-                label: 'Unit',
+                label: 'Unit of Measure',
                 type: 'select',
                 options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
                 placeholder: 'Select unit'
@@ -1013,12 +1136,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.it_for_production.cloud_systems',
         label: '45. Do you use cloud-based systems for production or Quality control?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.it_for_production.cloud_usage',
-        label: '46. Please write the Cloud provider name and approximate monthly compute usage',
+        label: '46. Please write the Cloud provider name and approximate monthly compute usage?',
         type: 'table',
         addButtonLabel: 'Add Provider',
+        required: true,
         dependency: {
             field: 'scope_2.it_for_production.cloud_systems',
             value: true
@@ -1028,7 +1153,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
                 name: 'provider_name',
                 label: 'Cloud provider name',
                 type: 'text',
-                placeholder: 'AWS, Azure, etc.'
+                placeholder: 'AWS, Azure, SAP, etc.'
             },
             {
                 name: 'virtual_machines',
@@ -1055,6 +1180,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '47. Are any dedicated monitoring sensors used for energy, temperature, pressure, or vibration?',
         type: 'table',
         addButtonLabel: 'Add Sensor',
+        required: true,
         columns: [
             {
                 name: 'type',
@@ -1076,7 +1202,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             },
             {
                 name: 'unit',
-                label: 'Unit',
+                label: 'Unit of measure',
                 type: 'select',
                 options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
                 placeholder: 'Select unit'
@@ -1088,6 +1214,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label: '48. What is the annual replacement rate for sensors or IT consumables?',
         type: 'table',
         addButtonLabel: 'Add Item',
+        required: true,
         columns: [
             {
                 name: 'consumable_name',
@@ -1103,7 +1230,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             },
             {
                 name: 'unit',
-                label: 'Unit',
+                label: 'Unit of measure',
                 type: 'text',
                 placeholder: 'Unit'
             }
@@ -1113,11 +1240,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.it_for_production.cooling_systems',
         label: '49. Do you use any cooling systems for server rooms?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_2.it_for_production.cooling_energy_included',
         label: '50. Is this Energy consumption included in the total energy purchased section-2?',
         type: 'checkbox',
+        required: true,
         dependency: {
             field: 'scope_2.it_for_production.cooling_systems',
             value: true
@@ -1125,9 +1254,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_2.it_for_production.cooling_energy_consumption',
-        label: '51. Please write the energy consumption',
+        label: '51. Please write the energy consumption?',
         type: 'table',
         addButtonLabel: 'Add Consumption',
+        required: true,
         dependency: {
             field: 'scope_2.it_for_production.cooling_energy_included',
             value: false // "If NO in 50"
@@ -1135,27 +1265,27 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
             {
                 name: 'energy_source',
-                label: 'Energy Source',
+                label: 'Energy Source Purchased/acquired',
                 type: 'select',
-                options: ['Electricity', 'Heating', 'Cooling', 'Steam'],
+                options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
                 placeholder: 'Select source'
             },
             {
                 name: 'energy_type',
-                label: 'Energy Type',
+                label: 'Energy_Type',
                 type: 'select',
-                options: ['Grid', 'Renewable'],
+                options: ['Purchased Grid Electricity', 'Renewable Electricity'],
                 placeholder: 'Select type'
             },
             {
                 name: 'quantity',
-                label: 'Quantity',
+                label: 'Purchased/Acquired Quantity',
                 type: 'number',
-                placeholder: '0.00'
+                placeholder: 'numerical values with decimals'
             },
             {
                 name: 'unit',
-                label: 'Unit',
+                label: 'Unit of Measure',
                 type: 'select',
                 options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
                 placeholder: 'Select unit'
@@ -1166,24 +1296,31 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
   },
   {
     id: 'scope_3',
-    title: 'Scope 3 Emissions',
+    title: 'Scope 3: Other Indirect Emissions',
     fields: [
       {
         name: 'scope_3.materials.raw_materials',
-        label: '52. Raw Materials Used in Component Manufacturing',
+        label: '52. Please select or write all the raw materials used in your component manufacturing? If you don\'t know the detailed compositions please select Enviguide support to connect',
         type: 'table',
         addButtonLabel: 'Add Material',
+        required: true,
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
           {
             name: 'material',
             label: 'Material',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.RAW_MATERIALS,
-            placeholder: 'Select material'
+            placeholder: 'Material selected above will be default'
           },
           {
             name: 'composition_percent',
-            label: '% Composition',
+            label: '% material composition of total component weight percentage',
             type: 'number',
             placeholder: '0-100'
           }
@@ -1191,57 +1328,67 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.materials.metal_grade',
-        label: '53. Grade of Metal Used',
+        label: '53. What is the grade of metal used in the manufacture of this component?',
         type: 'text',
         placeholder: 'Enter grade',
+        required: true,
       },
       {
         name: 'scope_3.materials.msds',
-        label: '54. Material Safety Data Sheets (MSDS) / Composition Breakdown',
+        label: '54. Please provide material safety data sheets (MSDS) or composition breakdowns if available?',
         type: 'text',
-        placeholder: 'https://...'
+        placeholder: 'Link or attach MSDS copy'
       },
       {
         name: 'scope_3.materials.recycled_materials_used',
-        label: '55. Use of Recycled / Secondary Materials?',
+        label: '55. Does your company have Consumption of recycled material content / secondary materials used in your products?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.materials.recycled_materials_details',
-        label: '56. Recycled Materials Used',
+        label: '56. Please write the recycled materials with percentage of recycled material content?',
         type: 'table',
         addButtonLabel: 'Add Material',
+        required: true,
         dependency: {
           field: 'scope_3.materials.recycled_materials_used',
           value: true
         },
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'material_type',
-            label: 'Material Type',
+            label: 'Material',
             type: 'select',
-            options: ['Recycled Aluminum', 'Recycled Copper', 'Recycled Steel', 'Recycled Plastics', 'Others'],
-            placeholder: 'Select type'
+            options: ['Recycled Aluminum', 'Recycled Copper', 'Recycled Steel', 'Recycled Plastics (thermoplastics, filler & fiber)', 'Others'],
+            placeholder: 'Material selected default'
           },
           {
             name: 'recycled_percent',
-            label: '% Recycled Content',
+            label: '% material composition',
             type: 'number',
-            placeholder: '0-100'
+            placeholder: 'Percentage answer between 0%-100%'
           }
         ]
       },
-      // Q57 is missing in the source document numbering
       {
         name: 'scope_3.materials.estimate_pre_post_consumer',
-        label: '58. Estimate of Pre-consumer / Post-consumer / Reutilization Materials Available?',
+        label: '57. Does your company know (or can give a rough estimate) of the percentage of pre-consumer, post-consumer and reutilization materials used in your products?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.materials.material_type_percentages',
-        label: '59. Material Type Percentages',
+        label: '58. Please write the percentage of pre-consumer, post-consumer and reutilization materials used in your products?',
         type: 'table',
         addButtonLabel: 'Add Type',
+        required: true,
         dependency: {
           field: 'scope_3.materials.estimate_pre_post_consumer',
           value: true
@@ -1251,44 +1398,52 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'type',
             label: 'Material Type',
             type: 'select',
-            options: ['Pre-consumer materials', 'Post-consumer materials', 'Reutilization materials'],
+            options: ['Pre-Consumer materials', 'Post-consumer Materials', 'Reutilization Materials'],
             placeholder: 'Select type'
           },
           {
             name: 'percentage',
-            label: 'Percentage',
+            label: 'Enter Percentage value for material composition',
             type: 'number',
-            placeholder: '0-100'
+            placeholder: 'Percentage answer between 0%-100%'
           }
         ]
       },
       {
         name: 'scope_3.materials.pir_pcr_materials',
-        label: 'PIR and PCR Materials', // Labeled as 33 in doc, leaving without number or using descriptive label
+        label: '59. Please specify the post-industrial recycling (PIR) materials and post-consumer recycling (PCR) materials with percentage (%)?',
         type: 'table',
         addButtonLabel: 'Add Material',
+        required: true,
         columns: [
           {
             name: 'material_type',
             label: 'Material Type',
             type: 'select',
-            options: ['PIR material', 'PCR material'],
+            options: ['Post-industrial recycling (PIR) Material', 'Post-Consumer Recycling (PCR) Material'],
             placeholder: 'Select type'
           },
           {
             name: 'recycled_composition',
-            label: '% Recycled Composition',
+            label: 'Enter Percentage value for recycled material composition',
             type: 'number',
-            placeholder: '0-100'
+            placeholder: 'Percentage answer between 0%-100%'
           }
         ]
       },
       {
         name: 'scope_3.packaging.materials_used',
-        label: '60. Packaging Materials Used',
+        label: '60. What type of packaging materials are used for delivering the product?',
         type: 'table',
         addButtonLabel: 'Add Packaging',
+        required: true,
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
           {
             name: 'component_name',
             label: 'Component Name',
@@ -1297,7 +1452,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'packaging_type',
-            label: 'Packaging Type',
+            label: 'Packing Type',
             type: 'text',
             placeholder: 'Type'
           },
@@ -1306,15 +1461,28 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             label: 'Packing Size',
             type: 'text',
             placeholder: 'Size'
+          },
+          {
+            name: 'unit',
+            label: 'Unit of Measure',
+            type: 'text',
+            placeholder: 'Unit'
           }
         ]
       },
       {
         name: 'scope_3.packaging.weight_per_unit',
-        label: '61. Packaging Weight per Unit Product',
+        label: '61. Approximate weight of packaging per unit product?',
         type: 'table',
         addButtonLabel: 'Add Weight',
+        required: true,
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
           {
             name: 'component_name',
             label: 'Component Name',
@@ -1323,13 +1491,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'weight',
-            label: 'Packaging Weight',
+            label: 'packaging weight per product',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'text',
             placeholder: 'Unit'
           }
@@ -1337,10 +1505,17 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.packaging.size',
-        label: '62. Packaging Size',
+        label: '62. What is the size of packing?',
         type: 'table',
         addButtonLabel: 'Add Size',
+        required: true,
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
           {
             name: 'component_name',
             label: 'Component Name',
@@ -1349,13 +1524,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'size',
-            label: 'Package Size',
+            label: 'size of the package',
             type: 'text',
             placeholder: 'Size'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'text',
             placeholder: 'Unit'
           }
@@ -1363,13 +1538,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.packaging.recycled_content_used',
-        label: '63. Use of Recycled Material in Packaging?',
+        label: '63. Do you use recycled material for packaging?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.packaging.recycled_percent',
-        label: '64. Percentage of Recycled Content in Packaging',
+        label: '64. What % of recycled content used in packaging materials?',
         type: 'number',
+        required: true,
         dependency: {
           field: 'scope_3.packaging.recycled_content_used',
           value: true
@@ -1377,13 +1554,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.packaging.electricity_used',
-        label: '65. Electricity Used for Packaging?',
+        label: '65. Do you use Electricity for packaging?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.packaging.energy_included',
-        label: '66. Is Packaging Energy Included in Total Purchased Energy?',
+        label: '66. Is this Energy consumption included in the total energy purchased section-2?',
         type: 'checkbox',
+        required: true,
         dependency: {
           field: 'scope_3.packaging.electricity_used',
           value: true
@@ -1391,9 +1570,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.packaging.energy_consumption',
-        label: '67. Packaging Energy Consumption',
+        label: '67. Please write the energy consumption?',
         type: 'table',
         addButtonLabel: 'Add Consumption',
+        required: true,
         dependency: {
           field: 'scope_3.packaging.energy_included',
           value: false
@@ -1401,25 +1581,27 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: 'energy_source',
-            label: 'Energy Source',
-            type: 'text',
-            placeholder: 'Source'
+            label: 'Energy Source Purchased/acquired',
+            type: 'select',
+            options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
+            placeholder: 'Select source'
           },
           {
             name: 'energy_type',
-            label: 'Energy Type',
-            type: 'text',
-            placeholder: 'Type'
+            label: 'Energy_Type',
+            type: 'select',
+            options: ['Purchased Grid Electricity', 'Renewable Electricity'],
+            placeholder: 'Select type'
           },
           {
             name: 'quantity',
-            label: 'Quantity',
+            label: 'Purchased/Acquired Quantity',
             type: 'number',
-            placeholder: '0.00'
+            placeholder: 'numerical values with decimals'
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of Measure',
             type: 'select',
             options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
             placeholder: 'Select unit'
@@ -1428,9 +1610,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.waste_disposal.types_and_weight',
-        label: '68. Types and Weight of Production & Packaging Waste',
+        label: '68. What are the types and weight of production and Packaging waste generated?',
         type: 'table',
         addButtonLabel: 'Add Waste',
+        required: true,
         columns: [
           {
             name: 'waste_type',
@@ -1447,55 +1630,64 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'unit',
-            label: 'Unit',
+            label: 'Unit of measurement',
             type: 'text',
             placeholder: 'Unit'
           },
           {
             name: 'treatment_type',
-            label: 'Treatment Type',
+            label: 'Treatment type',
             type: 'select',
-            options: ['Landfill', 'Incineration', 'Recycling', 'Other'],
+            options: ['landfill', 'incineration', 'recycling', 'Other\'s'],
             placeholder: 'Select treatment'
           }
         ]
       },
       {
         name: 'scope_3.waste_disposal.recycled_percent',
-        label: '69. Percentage of Waste Recycled (Internal / External)',
+        label: '69. Please write the scrap/waste material percentage (%) that is internally recycled or externally sent for recycling.',
         type: 'number',
-        placeholder: '0-100',
+        placeholder: 'Text/Numeric',
+        required: true,
       },
       {
         name: 'scope_3.waste_disposal.by_products_generated',
-        label: '70. Any By-products Generated?',
+        label: '70. Any by-products generated?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.waste_disposal.by_product_details',
-        label: '71. By-product Details',
+        label: '71. specify type of byproduct?',
         type: 'table',
         addButtonLabel: 'Add By-product',
+        required: true,
         dependency: {
           field: 'scope_3.waste_disposal.by_products_generated',
           value: true
         },
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
             name: 'component_name',
-            label: 'Component Name',
+            label: 'Name of component',
             type: 'text',
             placeholder: 'Name'
           },
           {
             name: 'by_product',
-            label: 'By-product',
+            label: 'byproduct',
             type: 'text',
             placeholder: 'By-product'
           },
           {
             name: 'price',
-            label: 'Price',
+            label: 'Price per product',
             type: 'number',
             placeholder: '0.00'
           },
@@ -1509,14 +1701,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.logistics.emissions_tracked',
-        label: '72. Emissions Tracked for Raw Material Transport?',
+        label: '72. Do you track emissions from transporting raw materials to your facilities?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.logistics.estimated_emissions',
-        label: '73. Estimated CO₂ Emissions for Raw Materials',
+        label: '73. provide estimated CO₂ emissions for your raw materials?',
         type: 'table',
         addButtonLabel: 'Add Emission',
+        required: true,
         dependency: {
           field: 'scope_3.logistics.emissions_tracked',
           value: true
@@ -1536,25 +1730,25 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'transport_mode',
-            label: 'Transport Mode',
+            label: 'Transport mode',
             type: 'text',
             placeholder: 'Mode'
           },
           {
             name: 'source',
-            label: 'Source',
+            label: 'Source Location',
             type: 'text',
             placeholder: 'Source'
           },
           {
             name: 'destination',
-            label: 'Destination',
+            label: 'Destination Location',
             type: 'text',
             placeholder: 'Destination'
           },
           {
             name: 'co2e',
-            label: 'CO₂e (kg)',
+            label: 'Co2 Emissions (KgCo2e)',
             type: 'number',
             placeholder: '0.00'
           }
@@ -1562,9 +1756,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.logistics.transport_modes',
-        label: '74. Modes of Transport Used',
+        label: '74. What is(are) the Mode(s) of transport used for transportation of components/products? Select all the multimode transports?',
         type: 'table',
         addButtonLabel: 'Add Mode',
+        required: true,
         dependency: {
           field: 'scope_3.logistics.emissions_tracked',
           value: false
@@ -1572,32 +1767,32 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: 'mode',
-            label: 'Mode',
+            label: 'Mode of Transport',
             type: 'select',
-            options: ['Road / Truck', 'Rail', 'Ship', 'Air Freight'],
+            options: ['Truck', 'Rail', 'Air', 'Ship'],
             placeholder: 'Select mode'
           },
           {
             name: 'weight',
-            label: 'Weight Transported (tons)',
+            label: 'weight transported (Tons)',
             type: 'number',
             placeholder: '0.00'
           },
           {
             name: 'source',
-            label: 'Source',
+            label: 'Source Point',
             type: 'text',
             placeholder: 'Source'
           },
           {
             name: 'destination',
-            label: 'Destination',
+            label: 'Drop Point',
             type: 'text',
             placeholder: 'Destination'
           },
           {
             name: 'distance',
-            label: 'Distance (km)',
+            label: 'Distance (KMS)',
             type: 'number',
             placeholder: '0'
           }
@@ -1605,19 +1800,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.logistics.destination_plant',
-        label: '75. Destination Plant for Components',
+        label: '75. Which destination plant are the components transported to?',
         type: 'table',
         addButtonLabel: 'Add Plant',
+        required: true,
         columns: [
           {
             name: 'country',
-            label: 'Country',
+            label: 'country',
             type: 'text',
             placeholder: 'Country'
           },
           {
             name: 'state',
-            label: 'State',
+            label: 'state',
             type: 'text',
             placeholder: 'State'
           },
@@ -1629,7 +1825,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: 'pin_code',
-            label: 'PIN Code',
+            label: 'PINCODE',
             type: 'text',
             placeholder: 'PIN'
           }
@@ -1637,60 +1833,66 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: 'scope_3.certifications.iso_certified',
-        label: '76. ISO 14001 or ISO 50001 Certified?',
+        label: '76. Are you certified to ISO 14001 (Environmental Management) or ISO 50001 (Energy Management)?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.certifications.standards_followed',
-        label: '77. Standards Followed (ISO 14067, GHG Protocol, Catena-X, etc.)?',
+        label: '77. Do you follow ISO 14067, GHG Protocol, Catena-X PCF Guideline, or other recognized standards?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.certifications.reporting_frameworks',
-        label: '78. Reporting to CDP / SBTi / Other ESG Frameworks?',
+        label: '78. Do you report to CDP (Carbon Disclosure Project), SBTi (Science-Based Targets initiative), or other ESG frameworks?',
         type: 'checkbox',
+        required: true,
       },
       {
         name: 'scope_3.certifications.additional_notes.reduction_measures',
-        label: '79. Measures to Reduce Carbon Emissions in Production',
+        label: '79. What measures are you taking to reduce carbon emissions in your production processes?',
         type: 'textarea',
-        placeholder: 'Describe measures...',
+        placeholder: 'Text',
+        required: true,
       },
       {
         name: 'scope_3.certifications.additional_notes.renewable_initiatives',
-        label: '80. Renewable Energy Initiatives / Recycling Programs',
+        label: '80. What renewable energy initiatives or recycling programs are in place at your facility?',
         type: 'textarea',
-        placeholder: 'Describe initiatives...',
+        required: true,
+        placeholder: 'Text',
       },
       {
         name: 'scope_3.certifications.additional_notes.initiatives',
-        label: '81. Company Sustainability Initiatives & Strategies',
+        label: '81. Could you please share information about your company\'s current sustainability initiatives and strategies?',
         type: 'textarea',
-        placeholder: 'Describe initiatives...',
+        placeholder: 'Specifically, we are interested in learning about the actions that you are taking to reduce environmental impact, improve energy Efficiency, and anything related to promote sustainable practices across your operations.',
+        required: true,
       }
     ]
   },
   {
     id: 'scope_4',
-    title: 'Scope 4 Emissions',
+    title: 'Section 6: Scope 4: Avoided Emissions',
     fields: [
       {
         name: 'scope_4.products_reducing_customer_emissions',
-        label: '82. Products or Services that Help Reduce Customer Emissions',
+        label: '82. Product Impact: Does your company produce any products or services that help reduce emissions for your customers? Can you estimate the emissions avoided by using your product?',
         type: 'textarea',
-        placeholder: 'Describe products/services...',
+        placeholder: 'Open text',
       },
       {
         name: 'scope_4.circular_economy_practices',
-        label: '83. Circular Economy Practices (Reuse, Take-back, EPR, Refurbishment)',
+        label: '83. Circular Economy Practices: Do you implement any recycling or reuse programs in your business model that contribute to reducing emissions (e.g., product take-back or Extended Producer Responsibility regulations, refurbishment)?',
         type: 'textarea',
-        placeholder: 'Describe practices...',
+        placeholder: 'Open text',
       },
       {
         name: 'scope_4.offset_projects',
-        label: '84. Renewable Energy / Carbon Offset Projects Implemented',
+        label: '84. Renewable Energy Projects: Has your company implemented or invested in any carbon offset projects or initiatives (e.g., renewable energy investments (e.g., solar, wind), reforestation projects)?',
         type: 'textarea',
-        placeholder: 'Describe projects...',
+        placeholder: 'Open text',
       }
     ]
   }

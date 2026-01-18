@@ -1,6 +1,6 @@
-import React from 'react';
-import { Form, Input, Select, Checkbox, InputNumber, Button, Table, Space, Typography } from 'antd';
-import { PlusOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Select, Checkbox, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag } from 'antd';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { QuestionnaireSection, QuestionnaireField } from '../../config/questionnaireSchema';
 
 const { Title, Text } = Typography;
@@ -11,14 +11,36 @@ interface DynamicQuestionnaireFormProps {
   initialValues: any;
   onFinish: (values: any) => void;
   form: any; // Ant Form instance
+  onValuesChange?: (changedValues: any, allValues: any) => void;
+  autoPopulatedFields?: Set<string>;
+  formErrors?: Record<string, string[]>;
 }
 
 const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({ 
   section, 
   initialValues, 
   onFinish,
-  form
+  form,
+  onValuesChange,
+  autoPopulatedFields = new Set(),
+  formErrors = {}
 }) => {
+  const [charCounts, setCharCounts] = useState<Record<string, number>>({});
+
+  // Track character counts for textareas
+  useEffect(() => {
+    if (!section) return;
+    const fields = section.fields.filter(f => f.type === 'textarea');
+    const counts: Record<string, number> = {};
+    fields.forEach(field => {
+      const value = form.getFieldValue(field.name.split('.'));
+      if (value) {
+        counts[field.name] = value.length;
+      }
+    });
+    setCharCounts(counts);
+  }, [section, form]);
+
   if (!section) {
     return null;
   }
@@ -44,10 +66,34 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             const dependencyValue = getFieldValue(field.dependency!.field.split('.'));
             const expectedValue = field.dependency!.value;
             
-            // Simple equality check for now
-            if (dependencyValue !== expectedValue) {
+            // Check if dependency field has been answered at all
+            const isAnswered = dependencyValue !== undefined && 
+                              dependencyValue !== null && 
+                              dependencyValue !== '';
+            
+            // If dependency field hasn't been answered, don't show dependent field
+            if (!isAnswered) {
               return null;
             }
+            
+            // Handle different value types
+            if (typeof expectedValue === 'boolean') {
+              // For boolean dependencies (checkboxes), check exact match
+              if (dependencyValue !== expectedValue) {
+                return null;
+              }
+            } else if (Array.isArray(dependencyValue)) {
+              // For array values (multi-select), check if expected value is in array
+              if (!dependencyValue.includes(expectedValue)) {
+                return null;
+              }
+            } else {
+              // For string/number values, check exact match
+              if (dependencyValue !== expectedValue) {
+                return null;
+              }
+            }
+            
             return renderFieldContent(field);
           }}
         </Form.Item>
@@ -60,9 +106,9 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   const renderFieldContent = (field: QuestionnaireField) => {
     if (field.type === 'info') {
       return (
-        <div className={`mb-6 ${field.className || ''}`} key={field.name}>
+        <div className={`mb-3 transition-all duration-200 ${field.className || ''}`} key={field.name}>
           {field.label && <h4 className="text-sm font-medium text-gray-900 mb-2">{field.label}</h4>}
-          <div className="text-sm text-gray-600">{field.content}</div>
+          <div className="text-sm text-gray-600 whitespace-pre-line">{field.content}</div>
         </div>
       );
     }
@@ -77,20 +123,67 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       style: { width: '100%' }
     };
 
+    const isAutoPopulated = autoPopulatedFields.has(field.name);
+    const fieldErrors = formErrors[field.name] || [];
+
     let inputComponent;
     switch (field.type) {
       case 'text':
-        inputComponent = <Input {...commonProps} />;
+        inputComponent = (
+          <Input 
+            {...commonProps}
+            suffix={isAutoPopulated && (
+              <Tooltip title="Auto-populated from BOM data">
+                <InfoCircleOutlined className="text-green-500" />
+              </Tooltip>
+            )}
+          />
+        );
         break;
       case 'textarea':
-        inputComponent = <TextArea {...commonProps} rows={4} />;
+        inputComponent = (
+          <div>
+            <TextArea 
+              {...commonProps} 
+              rows={4}
+              maxLength={field.maxLength}
+              showCount={!!field.maxLength}
+              onChange={(e) => {
+                setCharCounts(prev => ({ ...prev, [field.name]: e.target.value.length }));
+                // Clear error if user starts typing
+                if (e.target.value && fieldErrors.length > 0) {
+                  // Error will be cleared by form validation
+                }
+              }}
+            />
+            {field.maxLength && (
+              <div className="text-xs text-gray-400 mt-1">
+                {charCounts[field.name] || 0} / {field.maxLength} characters
+              </div>
+            )}
+          </div>
+        );
         break;
       case 'number':
-        inputComponent = <InputNumber {...commonProps} />;
+        inputComponent = (
+          <InputNumber 
+            {...commonProps}
+            style={{ width: '100%' }}
+            min={field.min}
+            max={field.max}
+          />
+        );
         break;
       case 'select':
         inputComponent = (
-          <Select {...commonProps} mode={field.mode}>
+          <Select 
+            {...commonProps} 
+            mode={field.mode}
+            showSearch={field.options && field.options.length > 5}
+            filterOption={(input, option) =>
+              (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+            }
+          >
             {field.options?.map((opt: any) => {
               const label = typeof opt === 'string' ? opt : opt.label;
               const value = typeof opt === 'string' ? opt : opt.value;
@@ -103,13 +196,15 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         if (field.options) {
            inputComponent = (
              <Checkbox.Group style={{ width: '100%' }}>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                  {field.options.map((opt: any) => {
                    const label = typeof opt === 'string' ? opt : opt.label;
                    const value = typeof opt === 'string' ? opt : opt.value;
                    return (
-                     <div key={value}>
-                       <Checkbox value={value}>{label}</Checkbox>
+                     <div key={value} className="flex items-center">
+                       <Checkbox value={value} className="hover:bg-gray-50 p-1 rounded">
+                         {label}
+                       </Checkbox>
                      </div>
                    );
                  })}
@@ -117,21 +212,63 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
              </Checkbox.Group>
            );
         } else {
+          const isAutoPopulated = autoPopulatedFields.has(field.name);
+          const fieldErrors = formErrors[field.name] || [];
           return (
             <Form.Item
               key={field.name}
               name={field.name.split('.')}
               valuePropName="checked"
-              rules={[{ required: field.required, message: `${field.label} is required` }]}
+              rules={[
+                {
+                  validator: (_: any, value: boolean) => {
+                    if (field.required && !value) {
+                      const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
+                      return Promise.reject(new Error(
+                        questionNumber 
+                          ? `Please check this box to acknowledge ${questionNumber.slice(0, -1)}`
+                          : `This field is required. Please check the box to continue.`
+                      ));
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+              className={`mb-2 transition-all duration-200 ${fieldErrors.length > 0 ? 'animate-pulse' : ''}`}
+              validateStatus={fieldErrors.length > 0 ? 'error' : undefined}
+              help={fieldErrors.length > 0 ? fieldErrors[0] : undefined}
+              extra={isAutoPopulated && (
+                <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <InfoCircleOutlined className="text-xs" />
+                  Auto-populated from BOM data
+                </div>
+              )}
             >
-              <Checkbox>{field.label}</Checkbox>
+              <div className="flex items-center gap-2">
+                <Checkbox>
+                  {field.label}
+                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                </Checkbox>
+                {isAutoPopulated && (
+                  <Tag color="green" icon={<InfoCircleOutlined />} className="text-xs">
+                    Auto-filled
+                  </Tag>
+                )}
+              </div>
             </Form.Item>
           );
         }
         break;
       case 'file':
         inputComponent = (
-          <Button icon={<UploadOutlined />}>Click to Upload</Button>
+          <div>
+            <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
+              Click to Upload
+            </Button>
+            {field.placeholder && (
+              <div className="text-xs text-gray-500 mt-2">{field.placeholder}</div>
+            )}
+          </div>
         );
         break;
       default:
@@ -142,9 +279,65 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       <Form.Item
         key={field.name}
         name={field.name.split('.')}
-        label={field.label}
-        rules={[{ required: field.required, message: `${field.label} is required` }]}
-        className="mb-4"
+        label={
+          <div className="flex items-center gap-2">
+            <span>{field.label}</span>
+            {field.required && <span className="text-red-500">*</span>}
+            {field.placeholder && (
+              <Tooltip title={field.placeholder}>
+                <QuestionCircleOutlined className="text-gray-400 text-xs" />
+              </Tooltip>
+            )}
+            {isAutoPopulated && (
+              <Tag color="green" icon={<InfoCircleOutlined />} className="text-xs">
+                Auto-filled
+              </Tag>
+            )}
+          </div>
+        }
+        rules={[
+          { 
+            required: field.required, 
+            message: field.required 
+              ? (() => {
+                  const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
+                  if (questionNumber) {
+                    return `Please answer ${questionNumber.slice(0, -1)}. This field is required.`;
+                  }
+                  return `This field is required. Please provide a value.`;
+                })()
+              : undefined
+          },
+          // Email validation
+          ...(field.name.toLowerCase().includes('email') || field.label?.toLowerCase().includes('e-mail') || field.label?.toLowerCase().includes('email') ? [{
+            type: 'email' as const,
+            message: 'Please enter a valid email address (e.g., name@example.com)'
+          }] : []),
+          // Number validation
+          ...(field.type === 'number' && field.min !== undefined ? [{
+            type: 'number' as const,
+            min: field.min,
+            message: `Please enter a value of at least ${field.min}`
+          }] : []),
+          ...(field.type === 'number' && field.max !== undefined ? [{
+            type: 'number' as const,
+            max: field.max,
+            message: `Please enter a value that does not exceed ${field.max}`
+          }] : []),
+          // Text length validation
+          ...(field.type === 'text' && field.maxLength ? [{
+            max: field.maxLength,
+            message: `Please limit your response to ${field.maxLength} characters or less`
+          }] : [])
+        ].filter(Boolean)}
+        className={`mb-2 transition-all duration-200 ${fieldErrors.length > 0 ? 'animate-pulse' : ''}`}
+        validateStatus={fieldErrors.length > 0 ? 'error' : isAutoPopulated ? 'success' : undefined}
+        help={fieldErrors.length > 0 ? fieldErrors[0] : undefined}
+        extra={isAutoPopulated && (
+          <div className="text-xs text-green-600 mt-1">
+            This field was automatically populated from your BOM data. You can modify it if needed.
+          </div>
+        )}
       >
         {inputComponent}
       </Form.Item>
@@ -152,78 +345,219 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   };
 
   const renderTableField = (field: QuestionnaireField) => {
+    const isAutoPopulated = autoPopulatedFields.has(field.name);
+    
     return (
-      <div key={field.name} className="mb-6 border p-4 rounded-lg bg-gray-50">
-        <h4 className="text-sm font-medium text-gray-900 mb-4">{field.label}</h4>
-        <Form.List name={field.name.split('.')}>
-          {(fields, { add, remove }) => {
-            const columns = [
-              ...(field.columns?.map(col => ({
-                title: col.label,
-                dataIndex: col.name,
-                key: col.name,
-                render: (_: any, fieldRecord: any) => (
-                  <Form.Item
-                    name={[fieldRecord.name, col.name]}
-                    rules={[{ required: col.required, message: 'Required' }]}
-                    className="mb-0" // Remove bottom margin for table layout
-                  >
-                    {col.type === 'select' ? (
-                      <Select placeholder={col.placeholder} style={{ minWidth: 120 }} mode={col.mode}>
-                        {col.options?.map((opt: any) => {
-                          const label = typeof opt === 'string' ? opt : opt.label;
-                          const value = typeof opt === 'string' ? opt : opt.value;
-                          return <Select.Option key={value} value={value}>{label}</Select.Option>;
-                        })}
-                      </Select>
-                    ) : col.type === 'number' ? (
-                      <InputNumber placeholder={col.placeholder} style={{ width: '100%' }} />
-                    ) : (
-                      <Input placeholder={col.placeholder} />
-                    )}
-                  </Form.Item>
-                )
-              })) || []),
+      <div 
+        key={field.name} 
+        className={`mb-3 border rounded-lg bg-gray-50 transition-all duration-200 ${
+          isAutoPopulated ? 'border-green-200 bg-green-50' : 'border-gray-200'
+        }`}
+      >
+        <div className="p-4 border-b border-gray-200 bg-white rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium text-gray-900">{field.label}</h4>
+              {field.required && <span className="text-red-500">*</span>}
+              {isAutoPopulated && (
+                <Tag color="green" icon={<InfoCircleOutlined />} className="text-xs">
+                  Auto-filled
+                </Tag>
+              )}
+            </div>
+            {field.placeholder && (
+              <Tooltip title={field.placeholder}>
+                <QuestionCircleOutlined className="text-gray-400 text-xs cursor-help" />
+              </Tooltip>
+            )}
+          </div>
+          {isAutoPopulated && (
+            <div className="text-xs text-green-600 mt-2">
+              This table was automatically populated from your BOM data. You can modify or add more entries.
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4">
+          <Form.List 
+            name={field.name.split('.')}
+            rules={field.required ? [
               {
-                title: 'Action',
-                key: 'action',
-                width: 60,
-                render: (_: any, fieldRecord: any) => (
-                  <DeleteOutlined 
-                    className="text-red-500 cursor-pointer hover:text-red-700" 
-                    onClick={() => remove(fieldRecord.name)} 
-                  />
-                )
+                validator: async (_, value) => {
+                  if (!value || value.length === 0) {
+                    const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
+                    return Promise.reject(
+                      new Error(
+                        questionNumber
+                          ? `Please add at least one entry to ${questionNumber.slice(0, -1)}. This table is required.`
+                          : 'Please add at least one entry to this table. This field is required.'
+                      )
+                    );
+                  }
+                  return Promise.resolve();
+                }
               }
-            ];
+            ] : undefined}
+          >
+            {(fields, { add, remove }, { errors }) => {
+              const columns = [
+                ...(field.columns?.map((col, colIndex) => {
+                  const isAutoPopulatedCol = isAutoPopulated && colIndex < 2; // First 2 columns typically auto-populated
+                  return {
+                    title: (
+                      <div className="flex items-center gap-1">
+                        <span>{col.label}</span>
+                        {col.required && <span className="text-red-500">*</span>}
+                      </div>
+                    ),
+                    dataIndex: col.name,
+                    key: col.name,
+                    width: col.type === 'number' ? 120 : undefined,
+                    render: (_: any, fieldRecord: any) => (
+                      <Form.Item
+                        name={[fieldRecord.name, col.name]}
+                        rules={[
+                          { 
+                            required: col.required, 
+                            message: col.required 
+                              ? `Please fill in "${col.label}" for this row. This field is required.`
+                              : undefined
+                          },
+                          ...(col.type === 'number' && col.min !== undefined ? [{
+                            type: 'number' as const,
+                            min: col.min,
+                            message: `${col.label} must be at least ${col.min}`
+                          }] : []),
+                          ...(col.type === 'number' && col.max !== undefined ? [{
+                            type: 'number' as const,
+                            max: col.max,
+                            message: `${col.label} must not exceed ${col.max}`
+                          }] : [])
+                        ].filter(Boolean)}
+                        className="mb-0"
+                      >
+                        {col.type === 'select' ? (
+                          <Select 
+                            placeholder={col.placeholder} 
+                            style={{ minWidth: 120, width: '100%' }} 
+                            mode={col.mode}
+                            showSearch={col.options && col.options.length > 5}
+                            filterOption={(input, option) =>
+                              (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                            }
+                          >
+                            {col.options?.map((opt: any) => {
+                              const label = typeof opt === 'string' ? opt : opt.label;
+                              const value = typeof opt === 'string' ? opt : opt.value;
+                              return <Select.Option key={value} value={value}>{label}</Select.Option>;
+                            })}
+                          </Select>
+                        ) : col.type === 'number' ? (
+                          <InputNumber 
+                            placeholder={col.placeholder} 
+                            style={{ width: '100%' }}
+                            min={col.min}
+                            max={col.max}
+                          />
+                        ) : (
+                          <Input 
+                            placeholder={col.placeholder}
+                            className={isAutoPopulatedCol ? 'bg-green-50' : ''}
+                          />
+                        )}
+                      </Form.Item>
+                    )
+                  };
+                }) || []),
+                {
+                  title: 'Action',
+                  key: 'action',
+                  width: 70,
+                  fixed: 'right' as const,
+                  render: (_: any, fieldRecord: any) => (
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => remove(fieldRecord.name)}
+                      className="hover:bg-red-50"
+                      size="small"
+                    />
+                  )
+                }
+              ];
 
-            return (
-              <>
-                <Table
-                  dataSource={fields}
-                  columns={columns}
-                  pagination={false}
-                  rowKey="key"
-                  size="small"
-                  bordered
-                  className="mb-4"
-                />
-                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                  {field.addButtonLabel || 'Add Item'}
-                </Button>
-              </>
-            );
-          }}
-        </Form.List>
+              return (
+                <>
+                  {fields.length === 0 ? (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={
+                        <span className="text-gray-400">
+                          No items added yet. Click the button below to add your first entry.
+                        </span>
+                      }
+                      className="py-8"
+                    />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table
+                        dataSource={fields}
+                        columns={columns}
+                        pagination={false}
+                        rowKey="key"
+                        size="small"
+                        bordered
+                        className="mb-4"
+                        scroll={{ x: 'max-content' }}
+                        rowClassName={(_, index) => 
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }
+                      />
+                    </div>
+                  )}
+                  {errors.length > 0 && (
+                    <div className="mt-2">
+                      {errors.map((error, index) => (
+                        <div key={index} className="text-sm text-red-600 flex items-center gap-1">
+                          <InfoCircleOutlined className="text-xs" />
+                          {error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-500">
+                      {fields.length} {fields.length === 1 ? 'item' : 'items'}
+                      {field.required && fields.length === 0 && (
+                        <span className="text-red-500 ml-1">(Required - add at least one entry)</span>
+                      )}
+                    </span>
+                    <Button 
+                      type="dashed" 
+                      onClick={() => add()} 
+                      icon={<PlusOutlined />}
+                      className="hover:border-green-400 hover:text-green-600"
+                    >
+                      {field.addButtonLabel || 'Add Item'}
+                    </Button>
+                  </div>
+                </>
+              );
+            }}
+          </Form.List>
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6">
-      <div className="mb-8">
-        <Title level={3}>{section.title}</Title>
-        {section.description && <Text type="secondary">{section.description}</Text>}
+    <div className="max-w-4xl mx-auto py-4 sm:py-6">
+      <div className="mb-6 sm:mb-8">
+        <Title level={3} className="mb-2">{section.title}</Title>
+        {section.description && (
+          <Text type="secondary" className="text-sm">{section.description}</Text>
+        )}
       </div>
       
       <Form
@@ -231,9 +565,18 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         layout="vertical"
         initialValues={initialValues}
         onFinish={onFinish}
+        onValuesChange={onValuesChange}
         scrollToFirstError
+        className="space-y-2"
       >
-        {section.fields.map(field => renderField(field))}
+        {section.fields.map((field, index) => (
+          <div 
+            key={field.name} 
+            className="transition-all duration-200 hover:bg-gray-50 -mx-2 px-2 rounded"
+          >
+            {renderField(field)}
+          </div>
+        ))}
       </Form>
     </div>
   );

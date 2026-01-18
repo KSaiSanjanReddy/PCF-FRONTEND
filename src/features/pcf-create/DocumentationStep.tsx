@@ -2,57 +2,100 @@ import React, { useState } from 'react';
 import { Card, Upload, Button, List, Typography, Space, message } from 'antd';
 import { UploadOutlined, FilePdfOutlined, FileImageOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
+import pcfService from '../../lib/pcfService';
 
 interface DocumentationStepProps {
   initialValues: any;
   onSave: (values: any) => void;
 }
 
+// Extended file type to store the key from upload response
+interface ExtendedUploadFile extends UploadFile {
+  fileKey?: string;
+}
+
 const { Text } = Typography;
 
 const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, onSave }) => {
-  const [fileList, setFileList] = useState<UploadFile[]>(initialValues.documents || []);
+  const [fileList, setFileList] = useState<ExtendedUploadFile[]>(initialValues.documents || []);
+  const [uploading, setUploading] = useState(false);
+
+  // Custom upload handler using pcfService
+  const customUpload = async (options: any) => {
+    const { file, onSuccess, onError, onProgress } = options;
+
+    setUploading(true);
+    onProgress?.({ percent: 30 });
+
+    try {
+      const result = await pcfService.uploadBOMFile(file);
+
+      if (result.success && result.url && result.key) {
+        onProgress?.({ percent: 100 });
+        onSuccess?.({ url: result.url, key: result.key }, file);
+        message.success(`${file.name} uploaded successfully`);
+      } else {
+        onError?.(new Error(result.message || 'Upload failed'));
+        message.error(`${file.name} upload failed: ${result.message}`);
+      }
+    } catch (error: any) {
+      onError?.(error);
+      message.error(`${file.name} upload failed`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleChange: UploadProps['onChange'] = (info) => {
-    let newFileList = [...info.fileList];
+    let newFileList = [...info.fileList] as ExtendedUploadFile[];
 
-    // Limit to 5 files for now
-    newFileList = newFileList.slice(-5);
+    // Limit to 10 files
+    newFileList = newFileList.slice(-10);
 
-    // Read from response and show file link
+    // Read from response and store url/key
     newFileList = newFileList.map((file) => {
       if (file.response) {
-        // Component will show file.url as link
         file.url = file.response.url;
+        file.fileKey = file.response.key;
       }
       return file;
     });
 
     setFileList(newFileList);
-
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} file uploaded successfully`);
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} file upload failed.`);
-    }
   };
 
   const handleSave = () => {
-    onSave({ documents: fileList });
+    // Only save successfully uploaded files with their keys
+    const uploadedDocs = fileList
+      .filter(f => f.status === 'done' && (f.fileKey || f.url))
+      .map(f => ({
+        uid: f.uid,
+        name: f.name,
+        url: f.url,
+        fileKey: f.fileKey,
+        type: f.type,
+        status: f.status,
+      }));
+    onSave({ documents: uploadedDocs });
   };
 
   const uploadProps: UploadProps = {
-    action: 'https://run.mocky.io/v3/435e224c-44fb-4773-9faf-380c5e6a2188', // Mock upload URL
+    customRequest: customUpload,
     onChange: handleChange,
     multiple: true,
-    accept: '.pdf,.png',
+    accept: '.pdf,.png,.jpg,.jpeg',
     fileList,
     beforeUpload: (file) => {
-      const isPdfOrPng = file.type === 'application/pdf' || file.type === 'image/png';
-      if (!isPdfOrPng) {
-        message.error('You can only upload PDF or PNG files!');
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+      const isAllowed = allowedTypes.includes(file.type);
+      if (!isAllowed) {
+        message.error('You can only upload PDF, PNG, or JPG files!');
       }
-      return isPdfOrPng || Upload.LIST_IGNORE;
+      const isLt10M = file.size / 1024 / 1024 < 10;
+      if (!isLt10M) {
+        message.error('File must be smaller than 10MB!');
+      }
+      return (isAllowed && isLt10M) || Upload.LIST_IGNORE;
     },
   };
 
@@ -67,7 +110,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, on
             <p className="ant-upload-text">Click or drag file to this area to upload</p>
             <p className="ant-upload-hint">
               Support for a single or bulk upload. Strictly prohibited from uploading company data or other
-              banned files. Accepted formats: PDF, PNG.
+              banned files. Accepted formats: PDF, PNG, JPG (Max 10MB per file).
             </p>
           </Upload.Dragger>
         </div>

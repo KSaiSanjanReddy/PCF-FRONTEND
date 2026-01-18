@@ -32,7 +32,7 @@ export interface TaskItem {
   tags?: string[];
   attachments?: string;
   progress: number | null;
-  status: "To Do" | "In Progress" | "Under Review" | "Completed";
+  status: "Created" | "To Do" | "In Progress" | "Under Review" | "Completed";
   created_by: string;
   updated_by?: string | null;
   update_date?: string;
@@ -122,14 +122,49 @@ class TaskService {
       if (result.status || result.success) {
         // API returns nested data structure: result.data.data
         const dataArray = Array.isArray(result.data?.data) ? result.data.data : [];
+        const pagination = result.data?.pagination || {};
+        
+        // Transform API response to match TaskItem interface
+        const transformedData: TaskItem[] = dataArray.map((item: any) => ({
+          id: item.id,
+          code: item.code,
+          task_title: item.task_title,
+          category_id: item.category_id,
+          category_name: item.category?.name || null,
+          priority: item.priority,
+          assign_to: item.assign_to || [],
+          assigned_entities: item.assigned_suppliers?.map((supplier: any) => ({
+            id: supplier.sup_id,
+            name: supplier.supplier_name || supplier.supplier_email || "Unknown",
+            type: "supplier" as const,
+            email: supplier.supplier_email,
+            phone_number: supplier.supplier_phone_number,
+          })) || [],
+          due_date: item.due_date,
+          description: item.description,
+          related_product: item.product?.product_name || item.product?.id || item.product,
+          estimated_hour: item.estimated_hour,
+          tags: item.tags,
+          attachments: item.attachments,
+          progress: item.progress,
+          status: item.status,
+          created_by: item.created_by,
+          updated_by: item.updated_by,
+          update_date: item.update_date,
+          created_date: item.created_date,
+          bom_id: item.bom_pcf_id,
+          created_by_name: item.created_by_user?.user_name || item.created_by,
+          updated_by_name: item.updated_by_user?.user_name || item.updated_by,
+          pcf_id: item.bom_pcf_request?.id || item.bom_pcf_id,
+        }));
         
         return {
           success: true,
           message: result.message || "Task list fetched successfully",
-          data: dataArray as TaskItem[],
-          current_page: result.data?.current_page || 1,
-          total_pages: result.data?.total_pages || 1,
-          total_count: result.data?.total_count || dataArray.length,
+          data: transformedData,
+          current_page: pagination.page || result.data?.current_page || 1,
+          total_pages: pagination.totalPages || result.data?.total_pages || 1,
+          total_count: pagination.total || result.data?.total_count || dataArray.length,
         };
       } else {
         return {
@@ -156,9 +191,8 @@ class TaskService {
     assign_to: string[];
     due_date: string;
     description: string;
-    pcf_id?: string;
-    bom_id?: string;
-    related_product?: string;
+    bom_pcf_id?: string;
+    product?: string;
     estimated_hour?: number;
     tags?: string[];
     attachments?: string;
@@ -168,7 +202,7 @@ class TaskService {
     data?: any;
   }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/task-management/add`, {
+      const response = await fetch(`${API_BASE_URL}/api/task-management/create`, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(taskData),
@@ -271,10 +305,49 @@ class TaskService {
       const result: any = await response.json();
 
       if (result.success || result.status) {
+        // Handle array response (API returns data as array)
+        const taskData = Array.isArray(result.data) && result.data.length > 0 
+          ? result.data[0] 
+          : result.data;
+        
+        // Transform API response to match TaskItem interface
+        const transformedData: TaskItem = {
+          id: taskData.id,
+          code: taskData.code,
+          task_title: taskData.task_title,
+          category_id: taskData.category_id,
+          category_name: taskData.category?.name || null,
+          priority: taskData.priority,
+          assign_to: taskData.assign_to || [],
+          assigned_entities: taskData.assigned_suppliers?.map((supplier: any) => ({
+            id: supplier.sup_id,
+            name: supplier.supplier_name || supplier.supplier_email || "Unknown",
+            type: "supplier" as const,
+            email: supplier.supplier_email,
+            phone_number: supplier.supplier_phone_number,
+          })) || [],
+          due_date: taskData.due_date,
+          description: taskData.description,
+          related_product: taskData.product?.product_name || taskData.product?.id || taskData.product,
+          estimated_hour: taskData.estimated_hour,
+          tags: taskData.tags,
+          attachments: taskData.attachments,
+          progress: taskData.progress,
+          status: taskData.status,
+          created_by: taskData.created_by,
+          updated_by: taskData.updated_by,
+          update_date: taskData.update_date,
+          created_date: taskData.created_date,
+          bom_id: taskData.bom_pcf_id,
+          created_by_name: taskData.created_by_user?.user_name || taskData.created_by,
+          updated_by_name: taskData.updated_by_user?.user_name || taskData.updated_by,
+          pcf_id: taskData.bom_pcf_request?.id || taskData.bom_pcf_id,
+        };
+        
         return {
           success: true,
           message: result.message || "Task fetched successfully",
-          data: result.data as TaskItem,
+          data: transformedData,
         };
       } else {
         return {
@@ -304,7 +377,7 @@ class TaskService {
         {
           method: "POST",
           headers: this.getHeaders(),
-          body: JSON.stringify({ id: taskId }),
+          body: JSON.stringify({ task_id: taskId }),
         }
       );
 
@@ -337,15 +410,11 @@ class TaskService {
     success: boolean;
     message: string;
     data?: Array<{
-      pcf_id: string;
-      pcf_code: string;
+      id: string;
+      code: string;
       request_title: string | null;
       priority: string | null;
       request_organization: string | null;
-      bom_id: string;
-      bom_code: string;
-      component_name: string;
-      material_number: string;
     }>;
   }> {
     try {
@@ -383,20 +452,75 @@ class TaskService {
   /**
    * Get BOM supplier list dropdown
    */
-  async getBOMSupplierDropdown(bomId: string): Promise<{
+  async getBOMSupplierDropdown(bomPcfId: string): Promise<{
     success: boolean;
     message: string;
     data?: Array<{
-      id: string;
-      name: string;
-      type: "user" | "supplier";
-      email?: string | null;
-      phone_number?: string | null;
+      sup_id: string;
+      supplier_code: string;
+      supplier_name: string | null;
+      supplier_email: string | null;
+      supplier_phone_number: string | null;
     }>;
   }> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/task-management/get-bom-suppier-list-dropdown?bom_id=${bomId}`,
+        `${API_BASE_URL}/api/task-management/get-bom-suppier-list-dropdown?bom_pcf_id=${bomPcfId}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: any = await response.json();
+
+      if (result.success || result.status) {
+        // Transform API response to match expected format
+        const transformedData = Array.isArray(result.data) 
+          ? result.data.map((item: any) => ({
+              id: item.sup_id || item.supplier_id,
+              name: item.supplier_name || item.supplier_email || "Unknown",
+              type: "supplier" as const,
+              email: item.supplier_email,
+              phone_number: item.supplier_phone_number,
+            }))
+          : [];
+        
+        return {
+          success: true,
+          message: result.message || "BOM supplier dropdown fetched successfully",
+          data: transformedData,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch BOM supplier dropdown",
+        };
+      }
+    } catch (error) {
+      console.error("Get BOM supplier dropdown error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Get product dropdown list
+   */
+  async getProductDropdown(): Promise<{
+    success: boolean;
+    message: string;
+    data?: Array<{
+      id: string;
+      product_code: string;
+      product_name: string;
+    }>;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/product/drop-down`,
         {
           method: "GET",
           headers: this.getHeaders(),
@@ -408,17 +532,69 @@ class TaskService {
       if (result.success || result.status) {
         return {
           success: true,
-          message: result.message || "BOM supplier dropdown fetched successfully",
+          message: result.message || "Product dropdown fetched successfully",
           data: Array.isArray(result.data) ? result.data : [],
         };
       } else {
         return {
           success: false,
-          message: result.message || "Failed to fetch BOM supplier dropdown",
+          message: result.message || "Failed to fetch product dropdown",
         };
       }
     } catch (error) {
-      console.error("Get BOM supplier dropdown error:", error);
+      console.error("Get product dropdown error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Get category dropdown list
+   */
+  async getCategoryDropdown(): Promise<{
+    success: boolean;
+    message: string;
+    data?: Array<{
+      id: string;
+      code: string;
+      name: string;
+      description?: string;
+    }>;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/data-setup/category/list`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: any = await response.json();
+
+      if (result.success || result.status) {
+        // Handle different response structures
+        const categoryList = Array.isArray(result.data) 
+          ? result.data 
+          : Array.isArray(result.data?.list) 
+            ? result.data.list 
+            : [];
+        
+        return {
+          success: true,
+          message: result.message || "Category dropdown fetched successfully",
+          data: categoryList,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch category dropdown",
+        };
+      }
+    } catch (error) {
+      console.error("Get category dropdown error:", error);
       return {
         success: false,
         message: "Network error occurred",
@@ -462,6 +638,89 @@ class TaskService {
       }
     } catch (error) {
       console.error("Get users list error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Get tasks by bom_pcf_id
+   */
+  async getTasksByBomPcfId(bomPcfId: string): Promise<{
+    success: boolean;
+    message: string;
+    data?: TaskItem[];
+  }> {
+    try {
+      // Fetch tasks with a large page size to get all tasks, then filter client-side
+      const response = await fetch(
+        `${API_BASE_URL}/api/task-management/list?pageNumber=1&pageSize=1000`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: any = await response.json();
+
+      if (result.success || result.status) {
+        const dataArray = Array.isArray(result.data?.data) ? result.data.data : [];
+        
+        // Filter tasks by bom_pcf_id
+        const filteredTasks = dataArray.filter((item: any) => 
+          item.bom_pcf_id === bomPcfId || 
+          item.bom_pcf_request?.id === bomPcfId
+        );
+        
+        // Transform API response to match TaskItem interface
+        const transformedData: TaskItem[] = filteredTasks.map((item: any) => ({
+          id: item.id,
+          code: item.code,
+          task_title: item.task_title,
+          category_id: item.category_id,
+          category_name: item.category?.name || null,
+          priority: item.priority,
+          assign_to: item.assign_to || [],
+          assigned_entities: item.assigned_suppliers?.map((supplier: any) => ({
+            id: supplier.sup_id,
+            name: supplier.supplier_name || supplier.supplier_email || "Unknown",
+            type: "supplier" as const,
+            email: supplier.supplier_email,
+            phone_number: supplier.supplier_phone_number,
+          })) || [],
+          due_date: item.due_date,
+          description: item.description,
+          related_product: item.product?.product_name || item.product?.id || item.product,
+          estimated_hour: item.estimated_hour,
+          tags: item.tags,
+          attachments: item.attachments,
+          progress: item.progress,
+          status: item.status,
+          created_by: item.created_by,
+          updated_by: item.updated_by,
+          update_date: item.update_date,
+          created_date: item.created_date,
+          bom_id: item.bom_pcf_id,
+          created_by_name: item.created_by_user?.user_name || item.created_by,
+          updated_by_name: item.updated_by_user?.user_name || item.updated_by,
+          pcf_id: item.bom_pcf_request?.id || item.bom_pcf_id,
+        }));
+        
+        return {
+          success: true,
+          message: result.message || "Tasks fetched successfully",
+          data: transformedData,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch tasks",
+        };
+      }
+    } catch (error) {
+      console.error("Get tasks by bom_pcf_id error:", error);
       return {
         success: false,
         message: "Network error occurred",
