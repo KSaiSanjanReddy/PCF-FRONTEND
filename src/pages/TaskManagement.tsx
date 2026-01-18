@@ -141,7 +141,7 @@ const TaskManagement: React.FC = () => {
 
   // Calculate status counts from current data
   const statusCounts = {
-    toDo: tasks.filter((item) => item.status === "To Do" || item.status === "Created").length,
+    toDo: tasks.filter((item) => item.status === "To Do").length,
     underReview: tasks.filter((item) => item.status === "Under Review").length,
     inProgress: tasks.filter((item) => item.status === "In Progress").length,
     completed: tasks.filter((item) => item.status === "Completed").length,

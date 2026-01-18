@@ -122,7 +122,8 @@ class TaskService {
       if (result.status || result.success) {
         // API returns nested data structure: result.data.data
         const dataArray = Array.isArray(result.data?.data) ? result.data.data : [];
-        const pagination = result.data?.pagination || {};
+        // Pagination might be at result.data level or result level
+        const pagination = (result.data as any)?.pagination || {};
         
         // Transform API response to match TaskItem interface
         const transformedData: TaskItem[] = dataArray.map((item: any) => ({

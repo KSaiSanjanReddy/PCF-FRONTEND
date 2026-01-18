@@ -107,8 +107,14 @@ const TaskCreate: React.FC = () => {
           // Load BOM suppliers for pre-selected PCF
           const bomSuppliersResult = await taskService.getBOMSupplierDropdown(bomPcfId);
           if (bomSuppliersResult.success && bomSuppliersResult.data) {
-            setBomSuppliers(bomSuppliersResult.data);
-            const supplierIds = bomSuppliersResult.data.map((supplier) => supplier.id);
+            // Transform API response to match expected format
+            const transformedSuppliers = bomSuppliersResult.data.map((supplier: any) => ({
+              id: supplier.sup_id,
+              name: supplier.supplier_name || supplier.supplier_code || '',
+              type: 'supplier' as const
+            }));
+            setBomSuppliers(transformedSuppliers);
+            const supplierIds = transformedSuppliers.map((supplier) => supplier.id);
             form.setFieldsValue({ assign_to: supplierIds });
           }
         }
@@ -185,10 +191,16 @@ const TaskCreate: React.FC = () => {
       try {
         const result = await taskService.getBOMSupplierDropdown(value);
         if (result.success && result.data) {
-          setBomSuppliers(result.data);
+          // Transform API response to match expected format
+          const transformedSuppliers = result.data.map((supplier: any) => ({
+            id: supplier.sup_id,
+            name: supplier.supplier_name || supplier.supplier_code || '',
+            type: 'supplier' as const
+          }));
+          setBomSuppliers(transformedSuppliers);
           
           // Automatically select all suppliers in the "Assign To" field
-          const supplierIds = result.data.map((supplier) => supplier.id);
+          const supplierIds = transformedSuppliers.map((supplier) => supplier.id);
           const currentAssignTo = form.getFieldValue("assign_to") || [];
           
           // Combine existing assignees with new suppliers (avoid duplicates)

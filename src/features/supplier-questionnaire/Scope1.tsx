@@ -16,14 +16,14 @@ const Scope1: React.FC<Scope1Props> = ({ data, updateData }) => {
   const handleStationaryChange = (index: number, field: string, value: any) => {
     const newStationary = [...(data.stationary_combustion || [])];
     if (!newStationary[index]) {
-        newStationary[index] = { fuel_type: "", sub_fuel_type: "", quantity: 0, unit: "" };
+        newStationary[index] = { fuel_type: "" };
     }
     (newStationary[index] as any)[field] = value;
     updateData({ ...data, stationary_combustion: newStationary });
   };
 
   const addStationaryRow = () => {
-    const newStationary = [...(data.stationary_combustion || []), { fuel_type: "", sub_fuel_type: "", quantity: 0, unit: "" }];
+    const newStationary = [...(data.stationary_combustion || []), { fuel_type: "" }];
     updateData({ ...data, stationary_combustion: newStationary });
   };
 
@@ -37,14 +37,14 @@ const Scope1: React.FC<Scope1Props> = ({ data, updateData }) => {
   const handleMobileChange = (index: number, field: string, value: any) => {
     const newMobile = [...(data.mobile_combustion || [])];
     if (!newMobile[index]) {
-        newMobile[index] = { fuel_type: "", quantity: 0 };
+        newMobile[index] = { fuel_type: "", quantity: 0, unit: "" };
     }
     (newMobile[index] as any)[field] = value;
     updateData({ ...data, mobile_combustion: newMobile });
   };
 
   const addMobileRow = () => {
-    const newMobile = [...(data.mobile_combustion || []), { fuel_type: "", quantity: 0 }];
+    const newMobile = [...(data.mobile_combustion || []), { fuel_type: "", quantity: 0, unit: "" }];
     updateData({ ...data, mobile_combustion: newMobile });
   };
 
@@ -139,8 +139,15 @@ const Scope1: React.FC<Scope1Props> = ({ data, updateData }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
-                      value={row.sub_fuel_type}
-                      onChange={(e) => handleStationaryChange(index, "sub_fuel_type", e.target.value)}
+                      value={row.sub_fuel_type?.[0]?.sub_fuel_type || ""}
+                      onChange={(e) => {
+                        const subFuelArray = e.target.value ? [{
+                          sub_fuel_type: e.target.value,
+                          consumption_quantity: row.sub_fuel_type?.[0]?.consumption_quantity || 0,
+                          unit: row.sub_fuel_type?.[0]?.unit || ""
+                        }] : undefined;
+                        handleStationaryChange(index, "sub_fuel_type", subFuelArray);
+                      }}
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                       disabled={!row.fuel_type}
                     >
@@ -153,15 +160,31 @@ const Scope1: React.FC<Scope1Props> = ({ data, updateData }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
                       type="number"
-                      value={row.quantity}
-                      onChange={(e) => handleStationaryChange(index, "quantity", parseFloat(e.target.value))}
+                      value={row.sub_fuel_type?.[0]?.consumption_quantity || 0}
+                      onChange={(e) => {
+                        const currentSubFuel = row.sub_fuel_type?.[0];
+                        if (currentSubFuel) {
+                          handleStationaryChange(index, "sub_fuel_type", [{
+                            ...currentSubFuel,
+                            consumption_quantity: parseFloat(e.target.value) || 0
+                          }]);
+                        }
+                      }}
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
-                      value={row.unit}
-                      onChange={(e) => handleStationaryChange(index, "unit", e.target.value)}
+                      value={row.sub_fuel_type?.[0]?.unit || ""}
+                      onChange={(e) => {
+                        const currentSubFuel = row.sub_fuel_type?.[0];
+                        if (currentSubFuel) {
+                          handleStationaryChange(index, "sub_fuel_type", [{
+                            ...currentSubFuel,
+                            unit: e.target.value
+                          }]);
+                        }
+                      }}
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     >
                         <option value="">Select Unit</option>
@@ -224,13 +247,24 @@ const Scope1: React.FC<Scope1Props> = ({ data, updateData }) => {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="number"
-                      value={row.quantity}
-                      onChange={(e) => handleMobileChange(index, "quantity", parseFloat(e.target.value))}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      placeholder="Quantity"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={row.quantity}
+                        onChange={(e) => handleMobileChange(index, "quantity", parseFloat(e.target.value))}
+                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Quantity"
+                      />
+                      <select
+                        value={row.unit}
+                        onChange={(e) => handleMobileChange(index, "unit", e.target.value)}
+                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-24 sm:text-sm border-gray-300 rounded-md"
+                      >
+                        <option value="">Unit</option>
+                        <option value="Litres">Litres</option>
+                        <option value="m3">m3</option>
+                      </select>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
