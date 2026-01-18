@@ -16,14 +16,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => 
   const handleSiteChange = (index: number, field: string, value: any) => {
     const newSites = [...(data.production_site_details || [])];
     if (!newSites[index]) {
-        newSites[index] = { component_name: "", location: "" };
+        newSites[index] = { product_name: "", location: "" };
     }
     (newSites[index] as any)[field] = value;
     updateData({ ...data, production_site_details: newSites });
   };
 
   const addSiteRow = () => {
-    const newSites = [...(data.production_site_details || []), { component_name: "", location: "" }];
+    const newSites = [...(data.production_site_details || []), { product_name: "", location: "" }];
     updateData({ ...data, production_site_details: newSites });
   };
 
@@ -149,8 +149,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => 
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
                       type="text"
-                      value={site.component_name}
-                      onChange={(e) => handleSiteChange(index, "component_name", e.target.value)}
+                      value={site.product_name}
+                      onChange={(e) => handleSiteChange(index, "product_name", e.target.value)}
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
                   </td>
