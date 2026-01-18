@@ -5,6 +5,7 @@ export type FieldType =
   | 'number' 
   | 'select' 
   | 'checkbox' 
+  | 'radio'
   | 'textarea' 
   | 'date' 
   | 'file' 
@@ -176,7 +177,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'organization_details.availability_of_emissions_data',
         label: '8. Do you have Site or Organizational level Scope 1, 2, and 3 emissions data available?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
@@ -187,7 +189,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         dependency: {
           field: 'organization_details.availability_of_emissions_data',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -225,7 +227,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'product_details.existing_pcf_report',
         label: '10. Do you already have a Product Carbon Footprint (PCF) report for requested product(s) within 12 months?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
@@ -236,7 +239,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         dependency: {
           field: 'product_details.existing_pcf_report',
-          value: true
+          value: 'Yes'
         }
       },
       {
@@ -246,14 +249,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         dependency: {
           field: 'product_details.existing_pcf_report',
-          value: true
+          value: 'Yes'
         }
       },
       {
         name: 'product_details.production_site_details',
         label: '13. Please Specify the Production Site Where the Product is manufactured/ assembled?',
         type: 'table',
-        addButtonLabel: 'Add Site',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -287,7 +290,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'product_details.products_manufactured',
         label: '15. Please list all the products/components you manufacture and provide the corresponding details for each.',
         type: 'table',
-        addButtonLabel: 'Add product or component',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -339,18 +342,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'product_details.any_co_product_have_economic_value',
         label: '15.1 Any Co-products generated which have economic value?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'product_details.co_products',
         label: '15.2 specify type of Co-products details?',
         type: 'table',
-        addButtonLabel: 'Add Co-product',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'product_details.any_co_product_have_economic_value',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -395,7 +399,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_1.stationary_combustion',
         label: '16. What type and quantity of fuel does your company use for energy generation (e.g., boilers, furnaces, Generators, any on-site operations)?',
         type: 'table',
-        addButtonLabel: 'add button for more selection options',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -432,7 +436,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_1.mobile_combustion',
         label: '17. What type and quantity of fuel is consumed annually by company-owned vehicles (e.g., fleet, delivery trucks) in litres?',
         type: 'table',
-        addButtonLabel: 'add button for more selection options',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -460,18 +464,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_1.fugitive_emissions.refrigerant_top_ups',
         label: '18. Have you performed refrigerant top-ups for air conditioning, refrigeration, or fire suppression systems?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_1.fugitive_emissions.refrigerants',
         label: '19. What types and quantities of refrigerants (e.g., HFCs) have been used?',
         type: 'table',
-        addButtonLabel: 'add button for more selection options',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_1.fugitive_emissions.refrigerant_top_ups',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -497,18 +502,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_1.process_emissions.present',
         label: '20. Are there emissions from industrial processes (e.g., chemical reactions, material processing)?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_1.process_emissions.sources',
         label: '21. What are the sources and types of gases emitted (e.g., CO₂, CH₄, N₂O)?',
         type: 'table',
-        addButtonLabel: 'add button for more selection option',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_1.process_emissions.present',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -548,7 +554,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.purchased_energy',
         label: '22. Please enter the details of Energy purchased or acquired below and select the respective correct energy unit.',
         type: 'table',
-        addButtonLabel: 'add button for more selection options for same Energy source with different Energy_type selection',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -582,18 +588,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.standardized_re_certificates',
         label: '23. Do you acquire any standardized certificate related to RE?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.certificates',
         label: '24. Provide the details of standardized Certificate below:',
         type: 'table',
-        addButtonLabel: 'add button for more',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_2.standardized_re_certificates',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -656,7 +663,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.manufacturing_process_specific_energy.allocation_methodology',
         label: '25. Do you have any device or methodology to calculate from factory level to product level energy?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
@@ -667,14 +675,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         dependency: {
           field: 'scope_2.manufacturing_process_specific_energy.allocation_methodology',
-          value: true
+          value: 'Yes'
         }
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.energy_intensity',
         label: '27. Please write the energy intensity of production estimated kWh or MJ per unit of product (if available)?',
         type: 'table',
-        addButtonLabel: 'Add Product',
+        addButtonLabel: 'Add Row',
         columns: [
           {
             name: 'mpn',
@@ -707,7 +715,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.manufacturing_process_specific_energy.process_energy_usage',
         label: '28. Please write the Process-specific energy usage (if available)?',
         type: 'table',
-        addButtonLabel: 'Add Process',
+        addButtonLabel: 'Add Row',
         columns: [
           {
             name: 'process_type',
@@ -734,18 +742,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
         label: '29. Do you use any abatement systems (VOC treatment, heat recovery)?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.manufacturing_process_specific_energy.abatement_energy_consumption',
         label: '30. Provide abatement source energy consumption if applicable?',
         type: 'table',
-        addButtonLabel: 'Add System',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_2.manufacturing_process_specific_energy.abatement_systems',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -785,7 +794,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.equipment',
         label: '32. What types of quality control/testing equipment do you use?',
         type: 'table',
-        addButtonLabel: 'Add Equipment',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -818,7 +827,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.electricity_consumption',
         label: '33. How much electricity is consumed for quality control activities?',
         type: 'table',
-        addButtonLabel: 'Add Consumption',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -853,7 +862,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.compressed_air',
         label: '34. Do your quality control processes use compressed air, nitrogen, or other utilities?',
         type: 'table',
-        addButtonLabel: 'Add Utility',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -888,7 +897,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.consumables',
         label: '35. Do quality control activities use any consumables?',
         type: 'table',
-        addButtonLabel: 'Add Consumable',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -921,18 +930,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.quality_control.destructive_testing',
         label: '36. Do you perform destructive testing?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.quality_control.destructive_testing_details',
         label: '37. Please write the weight of samples destroyed?',
         type: 'table',
-        addButtonLabel: 'Add Sample',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_2.quality_control.destructive_testing',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -972,7 +982,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.defect_rate',
         label: '38. What is the defect or rejection rate identified by quality control inspections?',
         type: 'table',
-        addButtonLabel: 'Add Rate',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -999,7 +1009,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.rework_rate',
         label: '39. What is the rework rate due to quality control findings?',
         type: 'table',
-        addButtonLabel: 'Add Rate',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1032,7 +1042,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.quality_control.waste',
         label: '40. What are the types and weight of Quality control waste generated and treated?',
         type: 'table',
-        addButtonLabel: 'Add Waste',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1079,28 +1089,30 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
         label: '42. What is the total energy consumption of IT hardware or on-site servers or data centres related to production?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.it_for_production.hardware_energy_included',
         label: '43. Is this Energy consumption included in the total energy purchased section-2?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
         dependency: {
             field: 'scope_2.it_for_production.hardware_energy_consumption_tracked',
-            value: true
+            value: 'Yes'
         }
       },
       {
         name: 'scope_2.it_for_production.hardware_energy_consumption',
         label: '44. Please write the energy consumption?',
         type: 'table',
-        addButtonLabel: 'Add Consumption',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
             field: 'scope_2.it_for_production.hardware_energy_included',
-            value: false // "If NO in Q43"
+            value: 'No' // "If NO in Q43"
         },
         columns: [
             {
@@ -1135,18 +1147,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.it_for_production.cloud_systems',
         label: '45. Do you use cloud-based systems for production or Quality control?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.it_for_production.cloud_usage',
         label: '46. Please write the Cloud provider name and approximate monthly compute usage?',
         type: 'table',
-        addButtonLabel: 'Add Provider',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
             field: 'scope_2.it_for_production.cloud_systems',
-            value: true
+            value: 'Yes'
         },
         columns: [
             {
@@ -1179,7 +1192,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.it_for_production.sensors',
         label: '47. Are any dedicated monitoring sensors used for energy, temperature, pressure, or vibration?',
         type: 'table',
-        addButtonLabel: 'Add Sensor',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
             {
@@ -1213,7 +1226,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_2.it_for_production.sensor_replacement',
         label: '48. What is the annual replacement rate for sensors or IT consumables?',
         type: 'table',
-        addButtonLabel: 'Add Item',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
             {
@@ -1239,28 +1252,30 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_2.it_for_production.cooling_systems',
         label: '49. Do you use any cooling systems for server rooms?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_2.it_for_production.cooling_energy_included',
         label: '50. Is this Energy consumption included in the total energy purchased section-2?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
         dependency: {
             field: 'scope_2.it_for_production.cooling_systems',
-            value: true
+            value: 'Yes'
         }
       },
       {
         name: 'scope_2.it_for_production.cooling_energy_consumption',
         label: '51. Please write the energy consumption?',
         type: 'table',
-        addButtonLabel: 'Add Consumption',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
             field: 'scope_2.it_for_production.cooling_energy_included',
-            value: false // "If NO in 50"
+            value: 'No' // "If NO in 50"
         },
         columns: [
             {
@@ -1302,7 +1317,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.materials.raw_materials',
         label: '52. Please select or write all the raw materials used in your component manufacturing? If you don\'t know the detailed compositions please select Enviguide support to connect',
         type: 'table',
-        addButtonLabel: 'Add Material',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1342,18 +1357,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.materials.recycled_materials_used',
         label: '55. Does your company have Consumption of recycled material content / secondary materials used in your products?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.materials.recycled_materials_details',
         label: '56. Please write the recycled materials with percentage of recycled material content?',
         type: 'table',
-        addButtonLabel: 'Add Material',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.materials.recycled_materials_used',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -1380,18 +1396,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.materials.estimate_pre_post_consumer',
         label: '57. Does your company know (or can give a rough estimate) of the percentage of pre-consumer, post-consumer and reutilization materials used in your products?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.materials.material_type_percentages',
         label: '58. Please write the percentage of pre-consumer, post-consumer and reutilization materials used in your products?',
         type: 'table',
-        addButtonLabel: 'Add Type',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.materials.estimate_pre_post_consumer',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -1413,7 +1430,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.materials.pir_pcr_materials',
         label: '59. Please specify the post-industrial recycling (PIR) materials and post-consumer recycling (PCR) materials with percentage (%)?',
         type: 'table',
-        addButtonLabel: 'Add Material',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1435,7 +1452,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.packaging.materials_used',
         label: '60. What type of packaging materials are used for delivering the product?',
         type: 'table',
-        addButtonLabel: 'Add Packaging',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1474,7 +1491,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.packaging.weight_per_unit',
         label: '61. Approximate weight of packaging per unit product?',
         type: 'table',
-        addButtonLabel: 'Add Weight',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1507,7 +1524,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.packaging.size',
         label: '62. What is the size of packing?',
         type: 'table',
-        addButtonLabel: 'Add Size',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1539,7 +1556,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.packaging.recycled_content_used',
         label: '63. Do you use recycled material for packaging?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
@@ -1549,34 +1567,36 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         dependency: {
           field: 'scope_3.packaging.recycled_content_used',
-          value: true
+          value: 'Yes'
         }
       },
       {
         name: 'scope_3.packaging.electricity_used',
         label: '65. Do you use Electricity for packaging?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.packaging.energy_included',
         label: '66. Is this Energy consumption included in the total energy purchased section-2?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
         dependency: {
           field: 'scope_3.packaging.electricity_used',
-          value: true
+          value: 'Yes'
         }
       },
       {
         name: 'scope_3.packaging.energy_consumption',
         label: '67. Please write the energy consumption?',
         type: 'table',
-        addButtonLabel: 'Add Consumption',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.packaging.energy_included',
-          value: false
+          value: 'No'
         },
         columns: [
           {
@@ -1612,7 +1632,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.waste_disposal.types_and_weight',
         label: '68. What are the types and weight of production and Packaging waste generated?',
         type: 'table',
-        addButtonLabel: 'Add Waste',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1653,18 +1673,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.waste_disposal.by_products_generated',
         label: '70. Any by-products generated?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.waste_disposal.by_product_details',
         label: '71. specify type of byproduct?',
         type: 'table',
-        addButtonLabel: 'Add By-product',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.waste_disposal.by_products_generated',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -1702,18 +1723,19 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.logistics.emissions_tracked',
         label: '72. Do you track emissions from transporting raw materials to your facilities?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.logistics.estimated_emissions',
         label: '73. provide estimated CO₂ emissions for your raw materials?',
         type: 'table',
-        addButtonLabel: 'Add Emission',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.logistics.emissions_tracked',
-          value: true
+          value: 'Yes'
         },
         columns: [
           {
@@ -1758,11 +1780,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.logistics.transport_modes',
         label: '74. What is(are) the Mode(s) of transport used for transportation of components/products? Select all the multimode transports?',
         type: 'table',
-        addButtonLabel: 'Add Mode',
+        addButtonLabel: 'Add Row',
         required: true,
         dependency: {
           field: 'scope_3.logistics.emissions_tracked',
-          value: false
+          value: 'No'
         },
         columns: [
           {
@@ -1802,7 +1824,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: 'scope_3.logistics.destination_plant',
         label: '75. Which destination plant are the components transported to?',
         type: 'table',
-        addButtonLabel: 'Add Plant',
+        addButtonLabel: 'Add Row',
         required: true,
         columns: [
           {
@@ -1834,19 +1856,22 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: 'scope_3.certifications.iso_certified',
         label: '76. Are you certified to ISO 14001 (Environmental Management) or ISO 50001 (Energy Management)?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.certifications.standards_followed',
         label: '77. Do you follow ISO 14067, GHG Protocol, Catena-X PCF Guideline, or other recognized standards?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {
         name: 'scope_3.certifications.reporting_frameworks',
         label: '78. Do you report to CDP (Carbon Disclosure Project), SBTi (Science-Based Targets initiative), or other ESG frameworks?',
-        type: 'checkbox',
+        type: 'radio',
+        options: ['Yes', 'No'],
         required: true,
       },
       {

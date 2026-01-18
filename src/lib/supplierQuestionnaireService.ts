@@ -46,13 +46,17 @@ export interface SupplierQuestionnaireData {
     pcf_methodology?: string[];
     pcf_report_file?: string[];
     production_site_details: {
+      bom_id?: string;
       mpn?: string;
-      product_name: string; // Added
+      material_number?: string;
+      product_name: string;
       location: string;
     }[];
     required_environmental_impact_methods: string[];
     products_manufactured: {
+      bom_id?: string;
       mpn?: string;
+      material_number?: string;
       product_name: string;
       production_period: string;
       weight_per_unit: number;
@@ -60,8 +64,10 @@ export interface SupplierQuestionnaireData {
       price: number;
       quantity: number;
     }[];
-    any_co_product_have_economic_value?: boolean; // Added
-    co_products?: { // Added
+    any_co_product_have_economic_value?: boolean;
+    co_products?: {
+        bom_id?: string;
+        material_number?: string;
         product_name: string;
         co_product_name: string;
         weight: number;
@@ -124,6 +130,8 @@ export interface SupplierQuestionnaireData {
       methodology_document?: string[];
       energy_intensity_estimated: boolean; // Added
       energy_intensity: {
+        bom_id?: string;
+        material_number?: string;
         product_name: string;
         intensity: number;
         unit: string;
@@ -176,18 +184,24 @@ export interface SupplierQuestionnaireData {
       }[];
       destructive_testing: boolean;
       samples_destroyed?: {
-        component_name: string; // Added
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
         weight: number;
         unit: string;
-        period: string; // Added
+        period: string;
       }[];
       defect_rate: {
-        component_name: string; // Changed from product
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
         rate: number;
       }[];
       rework_rate: {
-        component_name: string; // Changed from product
-        processes_involved: string; // Added
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
+        processes_involved: string;
         rate: number;
       }[];
       waste_generated: {
@@ -238,14 +252,18 @@ export interface SupplierQuestionnaireData {
   scope_3: {
     materials: {
       raw_materials: {
+        bom_id?: string;
+        material_number?: string;
         material: string;
         composition_percent: number;
       }[];
-      raw_materials_contact_support: boolean; // Added
+      raw_materials_contact_support: boolean;
       metal_grade: string;
       msds: string[];
       recycled_materials_used: boolean;
       recycled_materials?: {
+        bom_id?: string;
+        material_number?: string;
         material: string;
         recycled_percent: number;
       }[];
@@ -261,13 +279,17 @@ export interface SupplierQuestionnaireData {
     };
     packaging: {
       materials: {
-        component_name: string; // Added
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
         type: string;
-        size: number; // Changed to number
-        unit: string; // Added
+        size: number;
+        unit: string;
       }[];
       weight_per_unit: {
-        component_name: string; // Added
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
         weight: number;
         unit: string;
       }[];
@@ -292,7 +314,9 @@ export interface SupplierQuestionnaireData {
       recycled_percent: string; // Changed
       by_products_generated: boolean;
       by_products?: {
-        component_name: string; // Added
+        bom_id?: string;
+        material_number?: string;
+        component_name: string;
         name: string;
         price: number;
         quantity: number;
@@ -302,11 +326,14 @@ export interface SupplierQuestionnaireData {
       emissions_tracked: boolean;
       emissions_data?: {
         material: string;
-        // weight: number; // Removed
         mode: string;
         source: string;
+        source_lat?: string;
+        source_long?: string;
         destination: string;
-        co2e: string; // Changed to string
+        destination_lat?: string;
+        destination_long?: string;
+        co2e: string;
       }[];
       transport_modes?: {
         mode: string;
@@ -687,12 +714,16 @@ class SupplierQuestionnaireService {
               pcf_methodology_used: data.product_details.pcf_methodology || [],
               upload_pcf_report: data.product_details.pcf_report_file || [],
               production_site_details_questions: (data.product_details.production_site_details || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   location: item.location
               })),
               required_environmental_impact_methods: data.product_details.required_environmental_impact_methods || [],
               product_component_manufactured_questions: (data.product_details.products_manufactured || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   production_period: item.production_period,
@@ -703,6 +734,8 @@ class SupplierQuestionnaireService {
               })),
               any_co_product_have_economic_value: data.product_details.any_co_product_have_economic_value || false,
               co_product_component_economic_value_questions: (data.product_details.co_products || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   product_name: item.product_name,
                   co_product_name: item.co_product_name,
                   weight: item.weight,
@@ -760,6 +793,8 @@ class SupplierQuestionnaireService {
               methodology_details_document_url: data.scope_2.manufacturing_process_specific_energy.methodology_document || [],
               energy_intensity_of_production_estimated_kwhor_mj: data.scope_2.manufacturing_process_specific_energy.energy_intensity_estimated,
               energy_intensity_of_production_estimated_kwhor_mj_questions: (data.scope_2.manufacturing_process_specific_energy.energy_intensity || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   product_name: item.product_name,
                   energy_intensity: item.intensity,
                   unit: item.unit
@@ -810,16 +845,22 @@ class SupplierQuestionnaireService {
               })),
               do_you_perform_destructive_testing: data.scope_2.quality_control.destructive_testing,
               weight_of_samples_destroyed_questions: (data.scope_2.quality_control.samples_destroyed || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   weight: item.weight,
                   unit: item.unit,
                   period: item.period
               })),
               defect_or_rejection_rate_identified_by_quality_control_questions: (data.scope_2.quality_control.defect_rate || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   percentage: item.rate
               })),
               rework_rate_due_to_quality_control_questions: (data.scope_2.quality_control.rework_rate || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   processes_involved: item.processes_involved,
                   percentage: item.rate
@@ -868,6 +909,8 @@ class SupplierQuestionnaireService {
           },
           scope_three_other_indirect_emissions_questions: {
               raw_materials_used_in_component_manufacturing_questions: (data.scope_3.materials.raw_materials || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   material_name: item.material,
                   percentage: item.composition_percent
               })),
@@ -876,6 +919,8 @@ class SupplierQuestionnaireService {
               msds_link_or_upload_document: data.scope_3.materials.msds,
               use_of_recycled_secondary_materials: data.scope_3.materials.recycled_materials_used,
               recycled_materials_with_percentage_questions: (data.scope_3.materials.recycled_materials || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   material_name: item.material,
                   percentage: item.recycled_percent
               })),
@@ -889,12 +934,16 @@ class SupplierQuestionnaireService {
                   percentage: item.percentage
               })),
               type_of_pack_mat_used_for_delivering_questions: (data.scope_3.packaging.materials || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   packagin_type: item.type,
                   packaging_size: item.size,
                   unit: item.unit
               })),
               weight_of_packaging_per_unit_product_questions: (data.scope_3.packaging.weight_per_unit || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   packagin_weight: item.weight,
                   unit: item.unit
@@ -918,6 +967,8 @@ class SupplierQuestionnaireService {
               internal_or_external_waste_material_per_recycling: data.scope_3.waste_disposal.recycled_percent,
               any_by_product_generated: data.scope_3.waste_disposal.by_products_generated,
               type_of_by_product_questions: (data.scope_3.waste_disposal.by_products || []).map(item => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   component_name: item.component_name,
                   by_product: item.name,
                   price_per_product: item.price,
@@ -928,7 +979,11 @@ class SupplierQuestionnaireService {
                   raw_material_name: item.material,
                   transport_mode: item.mode,
                   source_location: item.source,
+                  ...(item.source_lat && { source_lat: item.source_lat }),
+                  ...(item.source_long && { source_long: item.source_long }),
                   destination_location: item.destination,
+                  ...(item.destination_lat && { destination_lat: item.destination_lat }),
+                  ...(item.destination_long && { destination_long: item.destination_long }),
                   co_two_emission: item.co2e
               })),
               mode_of_transport_used_for_transportation: !!data.scope_3.logistics.transport_modes?.length,
@@ -1002,12 +1057,16 @@ class SupplierQuestionnaireService {
               pcf_methodology: prodInfo.pcf_methodology_used,
               pcf_report_file: prodInfo.upload_pcf_report,
               production_site_details: (prodInfo.production_site_details_questions || []).map((item: any) => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   location: item.location
               })),
               required_environmental_impact_methods: prodInfo.required_environmental_impact_methods,
               products_manufactured: (prodInfo.product_component_manufactured_questions || []).map((item: any) => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   production_period: item.production_period,
@@ -1018,6 +1077,8 @@ class SupplierQuestionnaireService {
               })),
               any_co_product_have_economic_value: prodInfo.any_co_product_have_economic_value,
               co_products: (prodInfo.co_product_component_economic_value_questions || []).map((item: any) => ({
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   product_name: item.product_name,
                   co_product_name: item.co_product_name,
                   weight: item.weight,
@@ -1080,6 +1141,8 @@ class SupplierQuestionnaireService {
                   methodology_document: scope2.methodology_details_document_url,
                   energy_intensity_estimated: scope2.energy_intensity_of_production_estimated_kwhor_mj,
                   energy_intensity: (scope2.energy_intensity_of_production_estimated_kwhor_mj_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       product_name: item.product_name,
                       intensity: item.energy_intensity,
                       unit: item.unit
@@ -1132,16 +1195,22 @@ class SupplierQuestionnaireService {
                   })),
                   destructive_testing: scope2.do_you_perform_destructive_testing,
                   samples_destroyed: (scope2.weight_of_samples_destroyed_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       weight: item.weight,
                       unit: item.unit,
                       period: item.period
                   })),
                   defect_rate: (scope2.defect_or_rejection_rate_identified_by_quality_control_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       rate: item.percentage
                   })),
                   rework_rate: (scope2.rework_rate_due_to_quality_control_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       processes_involved: item.processes_involved,
                       rate: item.percentage
@@ -1194,6 +1263,8 @@ class SupplierQuestionnaireService {
           scope_3: {
               materials: {
                   raw_materials: (scope3.raw_materials_used_in_component_manufacturing_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       material: item.material_name,
                       composition_percent: item.percentage
                   })),
@@ -1202,6 +1273,8 @@ class SupplierQuestionnaireService {
                   msds: scope3.msds_link_or_upload_document,
                   recycled_materials_used: scope3.use_of_recycled_secondary_materials,
                   recycled_materials: (scope3.recycled_materials_with_percentage_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       material: item.material_name,
                       recycled_percent: item.percentage
                   })),
@@ -1217,12 +1290,16 @@ class SupplierQuestionnaireService {
               },
               packaging: {
                   materials: (scope3.type_of_pack_mat_used_for_delivering_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       type: item.packagin_type,
                       size: item.packaging_size,
                       unit: item.unit
                   })),
                   weight_per_unit: (scope3.weight_of_packaging_per_unit_product_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       weight: item.packagin_weight,
                       unit: item.unit
@@ -1248,6 +1325,8 @@ class SupplierQuestionnaireService {
                   recycled_percent: scope3.internal_or_external_waste_material_per_recycling,
                   by_products_generated: scope3.any_by_product_generated,
                   by_products: (scope3.type_of_by_product_questions || []).map((item: any) => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       component_name: item.component_name,
                       name: item.by_product,
                       price: item.price_per_product,
@@ -1260,7 +1339,11 @@ class SupplierQuestionnaireService {
                       material: item.raw_material_name,
                       mode: item.transport_mode,
                       source: item.source_location,
+                      ...(item.source_lat && { source_lat: item.source_lat }),
+                      ...(item.source_long && { source_long: item.source_long }),
                       destination: item.destination_location,
+                      ...(item.destination_lat && { destination_lat: item.destination_lat }),
+                      ...(item.destination_long && { destination_long: item.destination_long }),
                       co2e: item.co_two_emission
                   })),
                   transport_modes: (scope3.mode_of_transport_used_for_transportation_questions || []).map((item: any) => ({

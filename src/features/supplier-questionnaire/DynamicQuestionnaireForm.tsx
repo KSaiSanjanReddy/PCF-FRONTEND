@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, Checkbox, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag } from 'antd';
+import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag } from 'antd';
+import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
 import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { QuestionnaireSection, QuestionnaireField } from '../../config/questionnaireSchema';
 
@@ -274,6 +275,65 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           );
         }
         break;
+      case 'radio':
+        inputComponent = (
+          <div className="w-full">
+            <style>{`
+              .yes-no-radio-group .ant-radio-button-wrapper {
+                text-align: center;
+                font-weight: 700;
+                padding: 8px 24px;
+                min-width: 100px;
+                height: 40px;
+                line-height: 24px;
+                border: 1px solid #d1d5db;
+                background-color: #f3f4f6;
+                color: #374151;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                transition: all 0.2s;
+                margin: 0;
+              }
+              .yes-no-radio-group .ant-radio-button-wrapper:not(:first-child)::before {
+                display: none;
+              }
+              .yes-no-radio-group .ant-radio-button-wrapper:hover {
+                background-color: #e5e7eb;
+                border-color: #9ca3af;
+                color: #374151;
+              }
+              .yes-no-radio-group .ant-radio-button-wrapper-checked {
+                background-color: #52c41a !important;
+                border-color: #52c41a !important;
+                color: #ffffff !important;
+                box-shadow: 0 2px 4px 0 rgba(82, 196, 26, 0.2);
+              }
+              .yes-no-radio-group .ant-radio-button-wrapper-checked:hover {
+                background-color: #73d13d !important;
+                border-color: #73d13d !important;
+              }
+            `}</style>
+            <Radio.Group className="yes-no-radio-group">
+              <div className="inline-flex gap-3">
+                {field.options?.map((opt: any) => {
+                  const label = typeof opt === 'string' ? opt : opt.label;
+                  const value = typeof opt === 'string' ? opt : opt.value;
+                  return (
+                    <Radio.Button 
+                      key={value} 
+                      value={value}
+                    >
+                      {label.toUpperCase()}
+                    </Radio.Button>
+                  );
+                })}
+              </div>
+            </Radio.Group>
+          </div>
+        );
+        break;
       case 'file':
         inputComponent = (
           <div>
@@ -394,6 +454,22 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         </div>
         
         <div className="p-4">
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => {
+              // Watch for changes in the stationary_combustion list
+              if (field.name === 'scope_1.stationary_combustion') {
+                const prevList = prevValues?.scope_1?.stationary_combustion || [];
+                const currList = currentValues?.scope_1?.stationary_combustion || [];
+                if (prevList.length !== currList.length) return true;
+                return prevList.some((prevRow: any, index: number) => {
+                  return prevRow?.fuel_type !== currList[index]?.fuel_type;
+                });
+              }
+              return false;
+            }}
+          >
+            {() => (
           <Form.List 
             name={field.name.split('.')}
             rules={field.required ? [
@@ -418,6 +494,10 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               const columns = [
                 ...(field.columns?.map((col, colIndex) => {
                   const isAutoPopulatedCol = isAutoPopulated && colIndex < 2; // First 2 columns typically auto-populated
+                  
+                  // Check if this is the sub_fuel_type column in stationary_combustion table
+                  const isSubFuelType = col.name === 'sub_fuel_type' && field.name === 'scope_1.stationary_combustion';
+                  
                   return {
                     title: (
                       <div className="flex items-center gap-1">
@@ -428,60 +508,142 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                     dataIndex: col.name,
                     key: col.name,
                     width: col.type === 'number' ? 120 : undefined,
-                    render: (_: any, fieldRecord: any) => (
-                      <Form.Item
-                        name={[fieldRecord.name, col.name]}
-                        rules={[
-                          { 
-                            required: col.required, 
-                            message: col.required 
-                              ? `Please fill in "${col.label}" for this row. This field is required.`
-                              : undefined
-                          },
-                          ...(col.type === 'number' && col.min !== undefined ? [{
-                            type: 'number' as const,
-                            min: col.min,
-                            message: `${col.label} must be at least ${col.min}`
-                          }] : []),
-                          ...(col.type === 'number' && col.max !== undefined ? [{
-                            type: 'number' as const,
-                            max: col.max,
-                            message: `${col.label} must not exceed ${col.max}`
-                          }] : [])
-                        ].filter(Boolean)}
-                        className="mb-0"
-                      >
-                        {col.type === 'select' ? (
-                          <Select 
-                            placeholder={col.placeholder} 
-                            style={{ minWidth: 120, width: '100%' }} 
-                            mode={col.mode}
-                            showSearch={col.options && col.options.length > 5}
-                            filterOption={(input, option) =>
-                              (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
-                            }
+                    render: (_: any, fieldRecord: any) => {
+                      // For sub_fuel_type, we need to get fuel_type from the same row
+                      if (isSubFuelType) {
+                        const fieldPath = field.name.split('.');
+                        // Get fuel_type from the form - this will be re-evaluated when Form.Item shouldUpdate triggers
+                        const rowValues = form.getFieldValue([...fieldPath, fieldRecord.name]);
+                        const fuelType = rowValues?.fuel_type;
+                        const subFuelOptions = fuelType && QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES[fuelType as keyof typeof QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES]
+                          ? QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES[fuelType as keyof typeof QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES]
+                          : [];
+                        
+                        return (
+                          <Form.Item
+                            name={[fieldRecord.name, col.name]}
+                            rules={[
+                              { 
+                                required: col.required, 
+                                message: col.required 
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  : undefined
+                              }
+                            ].filter(Boolean)}
+                            className="mb-0"
                           >
-                            {col.options?.map((opt: any) => {
-                              const label = typeof opt === 'string' ? opt : opt.label;
-                              const value = typeof opt === 'string' ? opt : opt.value;
-                              return <Select.Option key={value} value={value}>{label}</Select.Option>;
-                            })}
-                          </Select>
-                        ) : col.type === 'number' ? (
-                          <InputNumber 
-                            placeholder={col.placeholder} 
-                            style={{ width: '100%' }}
-                            min={col.min}
-                            max={col.max}
-                          />
-                        ) : (
-                          <Input 
-                            placeholder={col.placeholder}
-                            className={isAutoPopulatedCol ? 'bg-green-50' : ''}
-                          />
-                        )}
-                      </Form.Item>
-                    )
+                            <Select 
+                              placeholder={fuelType ? col.placeholder : 'Select fuel type first'} 
+                              style={{ minWidth: 120, width: '100%' }} 
+                              mode={col.mode}
+                              disabled={!fuelType}
+                              showSearch={subFuelOptions.length > 5}
+                              filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                              }
+                            >
+                              {subFuelOptions.map((opt: string) => (
+                                <Select.Option key={opt} value={opt}>{opt}</Select.Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        );
+                      }
+                      
+                      // For fuel_type, add onChange to clear sub_fuel_type
+                      if (col.name === 'fuel_type' && field.name === 'scope_1.stationary_combustion') {
+                        return (
+                          <Form.Item
+                            name={[fieldRecord.name, col.name]}
+                            rules={[
+                              { 
+                                required: col.required, 
+                                message: col.required 
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  : undefined
+                              }
+                            ].filter(Boolean)}
+                            className="mb-0"
+                          >
+                            <Select 
+                              placeholder={col.placeholder} 
+                              style={{ minWidth: 120, width: '100%' }} 
+                              mode={col.mode}
+                              showSearch={col.options && col.options.length > 5}
+                              filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                              }
+                              onChange={(value) => {
+                                // Clear sub_fuel_type when fuel_type changes
+                                form.setFieldValue([...field.name.split('.'), fieldRecord.name, 'sub_fuel_type'], undefined);
+                              }}
+                            >
+                              {col.options?.map((opt: any) => {
+                                const label = typeof opt === 'string' ? opt : opt.label;
+                                const value = typeof opt === 'string' ? opt : opt.value;
+                                return <Select.Option key={value} value={value}>{label}</Select.Option>;
+                              })}
+                            </Select>
+                          </Form.Item>
+                        );
+                      }
+                      
+                      // Default rendering for other columns
+                      return (
+                        <Form.Item
+                          name={[fieldRecord.name, col.name]}
+                          rules={[
+                            { 
+                              required: col.required, 
+                              message: col.required 
+                                ? `Please fill in "${col.label}" for this row. This field is required.`
+                                : undefined
+                            },
+                            ...(col.type === 'number' && col.min !== undefined ? [{
+                              type: 'number' as const,
+                              min: col.min,
+                              message: `${col.label} must be at least ${col.min}`
+                            }] : []),
+                            ...(col.type === 'number' && col.max !== undefined ? [{
+                              type: 'number' as const,
+                              max: col.max,
+                              message: `${col.label} must not exceed ${col.max}`
+                            }] : [])
+                          ].filter(Boolean)}
+                          className="mb-0"
+                        >
+                          {col.type === 'select' ? (
+                            <Select 
+                              placeholder={col.placeholder} 
+                              style={{ minWidth: 120, width: '100%' }} 
+                              mode={col.mode}
+                              showSearch={col.options && col.options.length > 5}
+                              filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                              }
+                            >
+                              {col.options?.map((opt: any) => {
+                                const label = typeof opt === 'string' ? opt : opt.label;
+                                const value = typeof opt === 'string' ? opt : opt.value;
+                                return <Select.Option key={value} value={value}>{label}</Select.Option>;
+                              })}
+                            </Select>
+                          ) : col.type === 'number' ? (
+                            <InputNumber 
+                              placeholder={col.placeholder} 
+                              style={{ width: '100%' }}
+                              min={col.min}
+                              max={col.max}
+                            />
+                          ) : (
+                            <Input 
+                              placeholder={col.placeholder}
+                              className={isAutoPopulatedCol ? 'bg-green-50' : ''}
+                            />
+                          )}
+                        </Form.Item>
+                      );
+                    }
                   };
                 }) || []),
                 {
@@ -554,13 +716,15 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       icon={<PlusOutlined />}
                       className="hover:border-green-400 hover:text-green-600"
                     >
-                      {field.addButtonLabel || 'Add Item'}
+                      {field.addButtonLabel || 'Add Row'}
                     </Button>
                   </div>
                 </>
               );
             }}
           </Form.List>
+            )}
+          </Form.Item>
         </div>
       </div>
     );

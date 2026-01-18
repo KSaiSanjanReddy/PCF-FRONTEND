@@ -99,12 +99,13 @@ const SupplierQuestionnaire: React.FC = () => {
               console.log("BOM list from API:", bomList);
               
               // Map to production_site_details table format
-              // Schema expects: [{ mpn, component_name, location }, ...]
-              // The table columns are: mpn, component_name, location
+              // Schema expects: [{ bom_id, material_number, mpn, component_name, location }, ...]
               const productionSiteDetails = bomList.map((item: any, index: number) => {
                 const mapped = {
+                  ...(item.bom_id && { bom_id: item.bom_id }),
+                  ...(item.material_number && { material_number: item.material_number }),
                   mpn: item.material_number || '',
-                  component_name: item.component_name || '',
+                  product_name: item.component_name || '',
                   location: item.production_location || item.location || '', // May not be in API response
                 };
                 console.log(`Mapped item ${index}:`, { original: item, mapped });
@@ -113,9 +114,11 @@ const SupplierQuestionnaire: React.FC = () => {
               
               console.log("Final productionSiteDetails array:", productionSiteDetails);
               
-              // Map to products_manufactured table format (if needed)
-              // Expected: [{ mpn, product_name, production_period, weight_per_unit, unit, price, quantity }, ...]
+              // Map to products_manufactured table format
+              // Expected: [{ bom_id, material_number, mpn, product_name, production_period, weight_per_unit, unit, price, quantity }, ...]
               const productsManufactured = bomList.map((item: any) => ({
+                ...(item.bom_id && { bom_id: item.bom_id }),
+                ...(item.material_number && { material_number: item.material_number }),
                 mpn: item.material_number || '',
                 product_name: item.component_name || '',
                 production_period: '',
