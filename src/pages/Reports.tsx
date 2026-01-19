@@ -28,7 +28,7 @@ interface Report {
   typeColor: string;
 }
 
-const reportsData: Report[] = [
+export const reportsData: Report[] = [
   {
     id: "1",
     title: "Product Footprint",

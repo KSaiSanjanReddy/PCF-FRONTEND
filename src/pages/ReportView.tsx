@@ -9,10 +9,13 @@ import {
     ChevronDown,
     Filter,
 } from "lucide-react";
+import { reportsData } from "./Reports";
 
 const ReportView: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const report = reportsData.find((r) => r.id === id);
 
     // Mock data for the table
     const tableData = [
@@ -66,13 +69,13 @@ const ReportView: React.FC = () => {
                 {/* Report Header Banner */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-6 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-100">
-                            <FileText className="w-6 h-6" />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${report?.iconColor || "bg-green-500 text-white shadow-green-100"}`}>
+                            {report?.icon ? <report.icon className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Product Footprint</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">{report?.title || "Report"}</h1>
                             <p className="text-gray-500">
-                                Carbon Footprint analysis for all product
+                                {report?.description || "Report analysis and overview"}
                             </p>
                         </div>
                     </div>
