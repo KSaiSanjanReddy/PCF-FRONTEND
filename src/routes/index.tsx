@@ -46,6 +46,7 @@ import DataQualityRatingList from "../pages/DataQualityRatingList";
 import PCFRequestCreate from "../pages/PCFRequestCreate";
 import PCFRequestView from "../pages/PCFRequestView";
 import TaskView from "../pages/TaskView";
+import ReportView from "../pages/ReportView";
 
 export const router = createBrowserRouter([
   {
@@ -168,6 +169,10 @@ export const router = createBrowserRouter([
       {
         path: "reports",
         element: <ReportsMain />,
+      },
+      {
+        path: "reports/:id",
+        element: <ReportView />,
       },
       {
         path: "visitor-management",
