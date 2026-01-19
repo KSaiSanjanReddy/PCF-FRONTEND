@@ -17,42 +17,8 @@ const ReportView: React.FC = () => {
 
     const report = reportsData.find((r) => r.id === id);
 
-    // Mock data for the table
-    const tableData = [
-        {
-            sl: 1,
-            productId: "PRD-882-X",
-            productName: "Eco-Friendly Laptop Chassis",
-            category: "Chassis",
-            location: "Delhi, India",
-            supplier: "ALU TECH Group",
-            footprint: "1,240.00",
-            footprintUnit: "12.40",
-            calcDate: "2024-05-12",
-        },
-        {
-            sl: 2,
-            productId: "PRD-882-X",
-            productName: "Eco-Friendly Laptop Chassis",
-            category: "Chassis",
-            location: "Delhi, India",
-            supplier: "ALU TECH Group",
-            footprint: "1,240.00",
-            footprintUnit: "12.40",
-            calcDate: "2024-05-12",
-        },
-        {
-            sl: 3,
-            productId: "PRD-882-X",
-            productName: "Eco-Friendly Laptop Chassis",
-            category: "Chassis",
-            location: "Delhi, India",
-            supplier: "ALU TECH Group",
-            footprint: "1,240.00",
-            footprintUnit: "12.40",
-            calcDate: "2024-05-12",
-        },
-    ];
+    // Report detail view
+
 
     return (
         <div className="flex-1 overflow-auto bg-gray-50/30 p-8 pt-6">
@@ -128,32 +94,50 @@ const ReportView: React.FC = () => {
                 {/* Data Table */}
                 <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left min-w-max">
                             <thead>
                                 <tr className="bg-[#1EB564] text-white">
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">SL.NO</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product ID</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Category</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Manufacturing Location</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Supplier Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Carbon Footprint (KgCO2e)</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Footprint Per Unit (KgCO2e)</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Calculation Date</th>
+                                    {report?.columns?.map((column, index) => (
+                                        <th key={index} className="px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                                            {column}
+                                        </th>
+                                    ))}
+                                    {!report?.columns && (
+                                        <>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">SL.NO</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product ID</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Name</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Category</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Manufacturing Location</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Supplier Name</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Carbon Footprint (KgCO2e)</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Footprint Per Unit (KgCO2e)</th>
+                                            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Calculation Date</th>
+                                        </>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {tableData.map((row) => (
-                                    <tr key={row.sl} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.sl}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.productId}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.productName}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.category}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.location}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{row.supplier}</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">{row.footprint}</td>
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-600">{row.footprintUnit}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">{row.calcDate}</td>
+                                {[1, 2, 3].map((rowIdx) => (
+                                    <tr key={rowIdx} className="hover:bg-gray-50/50 transition-colors">
+                                        {report?.columns?.map((_, colIdx) => (
+                                            <td key={colIdx} className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                                                {colIdx === 0 ? rowIdx : `Data ${rowIdx}-${colIdx}`}
+                                            </td>
+                                        ))}
+                                        {!report?.columns && (
+                                            <>
+                                                <td className="px-6 py-4 text-sm text-gray-600">1</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">PRD-882-X</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">Eco-Friendly Laptop Chassis</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">Chassis</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">Delhi, India</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600">ALU TECH Group</td>
+                                                <td className="px-6 py-4 text-sm font-bold text-gray-900">1,240.00</td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-600">12.40</td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">2024-05-12</td>
+                                            </>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

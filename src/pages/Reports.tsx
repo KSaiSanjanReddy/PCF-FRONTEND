@@ -14,7 +14,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 
-interface Report {
+export interface Report {
   id: string;
   title: string;
   description: string;
@@ -26,13 +26,14 @@ interface Report {
   iconColor: string;
   moduleColor: string;
   typeColor: string;
+  columns?: string[];
 }
 
 export const reportsData: Report[] = [
   {
     id: "1",
     title: "Product Footprint",
-    description: "Carbon footprint analysis for all products",
+    description: "Detailed carbon footprint analysis for all products including raw materials and production.",
     module: "Sustainability",
     type: "System",
     tag: "+",
@@ -41,11 +42,12 @@ export const reportsData: Report[] = [
     iconColor: "text-blue-500 bg-blue-50",
     moduleColor: "text-green-600 bg-green-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["SL.NO", "Supplier ID/Code", "Supplier name", "Component or Parts Name", "Manufacturer", "Weight (gms) /unit", "Total Weight (gms)", "Component Category", "Transport Mode", "Economic Ratio", "Allocation Methodology", "Raw Materials Emissions", "Production Emissions", "Packaging Emissions", "Waste Emissions", "Transportation Emissions", "PCF [kg CO2e / kg Material]"]
   },
   {
     id: "2",
-    title: "Product Life Cycle Emissions",
-    description: "Emissions tracking across product lifecycle",
+    title: "Supplier Footprint",
+    description: "Emissions tracking across the supplier network and manufacturing regions.",
     module: "Emissions",
     type: "System",
     tag: "+",
@@ -54,11 +56,12 @@ export const reportsData: Report[] = [
     iconColor: "text-purple-500 bg-purple-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["SL. No.", "Supplier ID/Code", "Supplier Name", "Manufacturing Region", "Component / Part Supplied", "Material Type", "Energy Type Used in Manufacturing", "Energy Quantity (kWh/kg)", "Recycled Content (%)", "Emission Factor", "Supplier Emission"]
   },
   {
     id: "3",
-    title: "PCF (Product Carbon Footprint)",
-    description: "Detailed product carbon footprint metrics",
+    title: "Material Footprint",
+    description: "Detailed product material breakdown and recyclability metrics.",
     module: "Sustainability",
     type: "System",
     tag: "+",
@@ -67,11 +70,12 @@ export const reportsData: Report[] = [
     iconColor: "text-green-500 bg-green-50",
     moduleColor: "text-green-600 bg-green-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["SL.No", "Supplier ID/Code", "Supplier Name", "Material", "Application in Product", "Recyclability (%)", "Weight in kg", "Emission Factor (kg CO₂e/kg material)", "Emission in CO2 eq"]
   },
   {
     id: "4",
-    title: "Scope-wise Emissions",
-    description: "Emissions breakdown by scope categories",
+    title: "Electricity Footprint",
+    description: "Energy consumption and electricity source emissions categories.",
     module: "Emissions",
     type: "System",
     tag: "+",
@@ -80,11 +84,12 @@ export const reportsData: Report[] = [
     iconColor: "text-indigo-500 bg-indigo-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["Sl.No", "Supplier ID/Code", "Supplier Name", "Electricity Source", "Energy Type", "Emission Factor (kg CO₂e/kWh)", "Emission"]
   },
   {
     id: "5",
-    title: "Activity-wise Emissions",
-    description: "Emissions categorized by activity type",
+    title: "Transportation Footprint",
+    description: "Logistics emissions categorized by transport modes and distances.",
     module: "Emissions",
     type: "System",
     tag: "+",
@@ -93,11 +98,12 @@ export const reportsData: Report[] = [
     iconColor: "text-teal-500 bg-teal-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Mode / Category", "Fuel / Energy Source", "Emission Factor (kg CO₂e / tonne·km)", "Weight Goods in (tons)", "Distance (km)", "Total Emission (kg CO₂e / tonne)"]
   },
   {
     id: "6",
-    title: "Supplier-wise Emissions",
-    description: "Supplier contribution to total emissions",
+    title: "Packaging Footprint",
+    description: "Packaging material types and their contribution to total emissions.",
     module: "Emissions",
     type: "System",
     tag: "+",
@@ -106,11 +112,12 @@ export const reportsData: Report[] = [
     iconColor: "text-amber-500 bg-amber-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
+    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Packaging Material / Type", "Type of energy used", "Recyclability (%)", "Emission Factor (kg CO₂e / kg)", "Emission @ 0.25 kg (kg CO₂e)", "Emission @ 0.5 kg (kg CO₂e)"]
   },
   {
     id: "7",
-    title: "Data Quality Report",
-    description: "Comprehensive data validation metrics",
+    title: "DQR Rating",
+    description: "Comprehensive data quality validation and transparency metrics.",
     module: "Quality",
     type: "System",
     tag: "+",
@@ -119,21 +126,10 @@ export const reportsData: Report[] = [
     iconColor: "text-rose-500 bg-rose-50",
     moduleColor: "text-blue-600 bg-blue-50",
     typeColor: "text-green-600 bg-green-50",
-  },
-  {
-    id: "8",
-    title: "DQR Rating",
-    description: "Data quality rating and scoring system",
-    module: "Quality",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 30m ago",
-    icon: FileText,
-    iconColor: "text-cyan-500 bg-cyan-50",
-    moduleColor: "text-blue-600 bg-blue-50",
-    typeColor: "text-green-600 bg-green-50",
+    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Data Source / Supplier", "Data Type", "Technological Representativeness (TeR)", "Geographical Representativeness (GR)", "Temporal Representativeness (TiR)", "Completeness (C)", "Reliability (R)", "Average DQR Score", "Data Quality Level (Catena-X)"]
   },
 ];
+
 
 const Reports: React.FC = () => {
   const navigate = useNavigate();
