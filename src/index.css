@@ -22,3 +22,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Components Master Tabs Styling */
+.components-master-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #52c41a !important;
+  font-weight: 600;
+}
+
+.components-master-tabs .ant-tabs-ink-bar {
+  background: #52c41a !important;
+}

@@ -34,6 +34,7 @@ import ProductEdit from "../pages/ProductEdit";
 import ActiveProjects from "../pages/ActiveProjects";
 import ArchivedProjects from "../pages/ArchivedProjects";
 import ComponentsMaster from "../pages/ComponentsMaster";
+import ComponentsMasterView from "../pages/ComponentsMasterView";
 import DocumentMaster from "../pages/DocumentMaster";
 import DocumentMasterCreate from "../pages/DocumentMasterCreate";
 import TaskManagement from "../pages/TaskManagement";
@@ -136,6 +137,10 @@ export const router = createBrowserRouter([
       {
         path: "components-master",
         element: <ComponentsMaster />,
+      },
+      {
+        path: "components-master/view/:id",
+        element: <ComponentsMasterView />,
       },
       {
         path: "document-master",
