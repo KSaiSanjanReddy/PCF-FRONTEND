@@ -167,7 +167,7 @@ const Reports: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="mx-auto space-y-6">
           {/* Banner */}
           <div className="bg-white border border-gray-100 rounded-2xl p-6 flex items-center gap-6 shadow-sm">
             <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-100">
