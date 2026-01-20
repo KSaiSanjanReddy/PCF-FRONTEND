@@ -22,3 +22,24 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Dashboard Chart Custom Scrollbar */
+.chart-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.chart-scrollbar::-webkit-scrollbar-track {
+  background: #EBFADC;
+  border-radius: 9999px;
+  margin: 0 32px;
+}
+
+.chart-scrollbar::-webkit-scrollbar-thumb {
+  background: #52C41A;
+  border-radius: 9999px;
+  border: 2px solid #EBFADC; /* creates spacing effect if needed */
+}
+
+.chart-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #45A617;
+}
