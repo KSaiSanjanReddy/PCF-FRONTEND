@@ -772,7 +772,7 @@ class SupplierQuestionnaireService {
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
                       ...(item.mpn && { mpn: item.mpn }),
-                      ...(item.product_name && { product_name: item.product_name }),
+                      product_name: item.product_name || '',
                       location: item.location || ''
                   })),
               required_environmental_impact_methods: data.product_details.required_environmental_impact_methods || [],
@@ -1085,7 +1085,7 @@ class SupplierQuestionnaireService {
                   })),
               weight_of_pro_packaging_waste_questions: (data.scope_3.waste_disposal?.waste_details || [])
                   .filter(item => item.type && item.weight)
-                  .map(item => ({
+                  .map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
                       ...(item.component_name && { component_name: item.component_name }),
@@ -1189,7 +1189,7 @@ class SupplierQuestionnaireService {
               annual_revenue: genInfo.annual_revenue,
               annual_reporting_period: genInfo.annual_reporting_period,
               // Convert boolean to Yes/No for radio button field
-              availability_of_emissions_data: this.convertBooleanToYesNo(genInfo.availability_of_scope_one_two_three_emissions_data),
+              availability_of_emissions_data: this.convertToBoolean(genInfo.availability_of_scope_one_two_three_emissions_data),
               emission_data: (genInfo.availability_of_scope_one_two_three_emissions_questions || []).map((item: any) => ({
                   country: item.country_iso_three,
                   scope_1: item.scope_one,
@@ -1199,7 +1199,7 @@ class SupplierQuestionnaireService {
           },
           product_details: {
               // Convert boolean to Yes/No for radio button field
-              existing_pcf_report: this.convertBooleanToYesNo(prodInfo.do_you_have_an_existing_pcf_report),
+              existing_pcf_report: this.convertToBoolean(prodInfo.do_you_have_an_existing_pcf_report),
               pcf_methodology: prodInfo.pcf_methodology_used,
               pcf_report_file: prodInfo.upload_pcf_report,
               production_site_details: (prodInfo.production_site_details_questions || []).map((item: any) => ({
@@ -1222,7 +1222,7 @@ class SupplierQuestionnaireService {
                   quantity: item.quantity
               })),
               // Convert boolean to Yes/No for radio button field
-              any_co_product_have_economic_value: this.convertBooleanToYesNo(prodInfo.any_co_product_have_economic_value),
+              any_co_product_have_economic_value: this.convertToBoolean(prodInfo.any_co_product_have_economic_value),
               co_products: (prodInfo.co_product_component_economic_value_questions || []).map((item: any) => ({
                   ...(item.bom_id && { bom_id: item.bom_id }),
                   ...(item.material_number && { material_number: item.material_number }),
@@ -1249,7 +1249,7 @@ class SupplierQuestionnaireService {
               })),
               fugitive_emissions: {
                   // Convert boolean to Yes/No for radio button field
-                  refrigerant_top_ups: this.convertBooleanToYesNo(scope1.refrigerant_top_ups_performed),
+                  refrigerant_top_ups: this.convertToBoolean(scope1.refrigerant_top_ups_performed),
                   refrigerants: (scope1.refrigerants_questions || []).map((item: any) => ({
                       type: item.refrigerant_type,
                       quantity: item.quantity,
@@ -1258,7 +1258,7 @@ class SupplierQuestionnaireService {
               },
               process_emissions: {
                   // Convert boolean to Yes/No for radio button field
-                  present: this.convertBooleanToYesNo(scope1.industrial_process_emissions_present),
+                  present: this.convertToBoolean(scope1.industrial_process_emissions_present),
                   sources: (scope1.process_emissions_sources_questions || []).map((item: any) => ({
                       source: item.source,
                       gas_type: item.gas_type,
@@ -1275,7 +1275,7 @@ class SupplierQuestionnaireService {
                   unit: item.unit
               })),
               // Convert boolean to Yes/No for radio button field
-              standardized_re_certificates: this.convertBooleanToYesNo(scope2.do_you_acquired_standardized_re_certificates),
+              standardized_re_certificates: this.convertToBoolean(scope2.do_you_acquired_standardized_re_certificates),
               certificates: (scope2.scope_two_indirect_emissions_certificates_questions || []).map((item: any) => ({
                   name: item.certificate_name,
                   procurement_mechanism: item.mechanism,
@@ -1288,9 +1288,9 @@ class SupplierQuestionnaireService {
               })),
               manufacturing_process_specific_energy: {
                   // Convert boolean to Yes/No for radio button fields
-                  allocation_methodology: this.convertBooleanToYesNo(scope2.methodology_to_allocate_factory_energy_to_product_level),
+                  allocation_methodology: this.convertToBoolean(scope2.methodology_to_allocate_factory_energy_to_product_level),
                   methodology_document: scope2.methodology_details_document_url,
-                  energy_intensity_estimated: this.convertBooleanToYesNo(scope2.energy_intensity_of_production_estimated_kwhor_mj),
+                  energy_intensity_estimated: this.convertToBoolean(scope2.energy_intensity_of_production_estimated_kwhor_mj),
                   energy_intensity: (scope2.energy_intensity_of_production_estimated_kwhor_mj_questions || []).map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1299,7 +1299,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  process_specific_usage_enabled: this.convertBooleanToYesNo(scope2.process_specific_energy_usage),
+                  process_specific_usage_enabled: this.convertToBoolean(scope2.process_specific_energy_usage),
                   process_specific_usage: (scope2.process_specific_energy_usage_questions || []).map((item: any) => ({
                       process_type: item.process_specific_energy_type,
                       quantity: item.quantity_consumed,
@@ -1307,7 +1307,7 @@ class SupplierQuestionnaireService {
                       support_from_enviguide: item.support_from_enviguide
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  abatement_systems: this.convertBooleanToYesNo(scope2.do_you_use_any_abatement_systems),
+                  abatement_systems: this.convertToBoolean(scope2.do_you_use_any_abatement_systems),
                   abatement_consumption: (scope2.abatement_systems_used_questions || []).map((item: any) => ({
                       source: item.source,
                       quantity: item.quantity,
@@ -1347,7 +1347,7 @@ class SupplierQuestionnaireService {
                       period: item.period
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  destructive_testing: this.convertBooleanToYesNo(scope2.do_you_perform_destructive_testing),
+                  destructive_testing: this.convertToBoolean(scope2.do_you_perform_destructive_testing),
                   samples_destroyed: (scope2.weight_of_samples_destroyed_questions || []).map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1381,8 +1381,8 @@ class SupplierQuestionnaireService {
               it_for_production: {
                   systems_used: scope2.it_system_use_for_production_control,
                   // Convert boolean to Yes/No for radio button fields
-                  energy_consumption_related: this.convertBooleanToYesNo(scope2.total_energy_consumption_of_it_hardware_production),
-                  included_in_total: this.convertBooleanToYesNo(scope2.energy_con_included_total_energy_pur_sec_two_qfortythree),
+                  energy_consumption_related: this.convertToBoolean(scope2.total_energy_consumption_of_it_hardware_production),
+                  included_in_total: this.convertToBoolean(scope2.energy_con_included_total_energy_pur_sec_two_qfortythree),
                   consumption_details: (scope2.energy_consumption_for_qfortyfour_questions || []).map((item: any) => ({
                       energy_purchased: item.energy_purchased,
                       energy_type: item.energy_type,
@@ -1390,7 +1390,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  cloud_based_system: this.convertBooleanToYesNo(scope2.do_you_use_cloud_based_system_for_production),
+                  cloud_based_system: this.convertToBoolean(scope2.do_you_use_cloud_based_system_for_production),
                   cloud_provider_details: (scope2.cloud_provider_details_questions || []).map((item: any) => ({
                       cloud_provider_name: item.cloud_provider_name,
                       virtual_machines: item.virtual_machines,
@@ -1409,8 +1409,8 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
                   // Convert boolean to Yes/No for radio button fields
-                  cooling_system: this.convertBooleanToYesNo(scope2.do_you_use_any_cooling_sysytem_for_server),
-                  cooling_energy_included: this.convertBooleanToYesNo(scope2.energy_con_included_total_energy_pur_sec_two_qfifty),
+                  cooling_system: this.convertToBoolean(scope2.do_you_use_any_cooling_sysytem_for_server),
+                  cooling_energy_included: this.convertToBoolean(scope2.energy_con_included_total_energy_pur_sec_two_qfifty),
                   cooling_energy_consumption: (scope2.energy_consumption_for_qfiftyone_questions || []).map((item: any) => ({
                       energy_purchased: item.energy_purchased,
                       energy_type: item.energy_type,
@@ -1428,11 +1428,11 @@ class SupplierQuestionnaireService {
                       composition_percent: item.percentage
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  raw_materials_contact_support: this.convertBooleanToYesNo(scope3.raw_materials_contact_enviguide_support),
+                  raw_materials_contact_support: this.convertToBoolean(scope3.raw_materials_contact_enviguide_support),
                   metal_grade: scope3.grade_of_metal_used,
                   msds: scope3.msds_link_or_upload_document,
                   // Convert boolean to Yes/No for radio button field
-                  recycled_materials_used: this.convertBooleanToYesNo(scope3.use_of_recycled_secondary_materials),
+                  recycled_materials_used: this.convertToBoolean(scope3.use_of_recycled_secondary_materials),
                   recycled_materials: (scope3.recycled_materials_with_percentage_questions || []).map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1440,7 +1440,7 @@ class SupplierQuestionnaireService {
                       recycled_percent: item.percentage
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  material_type_breakdown_available: this.convertBooleanToYesNo(scope3.percentage_of_pre_post_consumer_material_used_in_product),
+                  material_type_breakdown_available: this.convertToBoolean(scope3.percentage_of_pre_post_consumer_material_used_in_product),
                   material_type_percentages: (scope3.pre_post_consumer_reutilization_percentage_questions || []).map((item: any) => ({
                       type: item.material_type,
                       percentage: item.percentage
@@ -1467,10 +1467,10 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
                   // Convert boolean to Yes/No for radio button fields
-                  recycled_content_used: this.convertBooleanToYesNo(scope3.do_you_use_recycle_mat_for_packaging),
+                  recycled_content_used: this.convertToBoolean(scope3.do_you_use_recycle_mat_for_packaging),
                   recycled_percent: scope3.percentage_of_recycled_content_used_in_packaging,
-                  electricity_used: this.convertBooleanToYesNo(scope3.do_you_use_electricity_for_packaging),
-                  included_in_total: this.convertBooleanToYesNo(scope3.energy_con_included_total_energy_pur_sec_two_qsixtysix),
+                  electricity_used: this.convertToBoolean(scope3.do_you_use_electricity_for_packaging),
+                  included_in_total: this.convertToBoolean(scope3.energy_con_included_total_energy_pur_sec_two_qsixtysix),
                   energy_consumption: (scope3.energy_consumption_for_qsixtyseven_questions || []).map((item: any) => ({
                       energy_purchased: item.energy_purchased,
                       energy_type: item.energy_type,
@@ -1487,7 +1487,7 @@ class SupplierQuestionnaireService {
                   })),
                   recycled_percent: scope3.internal_or_external_waste_material_per_recycling,
                   // Convert boolean to Yes/No for radio button field
-                  by_products_generated: this.convertBooleanToYesNo(scope3.any_by_product_generated),
+                  by_products_generated: this.convertToBoolean(scope3.any_by_product_generated),
                   by_products: (scope3.type_of_by_product_questions || []).map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1499,7 +1499,7 @@ class SupplierQuestionnaireService {
               },
               logistics: {
                   // Convert boolean to Yes/No for radio button field
-                  emissions_tracked: this.convertBooleanToYesNo(scope3.do_you_track_emission_from_transport),
+                  emissions_tracked: this.convertToBoolean(scope3.do_you_track_emission_from_transport),
                   emissions_data: (scope3.co_two_emission_of_raw_material_questions || []).map((item: any) => ({
                       ...(item.mpn && { mpn: item.mpn }),
                       ...(item.component_name && { component_name: item.component_name }),
@@ -1523,7 +1523,7 @@ class SupplierQuestionnaireService {
                       distance: item.distance
                   })),
                   // Convert boolean to Yes/No for radio button field
-                  enviguide_support: this.convertBooleanToYesNo(scope3.mode_of_transport_enviguide_support),
+                  enviguide_support: this.convertToBoolean(scope3.mode_of_transport_enviguide_support),
                   destination_plant: (scope3.destination_plant_component_transportation_questions || []).map((item: any) => ({
                       country: item.country,
                       state: item.state,
@@ -1533,9 +1533,9 @@ class SupplierQuestionnaireService {
               },
               certifications: {
                   // Convert boolean to Yes/No for radio button fields
-                  iso_certified: this.convertBooleanToYesNo(scope3.iso_14001_or_iso_50001_certified),
-                  standards_followed: this.convertBooleanToYesNo(scope3.standards_followed_iso_14067_GHG_catena_etc),
-                  reporting_frameworks: this.convertBooleanToYesNo(scope3.do_you_report_to_cdp_sbti_or_other),
+                  iso_certified: this.convertToBoolean(scope3.iso_14001_or_iso_50001_certified),
+                  standards_followed: this.convertToBoolean(scope3.standards_followed_iso_14067_GHG_catena_etc),
+                  reporting_frameworks: this.convertToBoolean(scope3.do_you_report_to_cdp_sbti_or_other),
                   additional_notes: {
                       reduction_measures: scope3.measures_to_reduce_carbon_emissions_in_production,
                       initiatives: scope3.renewable_energy_initiatives_or_recycling_programs,

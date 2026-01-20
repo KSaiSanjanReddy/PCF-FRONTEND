@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Card,
   Row,
@@ -58,15 +58,7 @@ const ComponentsMaster: React.FC = () => {
     total: 0,
   });
 
-  useEffect(() => {
-    fetchComponents();
-  }, [pagination.current, pagination.pageSize]);
-
-  useEffect(() => {
-    filterComponents();
-  }, [searchTerm, filterStatus, components]);
-
-  const fetchComponents = async () => {
+  const fetchComponents = useCallback(async () => {
     setLoading(true);
     try {
       const result = await componentMasterService.getComponentList({
@@ -76,12 +68,13 @@ const ComponentsMaster: React.FC = () => {
       });
 
       if (result.success && result.data) {
-        setComponents(result.data.data);
-        setFilteredComponents(result.data.data);
-        setPagination({
-          ...pagination,
-          total: result.data.totalCount || result.data.data.length,
-        });
+        const data = result.data;
+        setComponents(data.data);
+        setFilteredComponents(data.data);
+        setPagination((prev) => ({
+          ...prev,
+          total: data.totalCount || data.data.length || 0,
+        }));
       } else {
         message.error(result.message || "Failed to fetch components");
         setComponents([]);
@@ -95,9 +88,9 @@ const ComponentsMaster: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.current, pagination.pageSize, searchTerm]);
 
-  const filterComponents = () => {
+  const filterComponents = useCallback(() => {
     let filtered = [...components];
 
     // Apply search filter (client-side filtering for immediate feedback)
@@ -118,7 +111,15 @@ const ComponentsMaster: React.FC = () => {
     }
 
     setFilteredComponents(filtered);
-  };
+  }, [searchTerm, filterStatus, components]);
+
+  useEffect(() => {
+    fetchComponents();
+  }, [fetchComponents]);
+
+  useEffect(() => {
+    filterComponents();
+  }, [filterComponents]);
 
   const handleTableChange = (newPagination: any) => {
     setPagination({
