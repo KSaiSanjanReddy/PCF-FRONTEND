@@ -27,6 +27,7 @@ export interface Report {
   moduleColor: string;
   typeColor: string;
   columns?: string[];
+  apiType?: "product" | "supplier" | "packaging";
 }
 
 export const reportsData: Report[] = [
@@ -42,7 +43,8 @@ export const reportsData: Report[] = [
     iconColor: "text-blue-500 bg-blue-50",
     moduleColor: "text-green-600 bg-green-50",
     typeColor: "text-green-600 bg-green-50",
-    columns: ["SL.NO", "Supplier ID/Code", "Supplier name", "Component or Parts Name", "Manufacturer", "Weight (gms) /unit", "Total Weight (gms)", "Component Category", "Transport Mode", "Economic Ratio", "Allocation Methodology", "Raw Materials Emissions", "Production Emissions", "Packaging Emissions", "Waste Emissions", "Transportation Emissions", "PCF [kg CO2e / kg Material]"]
+    columns: ["SL.NO", "Supplier ID/Code", "Supplier name", "Component or Parts Name", "Manufacturer", "Weight (gms) /unit", "Total Weight (gms)", "Component Category", "Transport Mode", "Economic Ratio", "Allocation Methodology", "Raw Materials Emissions", "Production Emissions", "Packaging Emissions", "Waste Emissions", "Transportation Emissions", "PCF [kg CO2e / kg Material]"],
+    apiType: "product"
   },
   {
     id: "2",
@@ -56,7 +58,8 @@ export const reportsData: Report[] = [
     iconColor: "text-purple-500 bg-purple-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
-    columns: ["SL. No.", "Supplier ID/Code", "Supplier Name", "Manufacturing Region", "Component / Part Supplied", "Material Type", "Energy Type Used in Manufacturing", "Energy Quantity (kWh/kg)", "Recycled Content (%)", "Emission Factor", "Supplier Emission"]
+    columns: ["SL. No.", "Supplier ID/Code", "Supplier Name", "Manufacturing Region", "Component / Part Supplied", "Material Type", "Energy Type Used in Manufacturing", "Energy Quantity (kWh/kg)", "Recycled Content (%)", "Emission Factor", "Supplier Emission"],
+    apiType: "supplier"
   },
   {
     id: "3",
@@ -112,7 +115,8 @@ export const reportsData: Report[] = [
     iconColor: "text-amber-500 bg-amber-50",
     moduleColor: "text-orange-600 bg-orange-50",
     typeColor: "text-green-600 bg-green-50",
-    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Packaging Material / Type", "Type of energy used", "Recyclability (%)", "Emission Factor (kg CO₂e / kg)", "Emission @ 0.25 kg (kg CO₂e)", "Emission @ 0.5 kg (kg CO₂e)"]
+    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Packaging Material / Type", "Type of energy used", "Recyclability (%)", "Emission Factor (kg CO₂e / kg)", "Emission @ 0.25 kg (kg CO₂e)", "Emission @ 0.5 kg (kg CO₂e)"],
+    apiType: "packaging"
   },
   {
     id: "7",
