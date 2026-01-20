@@ -131,18 +131,19 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => toggleExpanded(item.id)}
               className={cn(
-                "flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-lg transition-all duration-200 group relative",
-                "hover:bg-purple-600 hover:text-white hover:shadow-md",
+                "flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
+                "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
                 isActive
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-white hover:text-white"
+                  ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
+                  : "text-slate-300 hover:text-white"
               )}
               title={item.title}
             >
               <IconComponent className="h-5 w-5" />
               {/* Tooltip for minimized state */}
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
+              <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-xl">
                 {item.title}
+                <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
               </div>
             </button>
           ) : (
@@ -150,19 +151,20 @@ const Sidebar: React.FC<SidebarProps> = ({
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-lg transition-all duration-200 group relative",
-                  "hover:bg-purple-600 hover:text-white hover:shadow-md",
+                  "flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
+                  "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
                   isActive
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "text-white hover:text-white"
+                    ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
+                    : "text-slate-300 hover:text-white"
                 )
               }
               title={item.title}
             >
               <IconComponent className="h-5 w-5" />
               {/* Tooltip for minimized state */}
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
+              <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-xl">
                 {item.title}
+                <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
               </div>
             </NavLink>
           )}
@@ -178,12 +180,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => toggleExpanded(item.id)}
               className={cn(
-                "flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200",
-                "hover:bg-purple-600 hover:text-white hover:shadow-md",
+                "flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
                 isActive
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-white hover:text-white",
-                level === 0 ? "text-base font-semibold" : "text-sm font-medium",
+                  ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
+                  : "text-slate-200 hover:text-white",
+                level === 0 ? "text-sm font-semibold" : "text-sm font-medium",
                 "group"
               )}
             >
@@ -192,14 +194,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   "h-5 w-5 mr-3 transition-colors duration-200",
                   isActive
                     ? "text-white"
-                    : "text-gray-300 group-hover:text-white"
+                    : "text-slate-400 group-hover:text-white"
                 )}
               />
               <span className="flex-1 text-left">{item.title}</span>
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-white transition-transform duration-200" />
+                <ChevronDown className="h-4 w-4 text-white/80 transition-transform duration-200" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-white transition-transform duration-200" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-white transition-transform duration-200" />
               )}
             </button>
           ) : (
@@ -207,13 +209,13 @@ const Sidebar: React.FC<SidebarProps> = ({
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200",
-                  "hover:bg-purple-600 hover:text-white hover:shadow-md",
+                  "flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                  "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
                   isActive
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "text-white hover:text-white",
+                    ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
+                    : "text-slate-200 hover:text-white",
                   level === 0
-                    ? "text-base font-semibold"
+                    ? "text-sm font-semibold"
                     : "text-sm font-medium",
                   "group"
                 )
@@ -222,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <IconComponent
                 className={cn(
                   "h-5 w-5 mr-3 transition-colors duration-200",
-                  "text-gray-300 group-hover:text-white"
+                  "text-slate-400 group-hover:text-white"
                 )}
               />
               <span className="flex-1">{item.title}</span>
@@ -231,24 +233,22 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {hasChildren && isExpanded && !isMinimized && (
-          <div className="ml-6 mt-2 space-y-1 pl-4">
+          <div className="ml-6 mt-1 space-y-0.5 pl-4 border-l border-slate-700">
             {item.children?.map((child) => (
-              <div key={child.id} className="flex items-center">
-                <div className="w-2 h-2 bg-purple-600 rounded-full mr-3 flex-shrink-0"></div>
-                <NavLink
-                  to={child.path}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center w-full py-2 text-sm font-medium transition-colors duration-200",
-                      isActive
-                        ? "text-purple-300 font-semibold"
-                        : "text-gray-300 hover:text-white"
-                    )
-                  }
-                >
-                  <span>{child.title}</span>
-                </NavLink>
-              </div>
+              <NavLink
+                key={child.id}
+                to={child.path}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center w-full py-2 pl-3 text-sm font-medium transition-all duration-200 rounded-lg",
+                    isActive
+                      ? "text-green-400 font-semibold bg-green-600/10"
+                      : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                  )
+                }
+              >
+                <span>{child.title}</span>
+              </NavLink>
             ))}
           </div>
         )}
@@ -261,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
@@ -269,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 bg-[#1A1D29] shadow-xl flex flex-col h-screen transition-all duration-300 ease-in-out",
+          "fixed lg:static inset-y-0 left-0 z-50 bg-slate-900 shadow-2xl flex flex-col h-screen transition-all duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isMinimized ? "w-20" : "w-72"
         )}
@@ -277,38 +277,42 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Header */}
         <div
           className={cn(
-            "flex items-center border-b border-gray-700 transition-all duration-300",
+            "flex items-center border-b border-slate-700/50 transition-all duration-300",
             isMinimized
               ? "justify-center px-2 py-4"
-              : "justify-between px-6 py-6"
+              : "justify-between px-5 py-5"
           )}
         >
           {!isMinimized && (
             <div className="flex items-center space-x-3">
-              <img
-                src="/logo-dark.png"
-                alt="EnviGuide Logo"
-                className="w-10 h-10 object-contain"
-              />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-600/20">
+                <img
+                  src="/logo-dark.png"
+                  alt="EnviGuide Logo"
+                  className="w-7 h-7 object-contain"
+                />
+              </div>
               <div>
-                <h1 className="text-xl font-bold text-white">EnviGuide</h1>
-                <p className="text-gray-400 text-sm">Management Suite</p>
+                <h1 className="text-lg font-bold text-white tracking-tight">EnviGuide</h1>
+                <p className="text-slate-400 text-xs">Management Suite</p>
               </div>
             </div>
           )}
 
           {isMinimized && (
-            <img
-              src="/logo-dark.png"
-              alt="EnviGuide Logo"
-              className="w-10 h-10 object-contain"
-            />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shadow-green-600/20">
+              <img
+                src="/logo-dark.png"
+                alt="EnviGuide Logo"
+                className="w-7 h-7 object-contain"
+              />
+            </div>
           )}
 
           {/* Close button for mobile */}
           <button
             onClick={onToggle}
-            className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors duration-200"
+            className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all duration-200"
           >
             <X className="h-5 w-5" />
           </button>
@@ -317,10 +321,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation */}
         <nav
           className={cn(
-            "flex-1  transition-all duration-300",
+            "flex-1 transition-all duration-300 dark-scrollbar",
             isMinimized
               ? "px-2 py-4 space-y-1"
-              : "px-6 py-6 space-y-2 overflow-auto"
+              : "px-4 py-4 space-y-1 overflow-auto"
           )}
         >
           {menuItems.map((item) => renderMenuItem(item))}
@@ -329,15 +333,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Footer */}
         <div
           className={cn(
-            "border-t border-gray-700 transition-all duration-300 flex items-center",
-            isMinimized ? "p-2 justify-center" : "p-6 justify-between"
+            "border-t border-slate-700/50 transition-all duration-300 flex items-center",
+            isMinimized ? "p-3 justify-center" : "p-4 justify-between gap-2"
           )}
         >
           <button
             onClick={handleLogout}
             className={cn(
-              "flex items-center w-[80%] text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-200 hover:shadow-md group",
-              isMinimized ? "justify-center p-2 hidden" : "px-4 py-3"
+              "flex items-center text-sm font-semibold text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 group",
+              isMinimized ? "justify-center p-2.5 hidden" : "flex-1 px-4 py-2.5"
             )}
             title={isMinimized ? "Logout" : undefined}
           >
@@ -345,29 +349,22 @@ const Sidebar: React.FC<SidebarProps> = ({
             <LogOut
               className={cn(
                 "text-white group-hover:scale-110 transition-transform duration-200",
-                isMinimized ? "h-5 w-5" : "h-5 w-5"
+                isMinimized ? "h-5 w-5" : "h-4 w-4"
               )}
             />
           </button>
 
-          <div
-            className={cn(
-              "transition-all duration-300",
-              isMinimized ? "flex justify-center" : "flex justify-end"
-            )}
+          <button
+            onClick={toggleMinimized}
+            className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all duration-200"
+            title={isMinimized ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <button
-              onClick={toggleMinimized}
-              className="p-2 text-gray-400 hover:text-white transition-colors duration-200"
-              title={isMinimized ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isMinimized ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
-                <ChevronLeft className="h-5 w-5" />
-              )}
-            </button>
-          </div>
+            {isMinimized ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <ChevronLeft className="h-5 w-5" />
+            )}
+          </button>
         </div>
       </div>
     </>

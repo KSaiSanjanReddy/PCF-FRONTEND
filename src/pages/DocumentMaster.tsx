@@ -1,32 +1,21 @@
 import React, { useEffect, useState } from "react";
 import {
-  Layout,
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
   Table,
+  Button,
   Tag,
   Space,
   Input,
   Select,
-  Progress,
-  List,
-  Avatar,
   message,
   Dropdown,
-  Tooltip,
+  Spin,
 } from "antd";
 import type { MenuProps } from "antd/lib/menu";
 import {
   FileText,
   Plus,
-  FolderPlus,
   Download,
-  Archive,
   Search,
-  Filter,
   MoreHorizontal,
   File,
   Clock,
@@ -35,6 +24,7 @@ import {
   Eye,
   Edit,
   Share2,
+  CheckCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -46,7 +36,6 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 
-const { Title, Text } = Typography;
 const { Option } = Select;
 
 const DocumentMaster: React.FC = () => {
@@ -63,15 +52,15 @@ const DocumentMaster: React.FC = () => {
     totalDocuments: 0,
     pendingDocuments: 0,
     pcfDocuments: 0,
-    storageUsed: "45.2 GB", // Placeholder as API doesn't provide this yet
+    approvedDocuments: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const fetchDocuments = async (page: number = 1, pageSize: number = 10) => {
     setLoading(true);
     try {
       const result = await documentMasterService.getDocumentList(page, pageSize);
-      // The API might return success as undefined or true/false, check if we have data
       if (result.data) {
         setDocuments(result.data);
         setPagination({
@@ -79,23 +68,14 @@ const DocumentMaster: React.FC = () => {
           current: result.currentPage || page,
           total: result.totalRecords || 0,
         });
-        
+
         if (result.stats) {
           setStats({
             totalDocuments: result.stats.totalDocuments,
             pendingDocuments: result.stats.pendingDocuments,
             pcfDocuments: result.stats.pcfDocuments,
-            storageUsed: "45.2 GB", // Keep placeholder
+            approvedDocuments: result.data.filter((d: DocumentItemType) => d.status === "Approved").length,
           });
-        }
-
-        if (result.recentActivity) {
-          setRecentActivity(result.recentActivity.map(activity => ({
-            title: `${activity.document_title} (${activity.code})`,
-            time: dayjs(activity.created_date).fromNow(),
-            user: "User", // API doesn't provide user name in recent activity yet
-            status: activity.status
-          })));
         }
       } else {
         message.error(result.message || "Failed to fetch documents");
@@ -173,21 +153,14 @@ const DocumentMaster: React.FC = () => {
       key: "document_title",
       render: (text: string, record: DocumentItemType) => (
         <Space>
-          <div style={{ 
-            padding: 8, 
-            borderRadius: 8, 
-            background: "#e6f7ff", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center" 
-          }}>
-            <FileText size={20} className="text-blue-500" />
+          <div className="p-2 bg-green-100 rounded-xl">
+            <FileText size={20} className="text-green-600" />
           </div>
           <Space direction="vertical" size={0}>
-            <Text strong>{text}</Text>
-            <Text type="secondary" style={{ fontSize: "12px" }}>
+            <span className="font-medium text-gray-900">{text}</span>
+            <span className="text-xs text-gray-500">
               {record.code} • {record.version}
-            </Text>
+            </span>
           </Space>
         </Space>
       ),
@@ -196,7 +169,7 @@ const DocumentMaster: React.FC = () => {
       title: "Type",
       dataIndex: "document_type",
       key: "document_type",
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
+      render: (text: string) => <Tag color="green">{text}</Tag>,
     },
     {
       title: "Category",
@@ -210,20 +183,6 @@ const DocumentMaster: React.FC = () => {
       dataIndex: "file_size",
       key: "file_size",
       responsive: ["sm"],
-    },
-    {
-      title: "Uploader",
-      dataIndex: "created_by",
-      key: "created_by",
-      responsive: ["lg"],
-      render: (_: string, record: DocumentItemType) => (
-        <Space>
-          <Avatar size="small" style={{ backgroundColor: "#87d068" }}>
-            U
-          </Avatar>
-          <Text>User</Text>
-        </Space>
-      ),
     },
     {
       title: "Status",
@@ -255,14 +214,6 @@ const DocumentMaster: React.FC = () => {
     },
   ];
 
-  // Dashboard Stats
-  const statCards = [
-    { title: "Total Documents", value: stats.totalDocuments, icon: FileText, color: "#1890ff" },
-    { title: "PCF Documents", value: stats.pcfDocuments, icon: File, color: "#52c41a" },
-    { title: "Pending Review", value: stats.pendingDocuments, icon: Clock, color: "#faad14" },
-    { title: "Storage Used", value: stats.storageUsed, icon: HardDrive, color: "#722ed1" },
-  ];
-
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
@@ -272,178 +223,192 @@ const DocumentMaster: React.FC = () => {
     onChange: onSelectChange,
   };
 
-  const hasSelected = selectedRowKeys.length > 0;
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.document_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          doc.code?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === "all" || doc.document_type === typeFilter;
+    return matchesSearch && matchesType;
+  });
 
   return (
-    <Layout style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <Title level={2} style={{ margin: 0 }}>Document Master</Title>
-            <Text type="secondary">Centralized document management and organization</Text>
+    <div className="p-6">
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center flex-wrap gap-6">
+            {/* Left Section - Title and Description */}
+            <div className="flex-1 min-w-[300px]">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Document Master
+                  </h1>
+                  <p className="text-gray-500">
+                    Centralized document management and organization
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Summary Cards */}
+            <div className="flex gap-3 flex-wrap">
+              {/* Total Documents */}
+              <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-blue-600 font-medium">Total</div>
+                    <div className="text-xl font-bold text-blue-700">{stats.totalDocuments}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* PCF Documents */}
+              <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <File className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-green-600 font-medium">PCF Docs</div>
+                    <div className="text-xl font-bold text-green-700">{stats.pcfDocuments}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending */}
+              <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-amber-600 font-medium">Pending</div>
+                    <div className="text-xl font-bold text-amber-700">{stats.pendingDocuments}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Approved */}
+              <div className="bg-purple-50 rounded-xl p-4 min-w-[140px] border border-purple-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-purple-600 font-medium">Approved</div>
+                    <div className="text-xl font-bold text-purple-700">{stats.approvedDocuments}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <Space>
-            <Button icon={<Download size={16} />}>Export</Button>
-            <Button type="primary" icon={<Plus size={16} />} onClick={() => navigate("/document-master/new")}>
-              Upload New
-            </Button>
-          </Space>
         </div>
 
-        {/* Stats Cards */}
-        <Row gutter={[16, 16]}>
-          {statCards.map((stat, index) => (
-            <Col xs={24} sm={12} md={6} key={index}>
-              <Card bordered={false} hoverable>
-                <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
-                  <div>
-                    <Text type="secondary">{stat.title}</Text>
-                    <Title level={3} style={{ margin: "8px 0 0" }}>{stat.value}</Title>
-                  </div>
-                  <div style={{
-                    padding: "12px",
-                    borderRadius: "12px",
-                    background: `${stat.color}15`,
-                    color: stat.color,
-                    display: "flex"
-                  }}>
-                    <stat.icon size={24} />
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-
-        <Row gutter={[16, 16]}>
-          {/* Main Content - Document List */}
-          <Col xs={24} lg={16}>
-            <Card bordered={false} title="All Documents">
-              <Space direction="vertical" style={{ width: "100%" }} size="middle">
-                {/* Filters */}
-                <Row gutter={[16, 16]} align="middle" justify="space-between">
-                  <Col flex="auto">
-                    <Input prefix={<Search size={16} />} placeholder="Search documents..." style={{ maxWidth: 300 }} />
-                  </Col>
-                  <Col>
-                    <Space>
-                      <Select defaultValue="all" style={{ width: 150 }}>
-                        <Option value="all">All Types</Option>
-                        <Option value="pdf">PDF</Option>
-                        <Option value="doc">Word</Option>
-                      </Select>
-                      <Button icon={<Filter size={16} />}>Filters</Button>
-                    </Space>
-                  </Col>
-                </Row>
-
-                {/* Bulk Actions Bar */}
-                {hasSelected && (
-                  <div style={{ 
-                    background: "#e6f7ff", 
-                    padding: "8px 16px", 
-                    borderRadius: "8px", 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    border: "1px solid #91d5ff"
-                  }}>
-                    <Text>{selectedRowKeys.length} selected</Text>
-                    <Space>
-                      <Button size="small" icon={<Download size={14} />}>Download</Button>
-                      <Button size="small" icon={<Archive size={14} />}>Archive</Button>
-                      <Button size="small" danger icon={<Trash2 size={14} />}>Delete</Button>
-                    </Space>
-                  </div>
-                )}
-
-                {/* Table */}
-                <Table
-                  rowSelection={rowSelection}
-                  columns={columns as any}
-                  dataSource={documents}
-                  rowKey="id"
-                  loading={loading}
-                  pagination={pagination}
-                  onChange={handleTableChange}
-                />
-              </Space>
-            </Card>
-          </Col>
-
-          {/* Sidebar - Analytics & Quick Actions */}
-          <Col xs={24} lg={8}>
-            <Space direction="vertical" size="large" style={{ width: "100%" }}>
-              {/* Quick Actions */}
-              <Card bordered={false} title="Quick Actions">
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  <Button block icon={<Plus size={16} />} style={{ textAlign: "left", height: "auto", padding: "12px" }} onClick={() => navigate("/document-master/new")}>
-                    <Space direction="vertical" size={0}>
-                      <Text strong>Upload New Document</Text>
-                    </Space>
-                  </Button>
-                  <Button block icon={<FolderPlus size={16} />} style={{ textAlign: "left", height: "auto", padding: "12px" }}>
-                    <Space direction="vertical" size={0}>
-                      <Text strong>Create New Folder</Text>
-                    </Space>
-                  </Button>
-                  <Button block icon={<Download size={16} />} style={{ textAlign: "left", height: "auto", padding: "12px" }}>
-                    <Space direction="vertical" size={0}>
-                      <Text strong>Bulk Download</Text>
-                    </Space>
-                  </Button>
-                </Space>
-              </Card>
-
-              {/* Storage Analytics */}
-              <Card bordered={false} title="Storage Analytics">
-                <Space direction="vertical" style={{ width: "100%" }} size="large">
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text>Total Storage</Text>
-                      <Text strong>45.2 GB / 100 GB</Text>
-                    </div>
-                    <Progress percent={45} showInfo={false} strokeColor="#1890ff" />
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text>Documents</Text>
-                      <Text strong>65%</Text>
-                    </div>
-                    <Progress percent={65} showInfo={false} strokeColor="#52c41a" />
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <Text>Images</Text>
-                      <Text strong>25%</Text>
-                    </div>
-                    <Progress percent={25} showInfo={false} strokeColor="#faad14" />
-                  </div>
-                </Space>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card bordered={false} title="Recent Activity">
-                <List
-                  itemLayout="horizontal"
-                  dataSource={recentActivity}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar style={{ backgroundColor: "#1890ff" }} icon={<FileText size={12} />} size="small" />}
-                        title={<Text style={{ fontSize: "14px" }}>{item.title}</Text>}
-                        description={<Text type="secondary" style={{ fontSize: "12px" }}>{item.user} • {item.time}</Text>}
-                      />
-                    </List.Item>
-                  )}
-                />
-              </Card>
+        {/* Documents Section */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <h2 className="text-lg font-semibold text-gray-900">All Documents</h2>
+            <Space wrap>
+              <Input
+                prefix={<Search size={16} className="text-gray-400" />}
+                placeholder="Search documents..."
+                className="w-[200px]"
+                size="large"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Select
+                defaultValue="all"
+                className="w-[140px]"
+                size="large"
+                value={typeFilter}
+                onChange={(value) => setTypeFilter(value)}
+              >
+                <Option value="all">All Types</Option>
+                <Option value="Manual">Manual</Option>
+                <Option value="Specification">Specification</Option>
+                <Option value="Report">Report</Option>
+                <Option value="Certificate">Certificate</Option>
+              </Select>
+              <Button
+                icon={<Download size={16} />}
+                size="large"
+              >
+                Export
+              </Button>
+              <Button
+                type="primary"
+                icon={<Plus size={16} />}
+                size="large"
+                onClick={() => navigate("/document-master/new")}
+                className="shadow-lg shadow-green-600/20"
+              >
+                Upload New
+              </Button>
             </Space>
-          </Col>
-        </Row>
-      </Space>
-    </Layout>
+          </div>
+
+          <Spin spinning={loading}>
+            <Table
+              rowSelection={rowSelection}
+              columns={columns as any}
+              dataSource={filteredDocuments}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+              className="rounded-xl overflow-hidden"
+            />
+          </Spin>
+
+          <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+            <div className="text-gray-500 text-sm">
+              Showing <span className="font-medium text-gray-900">{(pagination.current - 1) * pagination.pageSize + 1}</span> to{" "}
+              <span className="font-medium text-gray-900">{Math.min(pagination.current * pagination.pageSize, pagination.total)}</span> of{" "}
+              <span className="font-medium text-gray-900">{pagination.total}</span> entries
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={pagination.current === 1}
+                onClick={() => handleTableChange({ ...pagination, current: pagination.current - 1 })}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Previous
+              </button>
+              {Array.from(
+                { length: Math.min(Math.ceil(pagination.total / pagination.pageSize), 5) },
+                (_, i) => i + 1
+              ).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => handleTableChange({ ...pagination, current: pageNum })}
+                  className={`w-9 h-9 rounded-lg font-medium transition-all ${
+                    pagination.current === pageNum
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/20"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                disabled={pagination.current >= Math.ceil(pagination.total / pagination.pageSize)}
+                onClick={() => handleTableChange({ ...pagination, current: pagination.current + 1 })}
+                className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

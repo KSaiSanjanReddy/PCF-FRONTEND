@@ -72,7 +72,7 @@ const Layout: React.FC = () => {
           {/* Mobile menu button */}
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all duration-200"
+            className="lg:hidden p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all duration-200"
             aria-label="Toggle sidebar"
           >
             <div className="relative">
@@ -84,7 +84,7 @@ const Layout: React.FC = () => {
               />
               <X
                 className={cn(
-                  "h-6 w-6 transition-all duration-200",
+                  "h-6 w-6 absolute top-0 left-0 transition-all duration-200",
                   sidebarOpen ? "opacity-100 rotate-0" : "opacity-0 -rotate-90"
                 )}
               />
@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
           </button>
         </Header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-blue-50">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50 via-green-50/30 to-gray-50">
           <Outlet />
         </main>
       </div>

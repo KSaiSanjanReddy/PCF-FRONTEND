@@ -80,7 +80,7 @@ const ResetPassword: React.FC = () => {
     return (
       <div className="min-h-screen flex">
         {/* Left Panel - Dark Blue Background */}
-        <div className="hidden lg:flex lg:w-1/2 bg-slate-800 flex-col items-center justify-center px-8">
+        <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col items-center justify-center px-8">
           <Logo className="mb-8" variant="dark" />
           <div className="text-center text-white">
             <h1 className="text-2xl font-bold mb-4">
@@ -129,7 +129,7 @@ const ResetPassword: React.FC = () => {
             <div className="mt-8 text-center">
               <button
                 onClick={() => navigate("/login")}
-                className="inline-flex items-center text-blue-600 hover:text-blue-500"
+                className="inline-flex items-center text-green-600 hover:text-green-500 font-medium"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Sign In
@@ -144,7 +144,7 @@ const ResetPassword: React.FC = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Dark Blue Background */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-800 flex-col items-center justify-center px-8">
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col items-center justify-center px-8">
         <Logo className="mb-8" variant="dark" />
         <div className="text-center text-white">
           <h1 className="text-2xl font-bold mb-4">
@@ -205,7 +205,7 @@ const ResetPassword: React.FC = () => {
                   autoComplete="new-password"
                   required
                   minLength={8}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   placeholder="Enter new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -242,7 +242,7 @@ const ResetPassword: React.FC = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -265,7 +265,7 @@ const ResetPassword: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg shadow-green-600/20 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isLoading ? (
                 <LoadingSpinner size="sm" className="border-white" />
@@ -278,7 +278,7 @@ const ResetPassword: React.FC = () => {
           <div className="mt-8 text-center">
             <button
               onClick={() => navigate("/login")}
-              className="inline-flex items-center text-blue-600 hover:text-blue-500"
+              className="inline-flex items-center text-green-600 hover:text-green-500 font-medium"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Sign In

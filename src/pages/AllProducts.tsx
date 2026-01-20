@@ -73,34 +73,40 @@ const AllProducts: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Products</h1>
-          <p className="text-gray-500 mt-1">Manage your product inventory</p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+            <Eye className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">All Products</h1>
+            <p className="text-gray-500">Manage your product inventory</p>
+          </div>
         </div>
         <button
-          onClick={() => navigate("/product-portfolio/new")} // Assuming create route, need to add if not exists
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          onClick={() => navigate("/product-portfolio/new")}
+          className="bg-green-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 font-medium"
         >
           <Plus className="w-4 h-4" />
           Add Product
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {/* Filters & Search */}
-        <div className="p-4 border-b border-gray-200 flex gap-4">
+        <div className="p-4 border-b border-gray-100 flex gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="px-4 py-2 border border-gray-200 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-gray-700">
+          <button className="px-4 py-2.5 border border-gray-200 rounded-xl flex items-center gap-2 hover:bg-gray-50 hover:border-gray-300 text-gray-700 transition-all">
             <Filter className="w-4 h-4" />
             Filters
           </button>
@@ -168,9 +174,9 @@ const AllProducts: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                           title="View"
                           onClick={() =>
                             navigate(`/product-portfolio/view/${product.id}`)
@@ -179,7 +185,7 @@ const AllProducts: React.FC = () => {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
                           title="Edit"
                           onClick={() =>
                             navigate(`/product-portfolio/edit/${product.id}`)
@@ -188,7 +194,7 @@ const AllProducts: React.FC = () => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Delete"
                           onClick={() => handleDelete(product.id)}
                         >
@@ -204,22 +210,22 @@ const AllProducts: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+        <div className="p-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-600">
           <div>
-            Showing page {page} of {totalPages}
+            Showing page <span className="font-medium text-gray-900">{page}</span> of <span className="font-medium text-gray-900">{totalPages}</span>
           </div>
           <div className="flex gap-2">
             <button
               disabled={page === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               Previous
             </button>
             <button
               disabled={page === totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               Next
             </button>
