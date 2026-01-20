@@ -314,11 +314,18 @@ const SupplierQuestionnaire: React.FC = () => {
           if (!isAnswered) return false;
           
           if (typeof expectedValue === 'boolean') {
-            if (dependencyValue !== expectedValue) return false;
+            // Convert dependencyValue to boolean for comparison (handles "Yes"/"No" strings)
+            const depBool = typeof dependencyValue === 'string' 
+              ? (dependencyValue.toLowerCase() === 'yes' || dependencyValue.toLowerCase() === 'true')
+              : Boolean(dependencyValue);
+            if (depBool !== expectedValue) return false;
           } else if (Array.isArray(dependencyValue)) {
             if (!dependencyValue.includes(expectedValue)) return false;
           } else {
-            if (dependencyValue !== expectedValue) return false;
+            // Case-insensitive comparison for string values
+            const depStr = String(dependencyValue).toLowerCase();
+            const expStr = String(expectedValue).toLowerCase();
+            if (depStr !== expStr) return false;
           }
         }
         return true;

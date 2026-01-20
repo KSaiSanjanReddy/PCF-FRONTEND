@@ -170,91 +170,85 @@ const DataQualityRatingList: React.FC = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-            <Star size={28} className="text-white" />
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8">
+        <div className="flex justify-between items-center flex-wrap gap-6">
+          {/* Left Section - Title and Description */}
+          <div className="flex-1 min-w-[300px]">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Data Quality Ratings
+                </h1>
+                <p className="text-gray-500">
+                  Review and assess data quality from supplier submissions
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Data Quality Ratings
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Review and assess data quality from supplier submissions
-            </p>
+
+          {/* Right Section - Summary Cards */}
+          <div className="flex gap-3 flex-wrap">
+            {/* Total Assessments */}
+            <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-blue-600 font-medium">Total</div>
+                  <div className="text-xl font-bold text-blue-700">{stats.total}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Completed */}
+            <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-green-600 font-medium">Done</div>
+                  <div className="text-xl font-bold text-green-700">{stats.completed}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pending */}
+            <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-amber-600 font-medium">Pending</div>
+                  <div className="text-xl font-bold text-amber-700">{stats.pending}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Average Rating */}
+            <div className="bg-purple-50 rounded-xl p-4 min-w-[140px] border border-purple-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-purple-600 font-medium">Avg Rating</div>
+                  <div className="text-xl font-bold text-purple-700">{stats.avgRating.toFixed(1)}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">
-                Total Assessments
-              </p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {stats.total}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <BarChart3 size={24} className="text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Completed</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {stats.completed}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-xl">
-              <CheckCircle size={24} className="text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">Pending</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {stats.pending}
-              </p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-xl">
-              <Clock size={24} className="text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-medium">
-                Average Rating
-              </p>
-              <p
-                className={`text-3xl font-bold mt-1 ${getRatingColor(
-                  stats.avgRating
-                )}`}
-              >
-                {stats.avgRating.toFixed(1)}
-              </p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <TrendingUp size={24} className="text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search
@@ -287,7 +281,7 @@ const DataQualityRatingList: React.FC = () => {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 mb-6 flex items-center gap-3">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6 flex items-center gap-3">
           <AlertCircle size={24} className="text-red-500 flex-shrink-0" />
           <div>
             <p className="font-medium text-red-900">Error</p>
@@ -299,7 +293,7 @@ const DataQualityRatingList: React.FC = () => {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDQR.length === 0 ? (
-          <div className="col-span-full bg-white rounded-xl shadow-sm p-12 border border-gray-200">
+          <div className="col-span-full bg-white rounded-2xl shadow-sm p-12 border border-gray-100">
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Star size={48} className="mb-4 opacity-20" />
               <p className="text-lg font-medium">No assessments found</p>
@@ -314,13 +308,13 @@ const DataQualityRatingList: React.FC = () => {
           filteredDQR.map((item) => (
             <div
               key={item._id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all overflow-hidden"
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-green-200 transition-all overflow-hidden"
             >
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Building2 size={20} className="text-purple-600" />
+                    <div className="p-2 bg-green-100 rounded-xl">
+                      <Building2 size={20} className="text-green-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">
@@ -342,7 +336,7 @@ const DataQualityRatingList: React.FC = () => {
                       className={`font-medium ${
                         item.status === "completed"
                           ? "text-green-600"
-                          : "text-yellow-600"
+                          : "text-amber-600"
                       }`}
                     >
                       {item.status
@@ -370,7 +364,7 @@ const DataQualityRatingList: React.FC = () => {
                     }
                     navigate(`/data-quality-rating/view?${params.toString()}`);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all font-medium"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg shadow-lg shadow-green-600/20 transition-all font-medium"
                 >
                   <Eye size={18} />
                   <span>View Assessment</span>

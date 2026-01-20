@@ -94,8 +94,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             
             // Handle different value types
             if (typeof expectedValue === 'boolean') {
-              // For boolean dependencies (checkboxes), check exact match
-              if (dependencyValue !== expectedValue) {
+              // For boolean dependencies, convert dependencyValue to boolean for comparison
+              const depBool = typeof dependencyValue === 'string' 
+                ? (dependencyValue.toLowerCase() === 'yes' || dependencyValue.toLowerCase() === 'true')
+                : Boolean(dependencyValue);
+              if (depBool !== expectedValue) {
                 return null;
               }
             } else if (Array.isArray(dependencyValue)) {
@@ -104,8 +107,10 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                 return null;
               }
             } else {
-              // For string/number values, check exact match
-              if (dependencyValue !== expectedValue) {
+              // For string/number values, check exact match (case-insensitive for Yes/No)
+              const depStr = String(dependencyValue).toLowerCase();
+              const expStr = String(expectedValue).toLowerCase();
+              if (depStr !== expStr) {
                 return null;
               }
             }
@@ -210,128 +215,46 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         break;
       case 'checkbox':
         if (field.options) {
-           inputComponent = (
-             <Checkbox.Group style={{ width: '100%' }}>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                 {field.options.map((opt: any) => {
-                   const label = typeof opt === 'string' ? opt : opt.label;
-                   const value = typeof opt === 'string' ? opt : opt.value;
-                   return (
-                     <div key={value} className="flex items-center">
-                       <Checkbox value={value} className="hover:bg-gray-50 p-1 rounded">
-                         {label}
-                       </Checkbox>
-                     </div>
-                   );
-                 })}
-               </div>
-             </Checkbox.Group>
-           );
+          // Multi-select checkbox group
+          inputComponent = (
+            <Checkbox.Group>
+              <Space direction="vertical" size="small">
+                {field.options.map((opt: any) => {
+                  const label = typeof opt === 'string' ? opt : opt.label;
+                  const value = typeof opt === 'string' ? opt : opt.value;
+                  return (
+                    <Checkbox key={value} value={value}>
+                      {label}
+                    </Checkbox>
+                  );
+                })}
+              </Space>
+            </Checkbox.Group>
+          );
         } else {
-          const isAutoPopulated = autoPopulatedFields.has(field.name);
-          const fieldErrors = formErrors[field.name] || [];
-          return (
-            <Form.Item
-              key={field.name}
-              name={field.name.split('.')}
-              valuePropName="checked"
-              rules={[
-                {
-                  validator: (_: any, value: boolean) => {
-                    if (field.required && !value) {
-                      const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
-                      return Promise.reject(new Error(
-                        questionNumber 
-                          ? `Please check this box to acknowledge ${questionNumber.slice(0, -1)}`
-                          : `This field is required. Please check the box to continue.`
-                      ));
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-              className={`mb-2 transition-all duration-200 ${fieldErrors.length > 0 ? 'animate-pulse' : ''}`}
-              validateStatus={fieldErrors.length > 0 ? 'error' : undefined}
-              help={fieldErrors.length > 0 ? fieldErrors[0] : undefined}
-              extra={isAutoPopulated && (
-                <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                  <InfoCircleOutlined className="text-xs" />
-                  Auto-populated from BOM data
-                </div>
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox>
-                  {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
-                </Checkbox>
-                {isAutoPopulated && (
-                  <Tag color="green" icon={<InfoCircleOutlined />} className="text-xs">
-                    Auto-filled
-                  </Tag>
-                )}
-              </div>
-            </Form.Item>
+          // Single checkbox (acknowledgement)
+          inputComponent = (
+            <Checkbox>
+              {field.placeholder || 'I acknowledge'}
+            </Checkbox>
           );
         }
         break;
       case 'radio':
         inputComponent = (
-          <div className="w-full">
-            <style>{`
-              .yes-no-radio-group .ant-radio-button-wrapper {
-                text-align: center;
-                font-weight: 700;
-                padding: 8px 24px;
-                min-width: 100px;
-                height: 40px;
-                line-height: 24px;
-                border: 1px solid #d1d5db;
-                background-color: #f3f4f6;
-                color: #374151;
-                border-radius: 8px;
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-                font-size: 13px;
-                letter-spacing: 0.5px;
-                transition: all 0.2s;
-                margin: 0;
-              }
-              .yes-no-radio-group .ant-radio-button-wrapper:not(:first-child)::before {
-                display: none;
-              }
-              .yes-no-radio-group .ant-radio-button-wrapper:hover {
-                background-color: #e5e7eb;
-                border-color: #9ca3af;
-                color: #374151;
-              }
-              .yes-no-radio-group .ant-radio-button-wrapper-checked {
-                background-color: #52c41a !important;
-                border-color: #52c41a !important;
-                color: #ffffff !important;
-                box-shadow: 0 2px 4px 0 rgba(82, 196, 26, 0.2);
-              }
-              .yes-no-radio-group .ant-radio-button-wrapper-checked:hover {
-                background-color: #73d13d !important;
-                border-color: #73d13d !important;
-              }
-            `}</style>
-            <Radio.Group className="yes-no-radio-group">
-              <div className="inline-flex gap-3">
-                {field.options?.map((opt: any) => {
-                  const label = typeof opt === 'string' ? opt : opt.label;
-                  const value = typeof opt === 'string' ? opt : opt.value;
-                  return (
-                    <Radio.Button 
-                      key={value} 
-                      value={value}
-                    >
-                      {label.toUpperCase()}
-                    </Radio.Button>
-                  );
-                })}
-              </div>
-            </Radio.Group>
-          </div>
+          <Radio.Group>
+            <Space size="large">
+              {field.options?.map((opt: any) => {
+                const label = typeof opt === 'string' ? opt : opt.label;
+                const value = typeof opt === 'string' ? opt : opt.value;
+                return (
+                  <Radio key={value} value={value}>
+                    {label}
+                  </Radio>
+                );
+              })}
+            </Space>
+          </Radio.Group>
         );
         break;
       case 'file':
@@ -350,15 +273,19 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         inputComponent = <Input {...commonProps} />;
     }
 
+    // For single checkbox (without options), use valuePropName="checked"
+    const isSingleCheckbox = field.type === 'checkbox' && !field.options;
+    
     return (
       <Form.Item
         key={field.name}
         name={field.name.split('.')}
+        valuePropName={isSingleCheckbox ? "checked" : undefined}
         label={
           <div className="flex items-center gap-2">
             <span>{field.label}</span>
             {field.required && <span className="text-red-500">*</span>}
-            {field.placeholder && (
+            {field.placeholder && field.type !== 'checkbox' && (
               <Tooltip title={field.placeholder}>
                 <QuestionCircleOutlined className="text-gray-400 text-xs" />
               </Tooltip>
@@ -376,6 +303,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             message: field.required 
               ? (() => {
                   const questionNumber = field.label?.match(/^\d+\./)?.[0] || '';
+                  if (isSingleCheckbox) {
+                    return questionNumber 
+                      ? `Please check this box to acknowledge ${questionNumber.slice(0, -1)}`
+                      : `This field is required. Please check the box to continue.`;
+                  }
                   if (questionNumber) {
                     return `Please answer ${questionNumber.slice(0, -1)}. This field is required.`;
                   }

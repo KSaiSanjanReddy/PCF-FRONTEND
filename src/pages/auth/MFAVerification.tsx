@@ -195,7 +195,7 @@ const MFAVerification: React.FC = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Dark Blue Background */}
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-800 flex-col items-center justify-center px-8">
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col items-center justify-center px-8">
         <Logo className="mb-8" variant="dark" />
         <div className="text-center text-white">
           <h1 className="text-2xl font-bold mb-4">
@@ -251,7 +251,7 @@ const MFAVerification: React.FC = () => {
                   onClick={() => setShowQR(true)}
                   className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                     showQR
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-green-500 text-green-600"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -262,7 +262,7 @@ const MFAVerification: React.FC = () => {
                   onClick={() => setShowQR(false)}
                   className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                     !showQR
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-green-500 text-green-600"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -292,7 +292,7 @@ const MFAVerification: React.FC = () => {
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={downloadQRCode}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-xl hover:bg-green-100 transition-colors"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download QR Code
@@ -326,7 +326,7 @@ const MFAVerification: React.FC = () => {
                   </div>
                   <button
                     onClick={copyManualCode}
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-xl hover:bg-green-100 transition-colors"
                   >
                     {copied ? (
                       <>
@@ -376,7 +376,7 @@ const MFAVerification: React.FC = () => {
                 required
                 maxLength={6}
                 pattern="[0-9]{6}"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-lg font-mono tracking-widest"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-center text-lg font-mono tracking-widest"
                 placeholder="000000"
                 value={mfaToken}
                 onChange={(e) => {
@@ -393,7 +393,7 @@ const MFAVerification: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg shadow-green-600/20 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isLoading ? (
                 <LoadingSpinner size="sm" className="border-white" />
@@ -406,7 +406,7 @@ const MFAVerification: React.FC = () => {
           <div className="mt-8 text-center">
             <button
               onClick={() => navigate("/login")}
-              className="inline-flex items-center text-blue-600 hover:text-blue-500"
+              className="inline-flex items-center text-green-600 hover:text-green-500 font-medium"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Sign In

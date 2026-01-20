@@ -15,6 +15,7 @@ import {
   Target,
   Loader,
   ArrowLeft,
+  Star,
 } from "lucide-react";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import authService from "../lib/authService";
@@ -736,9 +737,9 @@ const DataQualityRating = () => {
 
         {/* Technological Representativeness (TeR) */}
         {dataPoint.dqiRequired.includes("TeR") && (
-          <div className="bg-gradient-to-br from-white to-purple-50 border-2 border-purple-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow mt-12">
+          <div className="bg-gradient-to-br from-white to-blue-50 border-2 border-blue-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow mt-12">
             <h4 className="text-lg font-semibold text-gray-900 mb-5 flex items-center">
-              <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg flex items-center justify-center mr-2 shadow-lg">
+              <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg flex items-center justify-center mr-2 shadow-lg">
                 <Settings size={18} />
               </span>
               <div>
@@ -764,7 +765,7 @@ const DataQualityRating = () => {
                       e.target.value
                     )
                   }
-                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-gray-700 font-medium"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 font-medium"
                 >
                   <option value="">Select classification</option>
                   <option value="Applicable">Applicable</option>
@@ -789,7 +790,7 @@ const DataQualityRating = () => {
                         e.target.value
                       )
                     }
-                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-gray-700 font-medium"
+                    className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 font-medium"
                   >
                     <option value="">Select technology type</option>
                     {DQR_CONFIG.TER_LEVEL2_OPTIONS.map((option) => (
@@ -1158,35 +1159,39 @@ const DataQualityRating = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 p-6">
       <div className="">
         {/* Header with back button */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
             >
               <ArrowLeft size={20} />
               <span>Back</span>
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
               <span className="text-sm font-medium text-gray-600">
-                Questionnaire ID: {sgiq_id}
+                ID: {sgiq_id?.slice(0, 12)}...
               </span>
             </div>
           </div>
           <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Data Quality Assessment
-              </h1>
-              <p className="text-gray-600">
-                Evaluate data quality indicators for Product Carbon Footprint
-                calculation
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <Star className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Data Quality Assessment
+                </h1>
+                <p className="text-gray-500">
+                  Evaluate data quality indicators for Product Carbon Footprint calculation
+                </p>
+              </div>
             </div>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg shadow-lg shadow-green-600/20 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
                 <>
@@ -1228,8 +1233,8 @@ const DataQualityRating = () => {
         </div> */}
 
         {/* Main Content - Data Points List (Full Width) */}
-        <div className="bg-white rounded-2xl shadow-xl p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Data Points</h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Points</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dataPoints.map((point) => (
               <DataPointCard key={point.id} dataPoint={point} />
@@ -1262,8 +1267,8 @@ const DataQualityRating = () => {
         )}
 
         {/* DQI Legend */}
-        <div className="mt-6 bg-white rounded-2xl shadow-xl p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Data Quality Rating (DQR) Scale
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

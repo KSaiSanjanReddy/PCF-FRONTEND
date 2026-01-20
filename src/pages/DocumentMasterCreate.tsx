@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Layout,
   Card,
   Form,
   Input,
@@ -8,12 +7,9 @@ import {
   Button,
   Upload,
   Space,
-  Typography,
   Row,
   Col,
   message,
-  Breadcrumb,
-  Divider,
   Spin,
 } from "antd";
 import {
@@ -24,12 +20,12 @@ import {
   X,
   Plus,
   RotateCcw,
+  Upload as UploadIcon,
 } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { documentMasterService } from "../lib/documentMasterService";
 import type { CategoryItem, TagItem } from "../lib/documentMasterService";
 
-const { Title, Text } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 const { TextArea } = Input;
@@ -79,14 +75,13 @@ const DocumentMasterCreate: React.FC = () => {
               tags: doc.tags,
               access_level: doc.access_level,
             });
-            // Mock file list for now as API returns file names
             if (doc.document && doc.document.length > 0) {
               setFileList(
-                doc.document.map((fileName, index) => ({
+                doc.document.map((fileName: string, index: number) => ({
                   uid: `-${index}`,
                   name: fileName,
                   status: "done",
-                  size: 1024 * 1024, // Mock size
+                  size: 1024 * 1024,
                 }))
               );
             }
@@ -114,11 +109,11 @@ const DocumentMasterCreate: React.FC = () => {
       }
 
       setLoading(true);
-      
+
       const payload = {
         ...values,
         document: fileList.map((file) => file.name),
-        file_size: (fileList[0].size / 1024 / 1024).toFixed(2) + " MB", // Mock size
+        file_size: (fileList[0].size / 1024 / 1024).toFixed(2) + " MB",
       };
 
       let result;
@@ -158,11 +153,11 @@ const DocumentMasterCreate: React.FC = () => {
     },
     beforeUpload: (file: any) => {
       if (isView) return false;
-      setFileList([file]); // Allow only single file for now
-      return false; // Prevent auto upload
+      setFileList([file]);
+      return false;
     },
     fileList,
-    showUploadList: false, // Custom render
+    showUploadList: false,
     disabled: isView,
   };
 
@@ -180,50 +175,61 @@ const DocumentMasterCreate: React.FC = () => {
 
   if (fetching) {
     return (
-      <Layout style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
         <Spin size="large" tip="Loading document details..." />
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout style={{ padding: "24px", background: "#f0f2f5", minHeight: "100vh" }}>
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        {/* Breadcrumb & Header */}
-        <div>
-          <Breadcrumb
-            items={[
-              { title: <a onClick={() => navigate("/document-master")}>Document Master</a> },
-              { title: getPageTitle() },
-            ]}
-            style={{ marginBottom: 16 }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Space>
-              {/* <Button icon={<ArrowLeft size={16} />} onClick={() => navigate("/document-master")} /> */}
-              <div>
-                <Title level={2} style={{ margin: 0 }}>{getPageTitle()}</Title>
-                <Text type="secondary">{getPageSubtitle()}</Text>
+    <div className="p-6">
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/document-master")}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <ArrowLeft size={20} className="text-gray-600" />
+              </button>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <FileText className="w-6 h-6 text-white" />
               </div>
-            </Space>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {getPageTitle()}
+                </h1>
+                <p className="text-gray-500">{getPageSubtitle()}</p>
+              </div>
+            </div>
             <Space>
-              <Button onClick={() => navigate("/document-master")}>{isView ? "Back" : "Cancel"}</Button>
+              <Button
+                onClick={() => navigate("/document-master")}
+                size="large"
+              >
+                {isView ? "Back" : "Cancel"}
+              </Button>
               {!isView && (
                 <>
                   {isNew && (
-                    <Button 
-                      icon={<Plus size={16} />} 
-                      onClick={() => handleSave(true)} 
+                    <Button
+                      icon={<Plus size={16} />}
+                      onClick={() => handleSave(true)}
                       loading={loading}
+                      size="large"
                     >
                       Save & Add Another
                     </Button>
                   )}
-                  <Button 
-                    type="primary" 
-                    icon={<Save size={16} />} 
-                    onClick={() => handleSave(false)} 
+                  <Button
+                    type="primary"
+                    icon={<Save size={16} />}
+                    onClick={() => handleSave(false)}
                     loading={loading}
+                    size="large"
+                    className="shadow-lg shadow-green-600/20"
                   >
                     {isEdit ? "Update Document" : "Save Document"}
                   </Button>
@@ -242,52 +248,42 @@ const DocumentMasterCreate: React.FC = () => {
           <Row gutter={24}>
             {/* Left Column - Upload Area */}
             <Col xs={24} lg={8}>
-              <Card title="Document Upload" bordered={false} style={{ height: "100%" }}>
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm h-full">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Upload</h3>
                 <Form.Item required tooltip="Upload the document file">
-                  <Dragger 
-                    {...uploadProps} 
-                    style={{ 
-                      padding: "48px 0", 
-                      background: isView ? "#f5f5f5" : "#fafafa", 
-                      border: "2px dashed #d9d9d9",
-                      borderRadius: "8px",
-                      cursor: isView ? "not-allowed" : "pointer"
-                    }}
+                  <Dragger
+                    {...uploadProps}
+                    className={`!border-2 !border-dashed !rounded-xl ${
+                      isView
+                        ? "!bg-gray-50 !border-gray-200 !cursor-not-allowed"
+                        : "!bg-green-50/30 !border-green-200 hover:!border-green-400 !cursor-pointer"
+                    }`}
+                    style={{ padding: "48px 0" }}
                     disabled={isView}
                   >
                     <p className="ant-upload-drag-icon text-center flex items-center justify-center">
-                      <Inbox size={64} color={isView ? "#d9d9d9" : "#1890ff"} strokeWidth={1.5} />
+                      <UploadIcon size={48} className={isView ? "text-gray-300" : "text-green-500"} strokeWidth={1.5} />
                     </p>
-                    <p className="ant-upload-text" style={{ fontSize: 16, fontWeight: 500 }}>
-                      {isView ? "Document File" : "Click or drag file to this area to upload"}
+                    <p className="ant-upload-text text-base font-medium text-gray-700">
+                      {isView ? "Document File" : "Click or drag file to upload"}
                     </p>
                     {!isView && (
-                      <p className="ant-upload-hint" style={{ padding: "0 24px" }}>
-                        Support for a single or bulk upload. Strictly prohibit from uploading company data or other
-                        banned files.
+                      <p className="ant-upload-hint text-gray-500 px-6">
+                        Support for single or bulk upload. PDF, DOC, DOCX formats accepted.
                       </p>
                     )}
                   </Dragger>
                 </Form.Item>
-                
+
                 {fileList.length > 0 && (
-                  <div style={{ 
-                    marginTop: 24, 
-                    padding: 16, 
-                    background: "#e6f7ff", 
-                    borderRadius: 8, 
-                    border: "1px solid #91d5ff",
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "space-between" 
-                  }}>
+                  <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200 flex items-center justify-between">
                     <Space>
-                      <div style={{ padding: 8, background: "#fff", borderRadius: 4 }}>
-                        <FileText size={24} color="#1890ff" />
+                      <div className="p-2 bg-white rounded-lg">
+                        <FileText size={24} className="text-green-600" />
                       </div>
                       <div>
-                        <Text strong style={{ display: "block" }}>{fileList[0].name}</Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>{(fileList[0].size / 1024).toFixed(2)} KB</Text>
+                        <span className="font-medium text-gray-900 block">{fileList[0].name}</span>
+                        <span className="text-xs text-gray-500">{(fileList[0].size / 1024).toFixed(2)} KB</span>
                       </div>
                     </Space>
                     {!isView && (
@@ -295,28 +291,34 @@ const DocumentMasterCreate: React.FC = () => {
                     )}
                   </div>
                 )}
-              </Card>
+              </div>
             </Col>
 
             {/* Right Column - Form Details */}
             <Col xs={24} lg={16}>
-              <Card 
-                title={
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Document Details</span>
-                    {!isView && <Button type="link" icon={<RotateCcw size={14} />} onClick={() => form.resetFields()}>Reset Form</Button>}
-                  </div>
-                } 
-                bordered={false}
-              >
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Document Details</h3>
+                  {!isView && (
+                    <Button
+                      type="link"
+                      icon={<RotateCcw size={14} />}
+                      onClick={() => form.resetFields()}
+                      className="text-gray-500 hover:text-green-600"
+                    >
+                      Reset Form
+                    </Button>
+                  )}
+                </div>
+
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
                       name="document_type"
-                      label="Document Type"
+                      label={<span className="text-gray-700 font-medium">Document Type</span>}
                       rules={[{ required: true, message: "Please select document type" }]}
                     >
-                      <Select placeholder="Select type" size="large">
+                      <Select placeholder="Select type" size="large" className="w-full">
                         <Option value="Manual">Manual</Option>
                         <Option value="Specification">Specification</Option>
                         <Option value="Report">Report</Option>
@@ -327,7 +329,7 @@ const DocumentMasterCreate: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="category"
-                      label="Category"
+                      label={<span className="text-gray-700 font-medium">Category</span>}
                       rules={[{ required: true, message: "Please select category" }]}
                     >
                       <Select placeholder="Select category" loading={categories.length === 0} size="large">
@@ -345,7 +347,7 @@ const DocumentMasterCreate: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="product_code"
-                      label="Product Code"
+                      label={<span className="text-gray-700 font-medium">Product Code</span>}
                       rules={[{ required: true, message: "Please enter product code" }]}
                     >
                       <Input placeholder="e.g. PRD-001" size="large" />
@@ -354,7 +356,7 @@ const DocumentMasterCreate: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="version"
-                      label="Version"
+                      label={<span className="text-gray-700 font-medium">Version</span>}
                       rules={[{ required: true, message: "Please enter version" }]}
                     >
                       <Input placeholder="e.g. v1.0" size="large" />
@@ -364,7 +366,7 @@ const DocumentMasterCreate: React.FC = () => {
 
                 <Form.Item
                   name="document_title"
-                  label="Document Title"
+                  label={<span className="text-gray-700 font-medium">Document Title</span>}
                   rules={[{ required: true, message: "Please enter document title" }]}
                 >
                   <Input placeholder="Enter document title" size="large" />
@@ -372,19 +374,19 @@ const DocumentMasterCreate: React.FC = () => {
 
                 <Form.Item
                   name="description"
-                  label="Description"
+                  label={<span className="text-gray-700 font-medium">Description</span>}
                   rules={[{ required: true, message: "Please enter description" }]}
                 >
                   <TextArea rows={4} placeholder="Enter document description" showCount maxLength={500} />
                 </Form.Item>
 
-                <Divider />
+                <div className="border-t border-gray-100 my-6"></div>
 
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
                       name="tags"
-                      label="Tags"
+                      label={<span className="text-gray-700 font-medium">Tags</span>}
                       rules={[{ required: true, message: "Please select tags" }]}
                     >
                       <Select mode="multiple" placeholder="Select tags" loading={tags.length === 0} size="large">
@@ -399,7 +401,7 @@ const DocumentMasterCreate: React.FC = () => {
                   <Col span={12}>
                     <Form.Item
                       name="access_level"
-                      label="Access Level"
+                      label={<span className="text-gray-700 font-medium">Access Level</span>}
                       rules={[{ required: true, message: "Please select access level" }]}
                     >
                       <Select placeholder="Select access level" size="large">
@@ -410,12 +412,12 @@ const DocumentMasterCreate: React.FC = () => {
                     </Form.Item>
                   </Col>
                 </Row>
-              </Card>
+              </div>
             </Col>
           </Row>
         </Form>
-      </Space>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

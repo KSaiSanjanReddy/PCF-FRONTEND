@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -44,6 +44,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import dayjs from "dayjs";
+import componentMasterService, { type ComponentItem } from "../lib/componentMasterService";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -60,6 +61,7 @@ interface ComponentData {
   weight: string;
   recyclability: string;
   certificateStatus: string;
+  [key: string]: any; // Allow additional fields from API
 }
 
 interface PCFUsage {
@@ -114,20 +116,6 @@ const ComponentsMasterView: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [componentData, setComponentData] = useState<ComponentData | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Mock data - replace with API calls later
-  const mockComponentData: ComponentData = {
-    id: id || "1",
-    componentCode: "ABC 123",
-    componentName: "Steel Shaft",
-    lifecycleStage: "Use Phase",
-    manufacturer: "XYZ Ltd.",
-    location: "Germany",
-    materialType: "Alloy Steel",
-    weight: "2.3 kg",
-    recyclability: "Yes (80%)",
-    certificateStatus: "Uploaded on 10 Jul 2025",
-  };
 
   const mockPCFUsage: PCFUsage[] = [
     {
@@ -226,29 +214,72 @@ const ComponentsMasterView: React.FC = () => {
     },
   ];
 
+  const fetchComponentData = useCallback(async () => {
+    if (!id) {
+      message.error("Component ID is missing");
+      navigate("/components-master");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await componentMasterService.getComponentById(id);
+
+      if (result.success && result.data) {
+        const data = result.data;
+        // Helper function to safely extract string from object or string
+        const extractString = (value: any, fallback: string = "N/A"): string => {
+          if (!value) return fallback;
+          if (typeof value === "string") return value;
+          if (typeof value === "object" && value.name) return value.name;
+          return fallback;
+        };
+
+        // Extract string values first to prevent object rendering
+        const componentCode = data.code || data.componentCode || "N/A";
+        const componentName = extractString(data.componentName) || extractString(data.component_category) || extractString(data.component_type) || extractString(data.request_title) || "N/A";
+        const lifecycleStage = extractString(data.lifecycleStage) || extractString(data.component_category) || "N/A";
+        const manufacturer = extractString(data.manufacturer) || extractString(data.manufacturer_details) || "N/A";
+        const location = extractString(data.location) || extractString((data as any).production_location) || "N/A";
+        const materialType = extractString(data.materialType) || extractString(data.bom_details?.[0]?.material_type) || "N/A";
+        const weight = extractString(data.weight) || (data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A");
+        const recyclability = extractString(data.recyclability) || "N/A";
+        const certificateStatus = extractString(data.certificateStatus) || "N/A";
+
+        // Transform API response to ComponentData format
+        // Spread original data first, then override with string values
+        const transformedData: ComponentData = {
+          ...data,
+          id: data.id,
+          componentCode,
+          componentName,
+          lifecycleStage,
+          manufacturer,
+          location,
+          materialType,
+          weight,
+          recyclability,
+          certificateStatus,
+        };
+        setComponentData(transformedData);
+      } else {
+        message.error(result.message || "Failed to fetch component data");
+        navigate("/components-master");
+      }
+    } catch (error) {
+      console.error("Error fetching component data:", error);
+      message.error("Failed to fetch component data");
+      navigate("/components-master");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, navigate]);
+
   useEffect(() => {
     if (id) {
       fetchComponentData();
     }
-  }, [id]);
-
-  const fetchComponentData = async () => {
-    setLoading(true);
-    try {
-      // TODO: Replace with actual API call
-      // const result = await componentService.getComponentById(id);
-      // setComponentData(result.data);
-      
-      // Mock data for now
-      setTimeout(() => {
-        setComponentData(mockComponentData);
-        setLoading(false);
-      }, 500);
-    } catch (error) {
-      message.error("Failed to fetch component data");
-      setLoading(false);
-    }
-  };
+  }, [id, fetchComponentData]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -839,7 +870,7 @@ const ComponentsMasterView: React.FC = () => {
             <Puzzle className="w-6 h-6 text-white" />
           </div>
           <div>
-            <Title level={2} className="mb-0">
+            <Title level={2} className="!mb-0">
               Components Master
             </Title>
             <Text type="secondary">

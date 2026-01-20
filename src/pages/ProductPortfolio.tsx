@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Grid, Layers, Settings } from "lucide-react";
+import { Package, Briefcase, ArrowRight } from "lucide-react";
 
 const ProductPortfolio: React.FC = () => {
   const navigate = useNavigate();
@@ -11,23 +11,20 @@ const ProductPortfolio: React.FC = () => {
       description: "View and manage your complete product catalog",
       icon: Package,
       path: "/product-portfolio/all-products",
-      color: "bg-blue-50 text-blue-600",
     },
-    // Future modules can be added here
-    // {
-    //   title: "Categories",
-    //   description: "Manage product categories and sub-categories",
-    //   icon: Layers,
-    //   path: "/settings/products", // Assuming this exists or will exist
-    //   color: "bg-purple-50 text-purple-600",
-    // },
   ];
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Product Portfolio</h1>
-        <p className="text-gray-500 mt-1">Manage your products and catalog definitions</p>
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+          <Briefcase className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Product Portfolio</h1>
+          <p className="text-gray-500">Manage your products and catalog definitions</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -35,13 +32,14 @@ const ProductPortfolio: React.FC = () => {
           <div
             key={item.title}
             onClick={() => navigate(item.path)}
-            className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-green-200 transition-all cursor-pointer group"
           >
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${item.color}`}>
-              <item.icon className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-4 group-hover:bg-green-100 transition-colors">
+              <item.icon className="w-6 h-6 text-green-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors flex items-center gap-2">
               {item.title}
+              <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
             </h3>
             <p className="text-gray-500 mt-2 text-sm">
               {item.description}

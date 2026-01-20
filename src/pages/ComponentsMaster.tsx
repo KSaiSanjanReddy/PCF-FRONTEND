@@ -26,23 +26,24 @@ import {
   FileText,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import componentMasterService, { type ComponentItem } from "../lib/componentMasterService";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-interface ComponentItem {
-  id: string;
-  componentCode: string;
-  componentName: string;
-  lifecycleStage: string;
-  manufacturer: string;
-  location: string;
-  materialType: string;
-  weight: string;
-  recyclability: string;
-  certificateStatus: string;
-  status: string;
-}
+// interface ComponentItem {
+//   id: string;
+//   componentCode: string;
+//   componentName: string;
+//   lifecycleStage: string;
+//   manufacturer: string;
+//   location: string;
+//   materialType: string;
+//   weight: string;
+//   recyclability: string;
+//   certificateStatus: string;
+//   status: string;
+// }
 
 const ComponentsMaster: React.FC = () => {
   const navigate = useNavigate();
@@ -57,52 +58,9 @@ const ComponentsMaster: React.FC = () => {
     total: 0,
   });
 
-  // Mock data - replace with API call later
-  const mockComponents: ComponentItem[] = [
-    {
-      id: "1",
-      componentCode: "ABC 123",
-      componentName: "Steel Shaft",
-      lifecycleStage: "Use Phase",
-      manufacturer: "XYZ Ltd.",
-      location: "Germany",
-      materialType: "Alloy Steel",
-      weight: "2.3 kg",
-      recyclability: "Yes (80%)",
-      certificateStatus: "Uploaded on 10 Jul 2025",
-      status: "active",
-    },
-    {
-      id: "2",
-      componentCode: "DEF 456",
-      componentName: "Aluminum Frame",
-      lifecycleStage: "Manufacturing",
-      manufacturer: "ABC Corp",
-      location: "USA",
-      materialType: "Aluminum",
-      weight: "1.5 kg",
-      recyclability: "Yes (95%)",
-      certificateStatus: "Pending",
-      status: "active",
-    },
-    {
-      id: "3",
-      componentCode: "GHI 789",
-      componentName: "Plastic Housing",
-      lifecycleStage: "End-of-Life",
-      manufacturer: "Plastico Inc",
-      location: "China",
-      materialType: "Polycarbonate",
-      weight: "0.8 kg",
-      recyclability: "Yes (60%)",
-      certificateStatus: "Expired",
-      status: "inactive",
-    },
-  ];
-
   useEffect(() => {
     fetchComponents();
-  }, []);
+  }, [pagination.current, pagination.pageSize]);
 
   useEffect(() => {
     filterComponents();
@@ -111,22 +69,30 @@ const ComponentsMaster: React.FC = () => {
   const fetchComponents = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const result = await componentService.getComponentList();
-      // setComponents(result.data);
-      
-      // Mock data for now
-      setTimeout(() => {
-        setComponents(mockComponents);
-        setFilteredComponents(mockComponents);
+      const result = await componentMasterService.getComponentList({
+        pageNumber: pagination.current,
+        pageSize: pagination.pageSize,
+        search: searchTerm || undefined,
+      });
+
+      if (result.success && result.data) {
+        setComponents(result.data.data);
+        setFilteredComponents(result.data.data);
         setPagination({
           ...pagination,
-          total: mockComponents.length,
+          total: result.data.totalCount || result.data.data.length,
         });
-        setLoading(false);
-      }, 500);
+      } else {
+        message.error(result.message || "Failed to fetch components");
+        setComponents([]);
+        setFilteredComponents([]);
+      }
     } catch (error) {
+      console.error("Error fetching components:", error);
       message.error("Failed to fetch components");
+      setComponents([]);
+      setFilteredComponents([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -134,14 +100,15 @@ const ComponentsMaster: React.FC = () => {
   const filterComponents = () => {
     let filtered = [...components];
 
-    // Apply search filter
+    // Apply search filter (client-side filtering for immediate feedback)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (c) =>
           c.componentCode?.toLowerCase().includes(searchLower) ||
           c.componentName?.toLowerCase().includes(searchLower) ||
-          c.manufacturer?.toLowerCase().includes(searchLower)
+          c.manufacturer?.toLowerCase().includes(searchLower) ||
+          c.code?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -151,17 +118,13 @@ const ComponentsMaster: React.FC = () => {
     }
 
     setFilteredComponents(filtered);
-    setPagination({
-      ...pagination,
-      total: filtered.length,
-    });
   };
 
   const handleTableChange = (newPagination: any) => {
     setPagination({
-      ...pagination,
       current: newPagination.current,
       pageSize: newPagination.pageSize,
+      total: pagination.total,
     });
   };
 
@@ -271,11 +234,11 @@ const ComponentsMaster: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
             <Puzzle className="w-6 h-6 text-white" />
           </div>
           <div>
-            <Title level={2} className="mb-0">
+            <Title level={2} className="!mb-0 !text-gray-900">
               Components Master
             </Title>
             <Text type="secondary">
@@ -288,7 +251,6 @@ const ComponentsMaster: React.FC = () => {
           icon={<Plus size={16} />}
           size="large"
           onClick={() => navigate("/components-master/new")}
-          className="bg-green-500 hover:bg-green-600"
         >
           Add Component
         </Button>
@@ -302,7 +264,17 @@ const ComponentsMaster: React.FC = () => {
               placeholder="Search by code, name, or manufacturer..."
               prefix={<Search size={16} />}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                // Reset to first page when searching
+                if (e.target.value !== searchTerm) {
+                  setPagination({ ...pagination, current: 1 });
+                }
+              }}
+              onPressEnter={() => {
+                // Fetch from API when Enter is pressed
+                fetchComponents();
+              }}
               allowClear
             />
           </Col>

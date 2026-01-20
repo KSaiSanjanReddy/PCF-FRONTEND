@@ -1046,6 +1046,18 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
             name: 'waste_type',
             label: 'Waste Type',
             type: 'select',
@@ -1739,6 +1751,18 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         },
         columns: [
           {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
+          {
             name: 'raw_material',
             label: 'Raw Material',
             type: 'text',
@@ -1787,6 +1811,18 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           value: 'No'
         },
         columns: [
+          {
+            name: 'mpn',
+            label: 'MPN',
+            type: 'text',
+            placeholder: 'Enter MPN'
+          },
+          {
+            name: 'component_name',
+            label: 'Component Name',
+            type: 'text',
+            placeholder: 'Name'
+          },
           {
             name: 'mode',
             label: 'Mode of Transport',
@@ -1882,14 +1918,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
       },
       {
-        name: 'scope_3.certifications.additional_notes.renewable_initiatives',
+        name: 'scope_3.certifications.additional_notes.initiatives',
         label: '80. What renewable energy initiatives or recycling programs are in place at your facility?',
         type: 'textarea',
         required: true,
         placeholder: 'Text',
       },
       {
-        name: 'scope_3.certifications.additional_notes.initiatives',
+        name: 'scope_3.certifications.additional_notes.strategies',
         label: '81. Could you please share information about your company\'s current sustainability initiatives and strategies?',
         type: 'textarea',
         placeholder: 'Specifically, we are interested in learning about the actions that you are taking to reduce environmental impact, improve energy Efficiency, and anything related to promote sustainable practices across your operations.',
