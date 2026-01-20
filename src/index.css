@@ -76,7 +76,7 @@
 }
 
 /* Links and Anchors */
-.ant-anchor-link-active > .ant-anchor-link-title {
+.ant-anchor-link-active>.ant-anchor-link-title {
   color: var(--color-primary) !important;
 }
 
@@ -85,7 +85,7 @@
   border-color: var(--color-primary) !important;
 }
 
-.ant-steps-item-finish .ant-steps-item-icon > .ant-steps-icon {
+.ant-steps-item-finish .ant-steps-item-icon>.ant-steps-icon {
   color: var(--color-primary) !important;
 }
 
@@ -167,7 +167,9 @@
 }
 
 /* Reset transition for elements that shouldn't animate */
-input, textarea, [contenteditable] {
+input,
+textarea,
+[contenteditable] {
   transition: border-color 150ms, box-shadow 150ms;
 }
 
@@ -185,4 +187,26 @@ input, textarea, [contenteditable] {
 
 .card-shadow-hover:hover {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Dashboard Chart Custom Scrollbar */
+.chart-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.chart-scrollbar::-webkit-scrollbar-track {
+  background: #EBFADC;
+  border-radius: 9999px;
+  margin: 0 32px;
+}
+
+.chart-scrollbar::-webkit-scrollbar-thumb {
+  background: #52C41A;
+  border-radius: 9999px;
+  border: 2px solid #EBFADC;
+  /* creates spacing effect if needed */
+}
+
+.chart-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #45A617;
 }

@@ -47,6 +47,19 @@ import DataQualityRatingList from "../pages/DataQualityRatingList";
 import PCFRequestCreate from "../pages/PCFRequestCreate";
 import PCFRequestView from "../pages/PCFRequestView";
 import TaskView from "../pages/TaskView";
+import ReportView from "../pages/ReportView";
+
+// Detailed Dashboard Pages
+import DetailedLifeCycle from "../pages/DetailedLifeCycle";
+import DetailedSupplierEmission from "../pages/DetailedSupplierEmission";
+import DetailedRawMaterialEmission from "../pages/DetailedRawMaterialEmission";
+import DetailedPackagingEmission from "../pages/DetailedPackagingEmission";
+import DetailedTransportationEmission from "../pages/DetailedTransportationEmission";
+import DetailedEnergyEmission from "../pages/DetailedEnergyEmission";
+import DetailedRecyclability from "../pages/DetailedRecyclability";
+import DetailedWasteEmission from "../pages/DetailedWasteEmission";
+import DetailedImpactCategories from "../pages/DetailedImpactCategories";
+import DetailedPCFTrend from "../pages/DetailedPCFTrend";
 
 export const router = createBrowserRouter([
   {
@@ -89,6 +102,46 @@ export const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <Dashboard />,
+      },
+      {
+        path: "dashboard/detailed-lifecycle",
+        element: <DetailedLifeCycle />,
+      },
+      {
+        path: "dashboard/detailed-supplier",
+        element: <DetailedSupplierEmission />,
+      },
+      {
+        path: "dashboard/detailed-raw-material",
+        element: <DetailedRawMaterialEmission />,
+      },
+      {
+        path: "dashboard/detailed-packaging",
+        element: <DetailedPackagingEmission />,
+      },
+      {
+        path: "dashboard/detailed-transportation",
+        element: <DetailedTransportationEmission />,
+      },
+      {
+        path: "dashboard/detailed-energy",
+        element: <DetailedEnergyEmission />,
+      },
+      {
+        path: "dashboard/detailed-recyclability",
+        element: <DetailedRecyclability />,
+      },
+      {
+        path: "dashboard/detailed-waste",
+        element: <DetailedWasteEmission />,
+      },
+      {
+        path: "dashboard/detailed-impact",
+        element: <DetailedImpactCategories />,
+      },
+      {
+        path: "dashboard/detailed-pcf-trend",
+        element: <DetailedPCFTrend />,
       },
       {
         path: "pcf-request",
@@ -173,6 +226,10 @@ export const router = createBrowserRouter([
       {
         path: "reports",
         element: <ReportsMain />,
+      },
+      {
+        path: "reports/:id",
+        element: <ReportView />,
       },
       {
         path: "visitor-management",
