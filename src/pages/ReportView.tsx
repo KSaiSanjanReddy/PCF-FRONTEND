@@ -16,6 +16,7 @@ import {
     Settings,
 } from "lucide-react";
 import { reportsData } from "./Reports";
+import { reportService } from "../lib/reportService";
 
 const ReportView: React.FC = () => {
     const { id } = useParams();
@@ -26,10 +27,52 @@ const ReportView: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
+    const [reportData, setReportData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        total_pages: 1,
+        total_count: 0
+    });
+
+    const fetchData = async (page = 1) => {
+        if (!report?.apiType) return;
+
+        setLoading(true);
+        try {
+            let response;
+            switch (report.apiType) {
+                case "product":
+                    response = await reportService.getProductFootprintList(page);
+                    break;
+                case "supplier":
+                    response = await reportService.getSupplierFootprintList(page);
+                    break;
+                case "packaging":
+                    response = await reportService.getPackagingFootprintList(page);
+                    break;
+            }
+
+            if (response?.success) {
+                setReportData(response.data);
+                setPagination({
+                    current_page: response.current_page || 1,
+                    total_pages: response.total_pages || 1,
+                    total_count: response.total_count || 0
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching report data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Update visible columns if report changes
     React.useEffect(() => {
         if (report?.columns) {
             setVisibleColumns(report.columns);
+            fetchData(1);
         }
     }, [report]);
 
@@ -50,6 +93,12 @@ const ReportView: React.FC = () => {
         const numCols = ["SL.NO", "SL. No.", "Sl.No", "Sl. No", "Carbon Footprint", "Footprint Per Unit", "Total Footprint", "Quantity", "Intensity", "DQR Rating"];
         if (numCols.some(n => col.includes(n))) return "number";
         return "string";
+    };
+
+    const resolvePath = (obj: any, path: string) => {
+        return path?.split('.').reduce((prev, curr) => {
+            return prev ? prev[curr] : undefined;
+        }, obj);
     };
 
     const addFilterRow = () => {
@@ -285,28 +334,81 @@ const ReportView: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {[1, 2, 3].map((rowIdx) => (
-                                        <tr key={rowIdx} className="hover:bg-gray-50/50 transition-colors">
-                                            {report?.columns?.filter(col => visibleColumns.includes(col)).map((col, colIdx) => (
-                                                <td key={colIdx} className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                                                    {col === "SL.NO" || col === "SL. No." || col === "Sl.No" || col === "Sl. No" ? rowIdx : `Data ${rowIdx}-${colIdx}`}
-                                                </td>
-                                            ))}
-                                            {!report?.columns && (
-                                                <>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">1</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">PRD-882-X</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">Eco-Friendly Laptop Chassis</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">Chassis</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">Delhi, India</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">ALU TECH Group</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-900">1,240.00</td>
-                                                    <td className="px-6 py-4 text-sm font-medium text-gray-600">12.40</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-500">2024-05-12</td>
-                                                </>
-                                            )}
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={visibleColumns.length} className="px-6 py-10 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    <p className="text-sm text-gray-500 font-medium">Loading report data...</p>
+                                                </div>
+                                            </td>
                                         </tr>
-                                    ))}
+                                    ) : reportData.length > 0 ? (
+                                        reportData.map((row, rowIdx) => (
+                                            <tr key={rowIdx} className="hover:bg-gray-50/50 transition-colors">
+                                                {report?.columns?.filter(col => visibleColumns.includes(col)).map((col, colIdx) => {
+                                                    // Map column names to common data keys
+                                                    const keyMap: { [key: string]: string } = {
+                                                        "SL.NO": "index",
+                                                        "SL. No.": "index",
+                                                        "Sl.No": "index",
+                                                        "Sl. No": "index",
+                                                        "Supplier ID/Code": "supplier_details.code",
+                                                        "Supplier name": "supplier_details.supplier_name",
+                                                        "Supplier Name": "supplier_details.supplier_name",
+                                                        "Manufacturer": "manufacturer",
+                                                        "Manufacturer name": "manufacturer",
+                                                        "Component or Parts Name": "component_name",
+                                                        "Component / Part Supplied": "component_name",
+                                                        "Weight (gms) /unit": "weight_gms",
+                                                        "Total Weight (gms)": "total_weight_gms",
+                                                        "Component Category": "component_category",
+                                                        "Transport Mode": "transport_mode",
+                                                        "Economic Ratio": "economic_ratio",
+                                                        "Allocation Methodology": "allocation_methodology",
+                                                        "Raw Materials Emissions": "material_emission.0.material_emission",
+                                                        "Production Emissions": "production_emission_calculation.0.manufacturing_emission",
+                                                        "Packaging Emissions": "packaging_emissions",
+                                                        "Waste Emissions": "waste_emissions",
+                                                        "Transportation Emissions": "transportation_emissions",
+                                                        "PCF [kg CO2e / kg Material]": "pcf_value",
+                                                        "Manufacturing Region": "manufacturing_region",
+                                                        "Material Type": "material_type",
+                                                        "Energy Type Used in Manufacturing": "energy_type",
+                                                        "Energy Quantity (kWh/kg)": "energy_quantity",
+                                                        "Recycled Content (%)": "recycled_content",
+                                                        "Emission Factor": "emission_factor",
+                                                        "Supplier Emission": "supplier_emission",
+                                                        "Packaging Material / Type": "packaging_material",
+                                                        "Type of energy used": "energy_type",
+                                                        "Recyclability (%)": "recyclability_percentage",
+                                                        "Emission Factor (kg CO₂e / kg)": "emission_factor",
+                                                        "Emission @ 0.25 kg (kg CO₂e)": "emission_0_25",
+                                                        "Emission @ 0.5 kg (kg CO₂e)": "emission_0_5",
+                                                    };
+
+                                                    const dataKey = keyMap[col] || col.toLowerCase().replace(/ /g, "_");
+                                                    let displayValue = resolvePath(row, dataKey);
+
+                                                    if (dataKey === "index") {
+                                                        displayValue = (pagination.current_page - 1) * 20 + rowIdx + 1;
+                                                    }
+
+                                                    return (
+                                                        <td key={colIdx} className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                                                            {displayValue !== undefined ? String(displayValue) : "-"}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={visibleColumns.length} className="px-6 py-10 text-center text-gray-500">
+                                                No data available for this report.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
