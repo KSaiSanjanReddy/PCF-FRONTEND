@@ -167,17 +167,25 @@ const UsersEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate("/settings/users")}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Back to Users</span>
-          </button>
+      <div className="space-y-6 p-6">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/settings/users")}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <ArrowLeft size={20} className="text-gray-600" />
+            </button>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Edit User</h1>
+              <p className="text-gray-500">Update user information and permissions</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-12">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12">
           <div className="text-center">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-gray-500">Loading user data...</p>
@@ -188,31 +196,27 @@ const UsersEdit: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate("/settings/users")}
-          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Back to Users</span>
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center">
-              <User className="h-4 w-4 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Edit User</h2>
-              <p className="text-gray-600">
-                Update user information and permissions
-              </p>
-            </div>
+    <div className="space-y-6 p-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/settings/users")}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </button>
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+            <User className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Edit User</h1>
+            <p className="text-gray-500">Update user information and permissions</p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,7 +228,7 @@ const UsersEdit: React.FC = () => {
                 type="text"
                 name="user_name"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_name}
                 onChange={handleInputChange}
               />
@@ -238,7 +242,7 @@ const UsersEdit: React.FC = () => {
                 type="email"
                 name="user_email"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_email}
                 onChange={handleInputChange}
               />
@@ -251,7 +255,7 @@ const UsersEdit: React.FC = () => {
               <select
                 name="user_role"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_role}
                 onChange={handleInputChange}
               >
@@ -270,7 +274,7 @@ const UsersEdit: React.FC = () => {
               </label>
               <select
                 name="user_department"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_department}
                 onChange={handleInputChange}
               >
@@ -290,7 +294,7 @@ const UsersEdit: React.FC = () => {
               <input
                 type="tel"
                 name="user_phone_number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_phone_number}
                 onChange={handleInputChange}
               />
@@ -305,7 +309,7 @@ const UsersEdit: React.FC = () => {
                 name="user_max_dis_per"
                 min="0"
                 max="100"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_max_dis_per}
                 onChange={handleInputChange}
               />
@@ -320,25 +324,25 @@ const UsersEdit: React.FC = () => {
                 name="user_min_dis_per"
                 min="0"
                 max="100"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={formData.user_min_dis_per}
                 onChange={handleInputChange}
               />
             </div> */}
           </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-100">
             <button
               type="button"
               onClick={() => navigate("/settings/users")}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-600/20 transition-all"
             >
               <Save className="h-4 w-4" />
               <span>{saving ? "Saving..." : "Save Changes"}</span>

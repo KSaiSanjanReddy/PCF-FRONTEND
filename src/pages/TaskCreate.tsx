@@ -1,31 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-  Button,
-  Card,
   Col,
-  ConfigProvider,
   DatePicker,
   Form,
   Input,
   Row,
   Select,
-  Space,
-  Typography,
-  Upload,
   message,
   Spin,
 } from "antd";
-import {
-  LeftOutlined,
-  SaveOutlined,
-  CloudUploadOutlined,
-} from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckSquare } from "lucide-react";
+import { CheckSquare, ArrowLeft, Save } from "lucide-react";
 import dayjs from "dayjs";
 import taskService from "../lib/taskService";
 
-const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 interface PCFOption {
@@ -256,54 +244,49 @@ const TaskCreate: React.FC = () => {
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          borderRadius: 8,
-          colorPrimary: "#52c41a",
-          colorSuccess: "#52c41a",
-          colorWarning: "#faad14",
-          colorError: "#dc3545",
-          colorInfo: "#1890ff",
-        },
-        components: {
-          Card: { paddingLG: 16, borderRadius: 12 },
-          Button: { borderRadius: 8 },
-          Select: { borderRadius: 8 },
-          Input: { borderRadius: 8 },
-          DatePicker: { borderRadius: 8 },
-        },
-      }}
-    >
-      <div className="bg-gray-100 p-6">
-        <Spin spinning={loading}>
-          <Space direction="vertical" size={16} className="w-full">
-            {/* Header */}
-            <Button
-              type="text"
-              icon={<LeftOutlined />}
-              onClick={() => navigate("/task-management")}
-              className="p-0 text-gray-700 mb-2"
-            >
-              Task Management
-            </Button>
-
-            <Card>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-green-500 p-4 rounded-xl w-14 h-14 flex items-center justify-center">
-                  <CheckSquare color="white" size={32} />
+    <div className="p-6">
+      <Spin spinning={loading}>
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate("/task-management")}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <ArrowLeft size={20} className="text-gray-600" />
+                </button>
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                  <CheckSquare className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, marginBottom: 4 }}>
-                    Task Details
-                  </Title>
-                  <Text type="secondary">
-                    Fill in the Information below to create a new task.
-                  </Text>
+                  <h1 className="text-2xl font-bold text-gray-900">Create New Task</h1>
+                  <p className="text-gray-500">Fill in the information below to create a new task</p>
                 </div>
               </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/task-management")}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-600/20 transition-all"
+                >
+                  <Save size={18} />
+                  <span>Create Task</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
-              <Form
+          {/* Form Section */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <Form
                 form={form}
                 layout="vertical"
                 onFinish={handleSave}
@@ -400,16 +383,19 @@ const TaskCreate: React.FC = () => {
                 </div>
 
                 {/* Additional Details Section */}
-                <div className="mb-6">
-                  <Title level={4} style={{ marginBottom: 16 }}>
+                <div className="mb-6 pt-6 border-t border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    </div>
                     Additional Details
-                  </Title>
+                  </h3>
                   <Row gutter={[16, 16]}>
                     <Col xs={24} md={12}>
                       <Form.Item
                         label={
                           <span>
-                            Related Product <Text type="secondary">(Optional)</Text>
+                            Related Product <span className="text-gray-400">(Optional)</span>
                           </span>
                         }
                         name="product"
@@ -487,7 +473,7 @@ const TaskCreate: React.FC = () => {
                       <Form.Item
                         label={
                           <span>
-                            Tags <Text type="secondary">(Optional)</Text>
+                            Tags <span className="text-gray-400">(Optional)</span>
                           </span>
                         }
                         name="tags"
@@ -496,9 +482,9 @@ const TaskCreate: React.FC = () => {
                           placeholder="Enter tags separated by commas..."
                           size="large"
                         />
-                        <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+                        <span className="text-gray-400 text-xs mt-1 block">
                           Example: urgent, review-required, documentation
-                        </Text>
+                        </span>
                       </Form.Item>
                     </Col>
                   </Row>
@@ -524,31 +510,11 @@ const TaskCreate: React.FC = () => {
                   </Form.Item>
                 </div> */}
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4">
-                  <Button
-                    size="large"
-                    onClick={() => navigate("/task-management")}
-                    style={{ borderColor: "#52c41a", color: "#52c41a" }}
-                  >
-                    <LeftOutlined /> Back
-                  </Button>
-                  <Button
-                    type="primary"
-                    size="large"
-                    htmlType="submit"
-                    icon={<SaveOutlined />}
-                    loading={loading}
-                  >
-                    Save
-                  </Button>
-                </div>
               </Form>
-            </Card>
-          </Space>
+            </div>
+          </div>
         </Spin>
       </div>
-    </ConfigProvider>
   );
 };
 

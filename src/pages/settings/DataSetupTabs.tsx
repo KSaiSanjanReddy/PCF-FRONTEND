@@ -404,58 +404,62 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/settings")}
-          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Settings</span>
-        </button>
-
-        {/* Main Content Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {/* Header Section */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
+      <div className="p-6 space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/settings")}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <ArrowLeft size={20} className="text-gray-600" />
+              </button>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
                 {description && (
-                  <p className="text-gray-600 mt-1">{description}</p>
+                  <p className="text-gray-500">{description}</p>
                 )}
               </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={handleImport}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>Import CSV</span>
-                </button>
-                <button
-                  onClick={handleExport}
-                  className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                  title="Export CSV"
-                >
-                  <Download className="h-5 w-5" />
-                </button>
-              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExport}
+                className="px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                title="Export CSV"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={handleImport}
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-green-600/20"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Import CSV</span>
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
 
           {/* Tabs - Only show if more than one tab */}
           {tabs.length > 1 && (
-            <div className="px-6 pt-4">
-              <div className="flex space-x-8 border-b border-gray-200 mb-5">
+            <div className="px-6 pt-6">
+              <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => handleTabChange(tab.key)}
-                    className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                       activeTab === tab.key
-                        ? "border-green-500 text-green-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        ? "bg-white text-green-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     {tab.label}
@@ -503,7 +507,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-green-50 to-green-100">
@@ -743,13 +747,13 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && itemToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <Trash2 className="h-5 w-5 text-red-600" />
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <Trash2 className="h-6 w-6 text-red-600" />
                   </div>
                 </div>
                 <div>
@@ -762,12 +766,12 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-700">
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+                <p className="text-sm text-gray-700 mb-1">
                   <span className="font-medium">Code:</span>{" "}
                   {itemToDelete.item.code}
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 mb-1">
                   <span className="font-medium">Name:</span>{" "}
                   {itemToDelete.item.name}
                 </p>
@@ -780,13 +784,13 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
               <div className="flex items-center justify-end space-x-3">
                 <button
                   onClick={handleCloseDeleteModal}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center space-x-2"
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors flex items-center space-x-2"
                 >
                   <Trash2 className="h-4 w-4" />
                   <span>Delete</span>

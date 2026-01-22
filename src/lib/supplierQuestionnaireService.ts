@@ -1809,26 +1809,34 @@ class SupplierQuestionnaireService {
   }
 
   /**
-   * Get all DQR ratings
+   * Get all DQR ratings with pagination
    */
-  async listDQRRatings(): Promise<{
+  async listDQRRatings(
+    pageNumber: number = 1,
+    pageSize: number = 20
+  ): Promise<{
     success: boolean;
     message: string;
     data?: any[];
+    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number };
   }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dqr-rating/list`, {
-        method: "GET",
-        headers: this.getHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
 
-      const result: ApiResponse = await response.json();
+      const result: ApiResponse & { pagination?: any } = await response.json();
 
       if (result.status || result.success) {
         return {
           success: true,
           message: result.message || "DQR ratings fetched successfully",
           data: result.data,
+          pagination: result.pagination,
         };
       } else {
         return {
@@ -1930,27 +1938,34 @@ class SupplierQuestionnaireService {
   }
 
   /**
-   * Get list of all DQR ratings
+   * Get list of all DQR ratings with pagination
    */
   async getDQRList(
-    user_id: string
-  ): Promise<{ success: boolean; message: string; data?: any }> {
+    pageNumber: number = 1,
+    pageSize: number = 20
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any[];
+    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number };
+  }> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/dqr-rating/list?user_id=${user_id}`,
+        `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
         {
           method: "GET",
           headers: this.getHeaders(),
         }
       );
 
-      const result: ApiResponse = await response.json();
+      const result: ApiResponse & { pagination?: any } = await response.json();
 
       if (result.status || result.success) {
         return {
           success: true,
           message: result.message || "DQR list retrieved successfully",
           data: result.data,
+          pagination: result.pagination,
         };
       } else {
         return {
@@ -1968,7 +1983,7 @@ class SupplierQuestionnaireService {
   }
 
   /**
-   * Save DQR rating
+   * Save DQR rating (legacy method - kept for backward compatibility)
    * @param bom_pcf_id - BOM PCF ID
    * @param type - Type of DQR rating (e.g., "dqr_raw_material_product_rating")
    * @param ratings - Array of DQR rating objects
@@ -2007,6 +2022,69 @@ class SupplierQuestionnaireService {
       }
     } catch (error) {
       console.error("Save DQR rating error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Update DQR ratings for a specific question type
+   * Uses the new API structure: PUT /api/dqr-rating/update
+   * @param type - Question type (e.g., "q9", "q16", "q17", etc.)
+   * @param records - Array of DQR rating record objects
+   */
+  async updateDQRRating(
+    type: string,
+    records: Array<{
+      sgiq_id: string;
+      edrqn_id: string;
+      ter_tag_type?: string | null;
+      ter_tag_value?: string | null;
+      ter_data_point?: string | null;
+      tir_tag_type?: string | null;
+      tir_tag_value?: string | null;
+      tir_data_point?: string | null;
+      gr_tag_type?: string | null;
+      gr_tag_value?: string | null;
+      gr_data_point?: string | null;
+      c_tag_type?: string | null;
+      c_tag_value?: string | null;
+      c_data_point?: string | null;
+      pds_tag_type?: string | null;
+      pds_tag_value?: string | null;
+      pds_data_point?: string | null;
+    }>
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const payload = {
+        type,
+        records,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/dqr-rating/update`, {
+        method: "PUT",
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "DQR rating updated successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to update DQR rating",
+        };
+      }
+    } catch (error) {
+      console.error("Update DQR rating error:", error);
       return {
         success: false,
         message: "Network error occurred",

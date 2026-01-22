@@ -111,32 +111,39 @@ const UsersCreate: React.FC = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-            Create New User
-          </h2>
-          <p className="text-gray-600">
-            Add a new user account to the EnviGuide system
-          </p>
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/settings/users")}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <ArrowLeft size={20} className="text-gray-600" />
+            </button>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Create New User
+              </h1>
+              <p className="text-gray-500">
+                Add a new user account to the EnviGuide system
+              </p>
+            </div>
+          </div>
         </div>
-        <Link
-          to="/settings/users"
-          className="px-3 py-2 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 inline-flex items-center space-x-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Users</span>
-        </Link>
       </div>
 
       <form
         onSubmit={handleSubmit}
         autoComplete="off"
-        className="bg-white rounded-lg shadow p-6 space-y-8"
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-8"
       >
         <section className="space-y-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
               <User className="h-5 w-5" />
             </div>
             <h3 className="text-lg md:text-xl font-semibold text-gray-900">
@@ -150,7 +157,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <input
                 type="text"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={form.user_name}
                 onChange={(e) => updateField("user_name", e.target.value)}
                 placeholder="Enter username"
@@ -166,7 +173,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <input
                 type="email"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={form.user_email}
                 onChange={(e) => updateField("user_email", e.target.value)}
                 placeholder="name@example.com"
@@ -183,7 +190,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <input
                 type="tel"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={form.user_phone_number}
                 onChange={(e) =>
                   updateField("user_phone_number", e.target.value)
@@ -198,7 +205,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <div className="relative">
                 <select
-                  className="w-full h-10 border border-gray-300 rounded-md px-3 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
+                  className="w-full h-11 border border-gray-200 rounded-xl px-4 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 appearance-none transition-all"
                   value={form.user_role}
                   onChange={(e) => updateField("user_role", e.target.value)}
                   required
@@ -219,7 +226,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <div className="relative">
                 <select
-                  className="w-full h-10 border border-gray-300 rounded-md px-3 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
+                  className="w-full h-11 border border-gray-200 rounded-xl px-4 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 appearance-none transition-all"
                   value={form.user_department}
                   onChange={(e) =>
                     updateField("user_department", e.target.value)
@@ -241,7 +248,7 @@ const UsersCreate: React.FC = () => {
 
         <section className="space-y-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-green-200 text-green-700 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
               <Shield className="h-5 w-5" />
             </div>
             <h3 className="text-lg md:text-xl font-semibold text-gray-900">
@@ -255,7 +262,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <input
                 type="password"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={form.user_password}
                 onChange={(e) => updateField("user_password", e.target.value)}
                 placeholder="Enter password"
@@ -270,7 +277,7 @@ const UsersCreate: React.FC = () => {
               </label>
               <input
                 type="password"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 value={form.confirm_password}
                 onChange={(e) =>
                   updateField("confirm_password", e.target.value)
@@ -286,7 +293,7 @@ const UsersCreate: React.FC = () => {
 
         <section className="space-y-4">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
               <Key className="h-5 w-5" />
             </div>
             <h3 className="text-lg md:text-xl font-semibold text-gray-900">
@@ -323,17 +330,17 @@ const UsersCreate: React.FC = () => {
           </div>
         </section>
 
-        <div className="flex items-center justify-end space-x-3">
+        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-100">
           <button
             type="button"
-            className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50"
+            className="px-5 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
             onClick={() => navigate("/settings/users")}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 inline-flex items-center space-x-2"
+            className="px-5 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 inline-flex items-center space-x-2 shadow-lg shadow-green-600/20 transition-all"
             disabled={loading}
           >
             {loading ? (

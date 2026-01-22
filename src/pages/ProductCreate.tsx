@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
   Button,
-  Card,
   Col,
-  ConfigProvider,
   Form,
   Input,
   InputNumber,
   Row,
   Select,
-  Space,
-  Typography,
   message,
   Spin,
-  Divider,
 } from "antd";
-import { LeftOutlined, SaveOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Package, ArrowLeft, Save } from "lucide-react";
 import productService, {
   type ProductCategory,
   type ProductSubCategory,
@@ -25,7 +19,6 @@ import productService, {
   type LifeCycleStage,
 } from "../lib/productService";
 
-const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const ProductCreate: React.FC = () => {
@@ -106,52 +99,48 @@ const ProductCreate: React.FC = () => {
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          borderRadius: 8,
-          colorPrimary: "#1890ff",
-        },
-        components: {
-          Card: { borderRadius: 12 },
-          Button: { borderRadius: 8 },
-          Select: { borderRadius: 8 },
-          Input: { borderRadius: 8 },
-          InputNumber: { borderRadius: 8 },
-        },
-      }}
-    >
-      <div className="bg-gray-50 p-6 min-h-screen w-full">
-        <Spin spinning={loading}>
-          <Space direction="vertical" size={16} className="w-full  mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <Button
-                type="text"
-                icon={<LeftOutlined />}
-                onClick={() => navigate("/product-portfolio/all-products")}
-                className="p-0 text-gray-600 hover:text-blue-600"
-              >
-                Back to Products
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-4 mb-2">
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <Package className="w-8 h-8 text-blue-600" />
+    <div className="p-6">
+      <Spin spinning={loading}>
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate("/product-portfolio/all-products")}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <ArrowLeft size={20} className="text-gray-600" />
+                </button>
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Add New Product</h1>
+                  <p className="text-gray-500">Enter the details of the new product to add it to the portfolio</p>
+                </div>
               </div>
-              <div>
-                <Title level={2} style={{ margin: 0 }}>
-                  Add New Product
-                </Title>
-                <Text type="secondary">
-                  Enter the details of the new product to add it to the
-                  portfolio.
-                </Text>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate("/product-portfolio/all-products")}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-600/20 transition-all"
+                >
+                  <Save size={18} />
+                  <span>Create Product</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <Form
+          {/* Form Section */}
+          <Form
               form={form}
               layout="vertical"
               onFinish={handleSave}
@@ -162,10 +151,13 @@ const ProductCreate: React.FC = () => {
                 ed_renewable_energy: 0,
               }}
             >
-              <Card className="shadow-sm">
-                <Title level={4} className="mb-6 text-gray-800">
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Package className="w-5 h-5 text-green-600" />
+                  </div>
                   Product Information
-                </Title>
+                </h3>
                 <Row gutter={24}>
                   <Col xs={24} md={12}>
                     <Form.Item
@@ -252,11 +244,14 @@ const ProductCreate: React.FC = () => {
                   </Col>
                 </Row>
 
-                <Divider />
+                <div className="border-t border-gray-100 my-6"></div>
 
-                <Title level={4} className="mb-6 text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Package className="w-5 h-5 text-blue-600" />
+                  </div>
                   Technical Specifications
-                </Title>
+                </h3>
                 <Row gutter={24}>
                   <Col xs={24} md={8}>
                     <Form.Item
@@ -326,11 +321,14 @@ const ProductCreate: React.FC = () => {
                   </Col>
                 </Row>
 
-                <Divider />
+                <div className="border-t border-gray-100 my-6"></div>
 
-                <Title level={4} className="mb-6 text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <Package className="w-5 h-5 text-amber-600" />
+                  </div>
                   Environmental Data
-                </Title>
+                </h3>
                 <Row gutter={24}>
                   <Col xs={24} md={6}>
                     <Form.Item
@@ -394,29 +392,11 @@ const ProductCreate: React.FC = () => {
                   </Col>
                 </Row>
 
-                <div className="flex justify-end gap-4 mt-8">
-                  <Button
-                    size="large"
-                    onClick={() => navigate("/product-portfolio/all-products")}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    size="large"
-                    htmlType="submit"
-                    icon={<SaveOutlined />}
-                    loading={loading}
-                  >
-                    Create Product
-                  </Button>
-                </div>
-              </Card>
+              </div>
             </Form>
-          </Space>
+          </div>
         </Spin>
       </div>
-    </ConfigProvider>
   );
 };
 

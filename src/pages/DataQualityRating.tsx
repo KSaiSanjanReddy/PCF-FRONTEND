@@ -4,8 +4,6 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  TrendingUp,
-  Download,
   Save,
   X,
   Settings,
@@ -16,20 +14,69 @@ import {
   Loader,
   ArrowLeft,
   Star,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import authService from "../lib/authService";
 import { DQR_CONFIG } from "../config/questionnaireConfig";
+import {
+  DQR_QUESTIONS_CONFIG,
+  DQR_CATEGORIES,
+  parseDataField,
+  formatDataPointDisplay,
+  type DQRQuestionConfig,
+} from "../config/dqrQuestionsConfig";
 
+// API response data point structure
+interface DQRDataPointAPI {
+  edrqn_id: string;
+  sgiq_id: string;
+  data: string; // JSON string
+  ter_tag_type?: string | null;
+  ter_tag_value?: string | null;
+  ter_data_point?: string | null;
+  tir_tag_type?: string | null;
+  tir_tag_value?: string | null;
+  tir_data_point?: string | null;
+  gr_tag_type?: string | null;
+  gr_tag_value?: string | null;
+  gr_data_point?: string | null;
+  c_tag_type?: string | null;
+  c_tag_value?: string | null;
+  c_data_point?: string | null;
+  pds_tag_type?: string | null;
+  pds_tag_value?: string | null;
+  pds_data_point?: string | null;
+}
+
+// UI data point structure
 interface DataPoint {
-  id: number;
-  name: string;
-  unit: string;
+  id: string; // Unique composite key: questionKey_edrqn_id
+  edrqn_id: string; // Original edrqn_id for API calls
+  questionKey: string; // q9, q16, etc.
+  displayName: string;
+  rawData: Record<string, any>;
   category: string;
-  value: string;
   dqiRequired: string[];
-  mcm_id?: string; // Store mcm_id for matching with saved ratings
-  mcmt_id?: string; // Store mcmt_id for matching with saved ratings
+  // DQR values from API
+  ter_tag_type?: string | null;
+  ter_tag_value?: string | null;
+  tir_tag_type?: string | null;
+  tir_tag_value?: string | null;
+  gr_tag_type?: string | null;
+  gr_tag_value?: string | null;
+  c_tag_type?: string | null;
+  pds_tag_type?: string | null;
+}
+
+// DQI state for a data point
+interface DQIState {
+  TeR?: { level1?: string; level2?: string };
+  TiR?: { level1?: string; level2?: string };
+  GR?: { level1?: string; level2?: string };
+  C?: { classification?: string };
+  PDS?: { type?: string };
 }
 
 const DataQualityRating = () => {
@@ -38,360 +85,153 @@ const DataQualityRating = () => {
   const sgiq_id = searchParams.get("sgiq_id");
   const bom_pcf_id_from_url = searchParams.get("bom_pcf_id");
 
-  const [selectedDataPoint, setSelectedDataPoint] = useState<DataPoint | null>(
-    null
-  );
-  const [dqiData, setDqiData] = useState<
-    Record<number, Record<string, Record<string, string>>>
-  >({});
+  const [selectedDataPoint, setSelectedDataPoint] = useState<DataPoint | null>(null);
+  const [dqiData, setDqiData] = useState<Record<string, DQIState>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [supplierData, setSupplierData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [modifiedQuestions, setModifiedQuestions] = useState<Set<string>>(new Set());
 
-  // Load supplier questionnaire data on mount
+  // Load DQR data on mount
   useEffect(() => {
-    const fetchSupplierData = async () => {
+    const fetchDQRData = async () => {
       if (!sgiq_id) {
         setError("No supplier questionnaire ID provided");
         setIsLoading(false);
         return;
       }
 
-      // Check authentication using the service method
       if (!authService.isAuthenticated()) {
         setError("User not authenticated");
         setIsLoading(false);
         return;
       }
 
-      const user = authService.getCurrentUser();
-      if (!user) {
-        setError("User not authenticated");
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const result = await supplierQuestionnaireService.getDQRDetailsById(
-          sgiq_id
-        );
+        const result = await supplierQuestionnaireService.getDQRDetailsById(sgiq_id);
 
         if (result.success && result.data) {
           setSupplierData(result.data);
+          const points = processAPIResponse(result.data);
+          setDataPoints(points);
+          populateExistingDQRData(points);
 
-          // Generate data points first
-          const points = generateDataPointsFromData(result.data);
-
-          // If DQR ratings already exist, populate the dqiData state
-          if (result.data.dqr_ratings) {
-            // Populate existing DQR data
-            // dqr_ratings is an object with keys like dqr_raw_material_product_rating
-            populateExistingDQRData(result.data.dqr_ratings, points);
+          // Expand first category by default
+          if (points.length > 0) {
+            const firstCategory = points[0].category;
+            setExpandedCategories({ [firstCategory]: true });
           }
         } else {
-          setError(result.message || "Failed to load supplier data");
+          setError(result.message || "Failed to load DQR data");
         }
       } catch (err) {
-        console.error("Error fetching supplier data:", err);
-        setError("An error occurred while loading supplier data");
+        console.error("Error fetching DQR data:", err);
+        setError("An error occurred while loading DQR data");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchSupplierData();
+    fetchDQRData();
   }, [sgiq_id]);
 
-  const populateExistingDQRData = (dqrRatings: any, points: DataPoint[]) => {
-    // Populate existing DQR ratings into the dqiData state
-    // dqrRatings is an object with keys like dqr_raw_material_product_rating
-    if (!dqrRatings || typeof dqrRatings !== "object") {
-      return;
-    }
+  // Process API response into DataPoint array
+  const processAPIResponse = (data: any): DataPoint[] => {
+    const points: DataPoint[] = [];
 
-    const populatedData: Record<
-      number,
-      Record<string, Record<string, string>>
-    > = {};
+    // Iterate through all question keys in the response
+    Object.entries(data).forEach(([key, value]) => {
+      // Skip non-question keys
+      if (!key.startsWith('q') || !Array.isArray(value)) return;
 
-    // Iterate through all rating types (dqr_raw_material_product_rating, etc.)
-    Object.values(dqrRatings).forEach((ratingArray: any) => {
-      if (!Array.isArray(ratingArray)) return;
+      const questionConfig = DQR_QUESTIONS_CONFIG[key];
+      if (!questionConfig) return;
 
-      ratingArray.forEach((rating: any) => {
-        // Map rating data to data point structure
-        // The rating.data field contains mcm_id for raw materials
-        const dataValue = rating.data;
+      // Process each data point for this question
+      (value as DQRDataPointAPI[]).forEach((item, index) => {
+        const parsedData = parseDataField(item.data);
+        const displayName = formatDataPointDisplay(parsedData);
+        // Create unique composite key using questionKey and edrqn_id (or index as fallback)
+        const uniqueId = `${key}_${item.edrqn_id || index}`;
 
-        // Try to match by mcm_id first (for raw materials), then by value/name
-        const matchingPoint = points.find((point) => {
-          // Match by mcm_id if available
-          if (point.mcm_id && point.mcm_id === dataValue) {
-            return true;
-          }
-          // Match by value or name as fallback
-          if (point.value === dataValue || point.name.includes(dataValue)) {
-            return true;
-          }
-          return false;
+        points.push({
+          id: uniqueId,
+          edrqn_id: item.edrqn_id,
+          questionKey: key,
+          displayName: displayName || `${questionConfig.label} - ${(item.edrqn_id || String(index)).slice(0, 8)}`,
+          rawData: parsedData,
+          category: questionConfig.category,
+          dqiRequired: questionConfig.dqiRequired,
+          ter_tag_type: item.ter_tag_type,
+          ter_tag_value: item.ter_tag_value,
+          tir_tag_type: item.tir_tag_type,
+          tir_tag_value: item.tir_tag_value,
+          gr_tag_type: item.gr_tag_type,
+          gr_tag_value: item.gr_tag_value,
+          c_tag_type: item.c_tag_type,
+          pds_tag_type: item.pds_tag_type,
         });
-
-        if (matchingPoint) {
-          if (!populatedData[matchingPoint.id]) {
-            populatedData[matchingPoint.id] = {};
-          }
-
-          // Map TeR
-          if (rating.ter_tag_type && rating.ter_tag_value) {
-            populatedData[matchingPoint.id]["TeR"] = {
-              level1: rating.ter_tag_type,
-              level2: rating.ter_tag_value,
-            };
-          }
-
-          // Map TiR
-          if (rating.tir_tag_type && rating.tir_tag_value) {
-            populatedData[matchingPoint.id]["TiR"] = {
-              level1: rating.tir_tag_type,
-              level2: rating.tir_tag_value,
-            };
-          }
-
-          // Map GR
-          if (rating.gr_tag_type && rating.gr_tag_value) {
-            populatedData[matchingPoint.id]["GR"] = {
-              level1: rating.gr_tag_type,
-              level2: rating.gr_tag_value,
-            };
-          }
-
-          // Map C
-          if (rating.c_tag_type) {
-            populatedData[matchingPoint.id]["C"] = {
-              classification: rating.c_tag_type,
-            };
-          }
-
-          // Map PDS
-          if (rating.pds_tag_type) {
-            populatedData[matchingPoint.id]["PDS"] = {
-              type: rating.pds_tag_type,
-            };
-          }
-        }
       });
+    });
+
+    return points;
+  };
+
+  // Populate existing DQR data into state
+  const populateExistingDQRData = (points: DataPoint[]) => {
+    const populatedData: Record<string, DQIState> = {};
+
+    points.forEach((point) => {
+      const dqi: DQIState = {};
+
+      // Map TeR
+      if (point.ter_tag_type || point.ter_tag_value) {
+        dqi.TeR = {
+          level1: point.ter_tag_type || undefined,
+          level2: point.ter_tag_value || undefined,
+        };
+      }
+
+      // Map TiR
+      if (point.tir_tag_type || point.tir_tag_value) {
+        dqi.TiR = {
+          level1: point.tir_tag_type || undefined,
+          level2: point.tir_tag_value || undefined,
+        };
+      }
+
+      // Map GR
+      if (point.gr_tag_type || point.gr_tag_value) {
+        dqi.GR = {
+          level1: point.gr_tag_type || undefined,
+          level2: point.gr_tag_value || undefined,
+        };
+      }
+
+      // Map C
+      if (point.c_tag_type) {
+        dqi.C = { classification: point.c_tag_type };
+      }
+
+      // Map PDS
+      if (point.pds_tag_type) {
+        dqi.PDS = { type: point.pds_tag_type };
+      }
+
+      if (Object.keys(dqi).length > 0) {
+        populatedData[point.id] = dqi;
+      }
     });
 
     setDqiData(populatedData);
   };
 
-  // Generate data points dynamically from supplier data (helper function)
-  const generateDataPointsFromData = (data: any): DataPoint[] => {
-    if (!data || !data.supplier_questions) {
-      return [];
-    }
-
-    const points: DataPoint[] = [];
-    const questions = data.supplier_questions;
-
-    // Extract material composition data points
-    if (
-      questions.material_composition_questions &&
-      questions.material_composition_questions.length > 0
-    ) {
-      const materialData = questions.material_composition_questions[0];
-
-      // Raw materials
-      if (
-        materialData.main_raw_materials_used &&
-        materialData.main_raw_materials_used.length > 0
-      ) {
-        materialData.main_raw_materials_used.forEach(
-          (material: any, idx: number) => {
-            // Handle both string and object formats
-            let materialName: string;
-            let materialValue: string;
-
-            if (typeof material === "string") {
-              materialName = material;
-              materialValue = material;
-            } else {
-              // If it's an object, extract the name or ID
-              materialName =
-                material.mcm_details?.name ||
-                material.mcmt_details?.name ||
-                material.name ||
-                material.mcm_id ||
-                material.mcmt_id ||
-                "Unknown Material";
-              materialValue = materialName;
-            }
-
-            points.push({
-              id: 1000 + idx,
-              name: `Raw Material: ${materialName}`,
-              unit: "kg",
-              category: "Material",
-              value: materialValue,
-              dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-              mcm_id:
-                typeof material === "object" ? material.mcm_id : undefined,
-              mcmt_id:
-                typeof material === "object" ? material.mcmt_id : undefined,
-            });
-          }
-        );
-      }
-
-      // Recycled material percentage
-      if (materialData.percentage_recycled_material) {
-        points.push({
-          id: 2000,
-          name: "Recycled Material Content",
-          unit: "%",
-          category: "Material",
-          value: materialData.percentage_recycled_material,
-          dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-        });
-      }
-    }
-
-    // Extract energy data points
-    if (
-      questions.energy_manufacturing_questions &&
-      questions.energy_manufacturing_questions.length > 0
-    ) {
-      const energyData = questions.energy_manufacturing_questions[0];
-
-      if (energyData.electricity_consumption_per_year) {
-        points.push({
-          id: 3000,
-          name: "Electricity Consumption",
-          unit: "kWh/year",
-          category: "Energy",
-          value: energyData.electricity_consumption_per_year,
-          dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-        });
-      }
-
-      if (energyData.renewable_electricity_percentage) {
-        points.push({
-          id: 3001,
-          name: "Renewable Electricity Percentage",
-          unit: "%",
-          category: "Energy",
-          value: energyData.renewable_electricity_percentage,
-          dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-        });
-      }
-    }
-
-    // Add more data points from other sections as needed
-
-    return points;
-  };
-
-  // Generate data points dynamically from supplier data
-  const generateDataPoints = (): DataPoint[] => {
-    if (!supplierData) {
-      return getDefaultDataPoints();
-    }
-    const points = generateDataPointsFromData(supplierData);
-    return points.length > 0 ? points : getDefaultDataPoints();
-  };
-
-  // Default data points fallback
-  const getDefaultDataPoints = (): DataPoint[] => {
-    return [
-      {
-        id: 6,
-        name: "Material composition Weight",
-        unit: "kg",
-        category: "Material",
-        value: "2000",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 7,
-        name: "Material Emission Factor",
-        unit: "kg CO₂e/kg",
-        category: "Material",
-        value: "0.85",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 16,
-        name: "Electricity Energy consumed at Factory level",
-        unit: "kWh",
-        category: "Energy",
-        value: "70000",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 21,
-        name: "Production electricity energy use per unit",
-        unit: "kWh/unit",
-        category: "Energy",
-        value: "0.5",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 22,
-        name: "Emission Factor of electricity",
-        unit: "kg CO₂e/kWh",
-        category: "Energy",
-        value: "0.4",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 26,
-        name: "Material Box Weight",
-        unit: "kg",
-        category: "Packaging",
-        value: "5",
-        dqiRequired: ["TeR", "TiR", "C", "PDS"],
-      },
-      {
-        id: 27,
-        name: "Emission Factor Box",
-        unit: "kg CO₂e/kg",
-        category: "Packaging",
-        value: "1.2",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 35,
-        name: "Distance",
-        unit: "km",
-        category: "Transport",
-        value: "500",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 36,
-        name: "Transport Mode Emission Factor",
-        unit: "kg CO₂e/t-km",
-        category: "Transport",
-        value: "0.062",
-        dqiRequired: ["TeR", "TiR", "GR", "C", "PDS"],
-      },
-      {
-        id: 39,
-        name: "Waste generated per Box",
-        unit: "kg",
-        category: "Waste",
-        value: "0.5",
-        dqiRequired: ["TeR", "TiR", "C", "PDS"],
-      },
-    ];
-  };
-
-  // Data points that require DQI assessment
-  const dataPoints = generateDataPoints();
-
   const handleDQIChange = (
-    dataPointId: number,
+    dataPointId: string,
+    questionKey: string,
     dqiType: string,
     level: string,
     value: string
@@ -401,149 +241,89 @@ const DataQualityRating = () => {
       [dataPointId]: {
         ...prev[dataPointId],
         [dqiType]: {
-          ...prev[dataPointId]?.[dqiType],
+          ...prev[dataPointId]?.[dqiType as keyof DQIState],
           [level]: value,
         },
       },
     }));
+
+    // Track modified questions for save
+    setModifiedQuestions((prev) => new Set(prev).add(questionKey));
   };
 
-  // Transform UI data structure to API format
-  const transformToAPIFormat = () => {
-    // Use bom_pcf_id from URL if available, otherwise from supplierData
-    const bom_pcf_id = bom_pcf_id_from_url || supplierData?.bom_pcf_id;
-
-    if (!bom_pcf_id) {
-      throw new Error("BOM PCF ID not found");
-    }
-    const ratings: any[] = [];
-    const points = generateDataPoints();
-
-    // Group data points by type
-    points.forEach((point) => {
-      const pointData = dqiData[point.id];
-      if (!pointData) return;
-
-      // Determine the type based on data point category and name
-      let type = "dqr_raw_material_product_rating";
-      if (point.name.includes("Recycled Material Content")) {
-        type = "dqr_recycled_material_content_rating";
-      } else if (point.name.includes("Electricity")) {
-        type = "dqr_electricity_consumption_rating";
-      } else if (point.name.includes("Renewable")) {
-        type = "dqr_renewable_electricity_rating";
-      }
-
-      const rating: any = {
-        sgiq_id: sgiq_id || "",
-        // For raw materials, use mcm_id as data field (as per API response structure)
-        // For other data points, use the value
-        data: point.mcm_id || point.value,
-      };
-
-      // Map TeR
-      if (pointData.TeR) {
-        rating.ter_tag_type = pointData.TeR.level1 || "";
-        rating.ter_tag_value = pointData.TeR.level2 || "";
-        rating.ter_data_point = pointData.TeR.level2
-          ? String(getDQRValue("TeR", pointData.TeR.level2) as number)
-          : "";
-      }
-
-      // Map TiR
-      if (pointData.TiR) {
-        rating.tir_tag_type = pointData.TiR.level1 || "";
-        rating.tir_tag_value = pointData.TiR.level2 || "";
-        rating.tir_data_point = pointData.TiR.level2
-          ? String(getDQRValue("TiR", pointData.TiR.level2) as number)
-          : "";
-      }
-
-      // Map GR
-      if (pointData.GR) {
-        rating.gr_tag_type = pointData.GR.level1 || "";
-        rating.gr_tag_value = pointData.GR.level2 || "";
-        rating.gr_data_point = pointData.GR.level2
-          ? String(getDQRValue("GR", pointData.GR.level2) as number)
-          : "";
-      }
-
-      // Map C
-      if (pointData.C) {
-        rating.c_tag_type = pointData.C.classification || "";
-        rating.c_tag_value = "";
-        rating.c_data_point = "";
-      }
-
-      // Map PDS
-      if (pointData.PDS) {
-        rating.pds_tag_type = pointData.PDS.type || "";
-        rating.pds_tag_value = "";
-        rating.pds_data_point = "";
-      }
-
-      ratings.push(rating);
-    });
-
-    // Group ratings by type
-    const groupedRatings: Record<string, any[]> = {};
-    ratings.forEach((rating) => {
-      // Determine type from data point
-      // Match by mcm_id first (for raw materials), then by value
-      const point = points.find(
-        (p) => p.mcm_id === rating.data || p.value === rating.data
-      );
-      let type = "dqr_raw_material_product_rating";
-      if (point) {
-        if (point.name.includes("Recycled Material Content")) {
-          type = "dqr_recycled_material_content_rating";
-        } else if (point.name.includes("Electricity")) {
-          type = "dqr_electricity_consumption_rating";
-        } else if (point.name.includes("Renewable")) {
-          type = "dqr_renewable_electricity_rating";
-        }
-      }
-
-      if (!groupedRatings[type]) {
-        groupedRatings[type] = [];
-      }
-      groupedRatings[type].push(rating);
-    });
-
-    return { bom_pcf_id, groupedRatings };
-  };
-
-  // Save DQR ratings
+  // Transform UI data to API format and save
   const handleSave = async () => {
+    if (!sgiq_id) {
+      alert("No questionnaire ID");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
-      const { bom_pcf_id, groupedRatings } = transformToAPIFormat();
+      // Group data points by question key
+      const groupedByQuestion: Record<string, DataPoint[]> = {};
+      dataPoints.forEach((point) => {
+        if (!groupedByQuestion[point.questionKey]) {
+          groupedByQuestion[point.questionKey] = [];
+        }
+        groupedByQuestion[point.questionKey].push(point);
+      });
 
-      // Check if there are any ratings to save
-      const hasRatings = Object.values(groupedRatings).some(
-        (ratings) => ratings.length > 0
-      );
+      // Only save questions that have been modified
+      const questionsToSave = modifiedQuestions.size > 0
+        ? Array.from(modifiedQuestions)
+        : Object.keys(groupedByQuestion);
 
-      if (!hasRatings) {
-        alert(
-          "No DQR ratings to save. Please complete at least one data point assessment."
-        );
+      if (questionsToSave.length === 0) {
+        alert("No DQR ratings to save.");
         return;
       }
 
-      // Save each type of rating
-      const savePromises = Object.entries(groupedRatings)
-        .filter(([_, ratings]) => ratings.length > 0)
-        .map(([type, ratings]) =>
-          supplierQuestionnaireService.saveDQRRating(bom_pcf_id, type, ratings)
-        );
+      // Save each question type
+      const savePromises = questionsToSave.map(async (questionKey) => {
+        const points = groupedByQuestion[questionKey];
+        if (!points || points.length === 0) return { success: true, message: '' };
+
+        const records = points.map((point) => {
+          const pointData = dqiData[point.id] || {};
+
+          return {
+            sgiq_id: sgiq_id,
+            edrqn_id: point.edrqn_id,
+            ter_tag_type: pointData.TeR?.level1 || null,
+            ter_tag_value: pointData.TeR?.level2 || null,
+            ter_data_point: pointData.TeR?.level2
+              ? String(getDQRValue("TeR", pointData.TeR.level2))
+              : null,
+            tir_tag_type: pointData.TiR?.level1 || null,
+            tir_tag_value: pointData.TiR?.level2 || null,
+            tir_data_point: pointData.TiR?.level2
+              ? String(getDQRValue("TiR", pointData.TiR.level2))
+              : null,
+            gr_tag_type: pointData.GR?.level1 || null,
+            gr_tag_value: pointData.GR?.level2 || null,
+            gr_data_point: pointData.GR?.level2
+              ? String(getDQRValue("GR", pointData.GR.level2))
+              : null,
+            c_tag_type: pointData.C?.classification || null,
+            c_tag_value: null,
+            c_data_point: null,
+            pds_tag_type: pointData.PDS?.type || null,
+            pds_tag_value: null,
+            pds_data_point: null,
+          };
+        });
+
+        return supplierQuestionnaireService.updateDQRRating(questionKey, records);
+      });
 
       const results = await Promise.all(savePromises);
-
       const allSuccess = results.every((result) => result.success);
+
       if (allSuccess) {
         alert("DQR ratings saved successfully!");
+        setModifiedQuestions(new Set());
       } else {
         const errorMessages = results
           .filter((r) => !r.success)
@@ -559,10 +339,7 @@ const DataQualityRating = () => {
     }
   };
 
-  const getDQRValue = (
-    dqiType: string,
-    level2Value: string
-  ): number | string => {
+  const getDQRValue = (dqiType: string, level2Value: string): number | string => {
     const dqrMappings: Record<string, Record<string, number | string>> = {
       TeR: {
         "Site specific technology": 1,
@@ -601,37 +378,70 @@ const DataQualityRating = () => {
 
   const getDQRColor = (dqr: number | string) => {
     const numericValue = typeof dqr === "number" ? dqr : parseInt(String(dqr));
-    if (numericValue === 1)
-      return "text-green-600 bg-green-50 border-green-200";
-    if (numericValue === 2)
-      return "text-green-600 bg-green-50 border-green-200";
-    if (numericValue === 3)
-      return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    if (numericValue === 4)
-      return "text-orange-600 bg-orange-50 border-orange-200";
+    if (numericValue === 1) return "text-green-600 bg-green-50 border-green-200";
+    if (numericValue === 2) return "text-green-600 bg-green-50 border-green-200";
+    if (numericValue === 3) return "text-yellow-600 bg-yellow-50 border-yellow-200";
+    if (numericValue === 4) return "text-orange-600 bg-orange-50 border-orange-200";
     if (numericValue === 5) return "text-red-600 bg-red-50 border-red-200";
     return "text-gray-600 bg-gray-50 border-gray-200";
   };
 
-  const calculateCompleteness = () => {
-    const totalRequired = dataPoints.length * 3; // Assuming average 3 DQI per data point
-    const completed = Object.values(dqiData).reduce((acc, point) => {
-      return acc + Object.keys(point).length;
-    }, 0);
-    return Math.round((completed / totalRequired) * 100);
+  // Group data points by category
+  const getGroupedDataPoints = (): Record<string, DataPoint[]> => {
+    const grouped: Record<string, DataPoint[]> = {};
+
+    dataPoints.forEach((point) => {
+      if (!grouped[point.category]) {
+        grouped[point.category] = [];
+      }
+      grouped[point.category].push(point);
+    });
+
+    return grouped;
   };
 
-  const DataPointCard = ({ dataPoint }: { dataPoint: DataPoint }) => {
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
+  };
+
+  const getCompletionStats = (points: DataPoint[]) => {
+    let completed = 0;
+    let total = 0;
+
+    points.forEach((point) => {
+      const pointData = dqiData[point.id] || {};
+      const requiredDQIs = point.dqiRequired.length;
+      const completedDQIs = Object.keys(pointData).length;
+      total += requiredDQIs;
+      completed += completedDQIs;
+    });
+
+    return { completed, total, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 };
+  };
+
+  const DataPointCard = ({ dataPoint, index, showQuestionLabel = false }: { dataPoint: DataPoint; index: number; showQuestionLabel?: boolean }) => {
     const isSelected = selectedDataPoint?.id === dataPoint.id;
     const pointData = dqiData[dataPoint.id] || {};
     const completedDQIs = Object.keys(pointData).length;
     const totalDQIs = dataPoint.dqiRequired.length;
     const isCompleted = completedDQIs === totalDQIs;
+    const questionConfig = DQR_QUESTIONS_CONFIG[dataPoint.questionKey];
+
+    // For single items (showQuestionLabel=true), show question label as title
+    // For grouped items, show data preview or Item #
+    const hasDataPreview = dataPoint.displayName && dataPoint.displayName.trim();
+    const title = showQuestionLabel
+      ? (questionConfig?.label || dataPoint.questionKey)
+      : (hasDataPreview ? dataPoint.displayName : `Item ${index + 1}`);
+    const subtitle = showQuestionLabel && hasDataPreview ? dataPoint.displayName : null;
 
     return (
       <div
         onClick={() => setSelectedDataPoint(dataPoint)}
-        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
           isSelected
             ? "border-green-500 bg-green-50 shadow-lg"
             : isCompleted
@@ -639,60 +449,40 @@ const DataQualityRating = () => {
             : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
         }`}
       >
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h4
-              className={`font-semibold ${
-                isCompleted ? "text-green-900" : "text-gray-900"
-              }`}
-            >
-              {dataPoint.name}
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <h4 className={`font-medium text-sm ${isCompleted ? "text-green-900" : "text-gray-900"}`}>
+              {title}
             </h4>
-            <p
-              className={`text-sm ${
-                isCompleted ? "text-green-700" : "text-gray-600"
-              }`}
-            >
-              ID: {dataPoint.id} • {dataPoint.category}
-            </p>
+            {subtitle && (
+              <p className={`text-xs mt-0.5 ${isCompleted ? "text-green-700" : "text-gray-500"}`}>
+                {subtitle}
+              </p>
+            )}
           </div>
           {isCompleted ? (
-            <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full">
-              <CheckCircle className="text-green-600" size={20} />
-              <span className="text-xs font-semibold text-green-700">
-                Complete
-              </span>
-            </div>
+            <CheckCircle className="text-green-600 flex-shrink-0" size={18} />
           ) : (
-            <div className="flex items-center gap-1 bg-orange-100 px-2 py-1 rounded-full">
-              <AlertCircle className="text-orange-600" size={20} />
-              <span className="text-xs font-semibold text-orange-700">
-                Pending
-              </span>
-            </div>
+            <AlertCircle className="text-orange-500 flex-shrink-0" size={18} />
           )}
         </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className={isCompleted ? "text-green-800" : "text-gray-700"}>
-            <strong>Value:</strong> {dataPoint.value} {dataPoint.unit}
-          </span>
-          <span
-            className={
-              isCompleted ? "text-green-700 font-semibold" : "text-gray-600"
-            }
-          >
+        <div className="flex justify-between items-center text-xs mt-2">
+          <span className={isCompleted ? "text-green-700 font-medium" : "text-gray-500"}>
             {completedDQIs}/{totalDQIs} DQIs
+          </span>
+          <span className={`px-2 py-0.5 rounded-full text-xs ${
+            isCompleted
+              ? "bg-green-100 text-green-700"
+              : "bg-orange-100 text-orange-700"
+          }`}>
+            {isCompleted ? "Done" : "Pending"}
           </span>
         </div>
       </div>
     );
   };
 
-  const DQIAssessmentPanel = ({
-    dataPoint,
-  }: {
-    dataPoint: DataPoint | null;
-  }) => {
+  const DQIAssessmentPanel = ({ dataPoint }: { dataPoint: DataPoint | null }) => {
     if (!dataPoint) {
       return (
         <div className="flex items-center justify-center h-64 text-gray-500">
@@ -704,35 +494,60 @@ const DataQualityRating = () => {
       );
     }
 
+    const questionConfig = DQR_QUESTIONS_CONFIG[dataPoint.questionKey];
+    const mainTitle = questionConfig?.label || dataPoint.questionKey;
+    const hasDataPreview = dataPoint.displayName && dataPoint.displayName.trim();
+
+    // Format raw data for display
+    const formatRawDataPreview = () => {
+      const entries = Object.entries(dataPoint.rawData).filter(([key, val]) =>
+        val !== null && val !== undefined && val !== '' && !key.includes('id')
+      );
+      if (entries.length === 0) return null;
+      return entries.slice(0, 4);
+    };
+
+    const rawDataEntries = formatRawDataPreview();
+
     return (
       <div className="space-y-5">
         <div className="bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white p-6 rounded-b-xl -mx-6 -mt-6 mb-6 shadow-lg sticky top-0 z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-3">{dataPoint.name}</h3>
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full font-medium">
-                  ID: {dataPoint.id}
-                </span>
+              <h3 className="text-xl font-bold mb-2">{mainTitle}</h3>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                {hasDataPreview && (
+                  <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full font-medium">
+                    {dataPoint.displayName}
+                  </span>
+                )}
                 <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full font-medium">
                   {dataPoint.category}
                 </span>
               </div>
             </div>
+            <button
+              onClick={() => setSelectedDataPoint(null)}
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all hover:scale-110"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-            <div className="text-sm opacity-90 mb-1">Current Value</div>
-            <div className="text-2xl font-bold">
-              {dataPoint.value}{" "}
-              <span className="text-lg font-normal">{dataPoint.unit}</span>
+
+          {/* Show raw data summary */}
+          {rawDataEntries && rawDataEntries.length > 0 && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20 text-sm">
+              <div className="text-xs opacity-90 mb-1">Data Details</div>
+              <div className="space-y-1 text-sm">
+                {rawDataEntries.map(([key, val]) => (
+                  <div key={key}>
+                    <span className="opacity-75">{key.replace(/_/g, ' ')}:</span>{' '}
+                    <span className="font-medium">{String(val)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <button
-            onClick={() => setSelectedDataPoint(null)}
-            className="text-white hover:bg-white/20 rounded-lg p-2 transition-all hover:scale-110 absolute top-4 right-4"
-          >
-            <X size={24} />
-          </button>
+          )}
         </div>
 
         {/* Technological Representativeness (TeR) */}
@@ -743,9 +558,7 @@ const DataQualityRating = () => {
                 <Settings size={18} />
               </span>
               <div>
-                <div className="font-bold">
-                  Technological Representativeness
-                </div>
+                <div className="font-bold">Technological Representativeness</div>
                 <div className="text-xs text-gray-500 font-normal">TeR</div>
               </div>
             </h4>
@@ -758,12 +571,7 @@ const DataQualityRating = () => {
                 <select
                   value={dqiData[dataPoint.id]?.TeR?.level1 || ""}
                   onChange={(e) =>
-                    handleDQIChange(
-                      dataPoint.id,
-                      "TeR",
-                      "level1",
-                      e.target.value
-                    )
+                    handleDQIChange(dataPoint.id, dataPoint.questionKey, "TeR", "level1", e.target.value)
                   }
                   className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 font-medium"
                 >
@@ -777,18 +585,12 @@ const DataQualityRating = () => {
               {dqiData[dataPoint.id]?.TeR?.level1 === "Applicable" && (
                 <div className="animate-in slide-in-from-top-3 duration-300">
                   <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                    Level-2 Classification{" "}
-                    <span className="text-red-500">*</span>
+                    Level-2 Classification <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={dqiData[dataPoint.id]?.TeR?.level2 || ""}
                     onChange={(e) =>
-                      handleDQIChange(
-                        dataPoint.id,
-                        "TeR",
-                        "level2",
-                        e.target.value
-                      )
+                      handleDQIChange(dataPoint.id, dataPoint.questionKey, "TeR", "level2", e.target.value)
                     }
                     className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 font-medium"
                   >
@@ -803,20 +605,12 @@ const DataQualityRating = () => {
                   {dqiData[dataPoint.id]?.TeR?.level2 && (
                     <div
                       className={`mt-4 p-4 rounded-xl border-2 font-bold text-center shadow-sm ${getDQRColor(
-                        getDQRValue(
-                          "TeR",
-                          dqiData[dataPoint.id]?.TeR?.level2 || ""
-                        )
+                        getDQRValue("TeR", dqiData[dataPoint.id]?.TeR?.level2 || "")
                       )}`}
                     >
-                      <div className="text-sm text-gray-600 mb-1">
-                        DQR Rating
-                      </div>
+                      <div className="text-sm text-gray-600 mb-1">DQR Rating</div>
                       <div className="text-2xl">
-                        {getDQRValue(
-                          "TeR",
-                          dqiData[dataPoint.id]?.TeR?.level2 || ""
-                        )}
+                        {getDQRValue("TeR", dqiData[dataPoint.id]?.TeR?.level2 || "")}
                       </div>
                     </div>
                   )}
@@ -847,12 +641,7 @@ const DataQualityRating = () => {
                 <select
                   value={dqiData[dataPoint.id]?.TiR?.level1 || ""}
                   onChange={(e) =>
-                    handleDQIChange(
-                      dataPoint.id,
-                      "TiR",
-                      "level1",
-                      e.target.value
-                    )
+                    handleDQIChange(dataPoint.id, dataPoint.questionKey, "TiR", "level1", e.target.value)
                   }
                   className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-700 font-medium"
                 >
@@ -868,18 +657,12 @@ const DataQualityRating = () => {
               {dqiData[dataPoint.id]?.TiR?.level1 === "Applicable" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                    Level-2 Classification{" "}
-                    <span className="text-red-500">*</span>
+                    Level-2 Classification <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={dqiData[dataPoint.id]?.TiR?.level2 || ""}
                     onChange={(e) =>
-                      handleDQIChange(
-                        dataPoint.id,
-                        "TiR",
-                        "level2",
-                        e.target.value
-                      )
+                      handleDQIChange(dataPoint.id, dataPoint.questionKey, "TiR", "level2", e.target.value)
                     }
                     className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-700 font-medium"
                   >
@@ -894,20 +677,12 @@ const DataQualityRating = () => {
                   {dqiData[dataPoint.id]?.TiR?.level2 && (
                     <div
                       className={`mt-4 p-4 rounded-xl border-2 font-bold text-center shadow-sm ${getDQRColor(
-                        getDQRValue(
-                          "TiR",
-                          dqiData[dataPoint.id]?.TiR?.level2 || ""
-                        )
+                        getDQRValue("TiR", dqiData[dataPoint.id]?.TiR?.level2 || "")
                       )}`}
                     >
-                      <div className="text-sm text-gray-600 mb-1">
-                        DQR Rating
-                      </div>
+                      <div className="text-sm text-gray-600 mb-1">DQR Rating</div>
                       <div className="text-2xl">
-                        {getDQRValue(
-                          "TiR",
-                          dqiData[dataPoint.id]?.TiR?.level2 || ""
-                        )}
+                        {getDQRValue("TiR", dqiData[dataPoint.id]?.TiR?.level2 || "")}
                       </div>
                     </div>
                   )}
@@ -938,12 +713,7 @@ const DataQualityRating = () => {
                 <select
                   value={dqiData[dataPoint.id]?.GR?.level1 || ""}
                   onChange={(e) =>
-                    handleDQIChange(
-                      dataPoint.id,
-                      "GR",
-                      "level1",
-                      e.target.value
-                    )
+                    handleDQIChange(dataPoint.id, dataPoint.questionKey, "GR", "level1", e.target.value)
                   }
                   className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-700 font-medium"
                 >
@@ -957,18 +727,12 @@ const DataQualityRating = () => {
               {dqiData[dataPoint.id]?.GR?.level1 === "Applicable" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                    Level-2 Classification{" "}
-                    <span className="text-red-500">*</span>
+                    Level-2 Classification <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={dqiData[dataPoint.id]?.GR?.level2 || ""}
                     onChange={(e) =>
-                      handleDQIChange(
-                        dataPoint.id,
-                        "GR",
-                        "level2",
-                        e.target.value
-                      )
+                      handleDQIChange(dataPoint.id, dataPoint.questionKey, "GR", "level2", e.target.value)
                     }
                     className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-gray-700 font-medium"
                   >
@@ -983,20 +747,12 @@ const DataQualityRating = () => {
                   {dqiData[dataPoint.id]?.GR?.level2 && (
                     <div
                       className={`mt-4 p-4 rounded-xl border-2 font-bold text-center shadow-sm ${getDQRColor(
-                        getDQRValue(
-                          "GR",
-                          dqiData[dataPoint.id]?.GR?.level2 || ""
-                        )
+                        getDQRValue("GR", dqiData[dataPoint.id]?.GR?.level2 || "")
                       )}`}
                     >
-                      <div className="text-sm text-gray-600 mb-1">
-                        DQR Rating
-                      </div>
+                      <div className="text-sm text-gray-600 mb-1">DQR Rating</div>
                       <div className="text-2xl">
-                        {getDQRValue(
-                          "GR",
-                          dqiData[dataPoint.id]?.GR?.level2 || ""
-                        )}
+                        {getDQRValue("GR", dqiData[dataPoint.id]?.GR?.level2 || "")}
                       </div>
                     </div>
                   )}
@@ -1026,7 +782,7 @@ const DataQualityRating = () => {
               <select
                 value={dqiData[dataPoint.id]?.PDS?.type || ""}
                 onChange={(e) =>
-                  handleDQIChange(dataPoint.id, "PDS", "type", e.target.value)
+                  handleDQIChange(dataPoint.id, dataPoint.questionKey, "PDS", "type", e.target.value)
                 }
                 className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-gray-700 font-medium"
               >
@@ -1034,8 +790,7 @@ const DataQualityRating = () => {
                 {DQR_CONFIG.PDS_OPTIONS.map((option) => (
                   <option key={option} value={option}>
                     {option}
-                    {option === "Primary" &&
-                      " (Direct measurement/supplier data)"}
+                    {option === "Primary" && " (Direct measurement/supplier data)"}
                     {option === "Secondary" && " (Database/literature)"}
                     {option === "Proxy" && " (Estimated/representative data)"}
                   </option>
@@ -1053,9 +808,7 @@ const DataQualityRating = () => {
                   }`}
                 >
                   <div className="text-sm opacity-80 mb-1">Data Source</div>
-                  <div className="text-lg">
-                    {dqiData[dataPoint.id]?.PDS?.type}
-                  </div>
+                  <div className="text-lg">{dqiData[dataPoint.id]?.PDS?.type}</div>
                 </div>
               )}
             </div>
@@ -1077,18 +830,12 @@ const DataQualityRating = () => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2.5">
-                Data Point Classification{" "}
-                <span className="text-red-500">*</span>
+                Data Point Classification <span className="text-red-500">*</span>
               </label>
               <select
                 value={dqiData[dataPoint.id]?.C?.classification || ""}
                 onChange={(e) =>
-                  handleDQIChange(
-                    dataPoint.id,
-                    "C",
-                    "classification",
-                    e.target.value
-                  )
+                  handleDQIChange(dataPoint.id, dataPoint.questionKey, "C", "classification", e.target.value)
                 }
                 className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-gray-700 font-medium"
               >
@@ -1117,18 +864,13 @@ const DataQualityRating = () => {
     );
   };
 
-  // const completeness = calculateCompleteness();
-
   // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader
-            size={48}
-            className="animate-spin text-green-500 mx-auto mb-4"
-          />
-          <p className="text-gray-600">Loading supplier data...</p>
+          <Loader size={48} className="animate-spin text-green-500 mx-auto mb-4" />
+          <p className="text-gray-600">Loading DQR data...</p>
         </div>
       </div>
     );
@@ -1143,17 +885,17 @@ const DataQualityRating = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => navigate("/supplier-questionnaire")}
+            onClick={() => navigate("/data-quality-rating")}
             className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg font-medium transition-all"
           >
-            Go Back to Questionnaire
+            Go Back to DQR List
           </button>
         </div>
       </div>
     );
   }
 
-  const completeness = calculateCompleteness();
+  const groupedDataPoints = getGroupedDataPoints();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 p-6">
@@ -1180,9 +922,7 @@ const DataQualityRating = () => {
                 <Star className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Data Quality Assessment
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">Data Quality Assessment</h1>
                 <p className="text-gray-500">
                   Evaluate data quality indicators for Product Carbon Footprint calculation
                 </p>
@@ -1208,50 +948,125 @@ const DataQualityRating = () => {
           </div>
         </div>
 
-        {/* <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Data Quality Assessment
-              </h1>
-              <p className="text-gray-600">
-                Evaluate data quality indicators for Product Carbon Footprint
-                calculation
-              </p>
-            </div>
-            <div className="flex space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <Save size={18} />
-                <span>Save Progress</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <Download size={18} />
-                <span>Export Report</span>
-              </button>
-            </div>
-          </div>
-        </div> */}
-
-        {/* Main Content - Data Points List (Full Width) */}
+        {/* Main Content - Data Points by Category */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Points</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {dataPoints.map((point) => (
-              <DataPointCard key={point.id} dataPoint={point} />
-            ))}
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Data Points ({dataPoints.length} total)
+          </h2>
+
+          {Object.keys(groupedDataPoints).length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Info size={48} className="mx-auto mb-4 opacity-50" />
+              <p>No data points found for this questionnaire.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(groupedDataPoints).map(([category, points]) => {
+                const stats = getCompletionStats(points);
+                const isExpanded = expandedCategories[category];
+
+                return (
+                  <div key={category} className="border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => toggleCategory(category)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isExpanded ? (
+                          <ChevronDown size={20} className="text-gray-500" />
+                        ) : (
+                          <ChevronRight size={20} className="text-gray-500" />
+                        )}
+                        <span className="font-semibold text-gray-900">{category}</span>
+                        <span className="text-sm text-gray-500">({points.length} items)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 transition-all"
+                            style={{ width: `${stats.percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">{stats.percentage}%</span>
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="p-4 space-y-4">
+                        {/* Group points by question within category */}
+                        {(() => {
+                          const groupedByQuestion: Record<string, DataPoint[]> = {};
+                          points.forEach((point) => {
+                            if (!groupedByQuestion[point.questionKey]) {
+                              groupedByQuestion[point.questionKey] = [];
+                            }
+                            groupedByQuestion[point.questionKey].push(point);
+                          });
+
+                          // Separate single items and grouped items
+                          const singleItems: DataPoint[] = [];
+                          const groupedItems: [string, DataPoint[]][] = [];
+
+                          Object.entries(groupedByQuestion).forEach(([questionKey, questionPoints]) => {
+                            if (questionPoints.length === 1) {
+                              singleItems.push(questionPoints[0]);
+                            } else {
+                              groupedItems.push([questionKey, questionPoints]);
+                            }
+                          });
+
+                          return (
+                            <>
+                              {/* Single items in a simple grid */}
+                              {singleItems.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {singleItems.map((point, index) => (
+                                    <DataPointCard key={point.id} dataPoint={point} index={index} showQuestionLabel />
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Grouped items with question header */}
+                              {groupedItems.map(([questionKey, questionPoints]) => {
+                                const questionConfig = DQR_QUESTIONS_CONFIG[questionKey];
+                                const questionLabel = questionConfig?.label || questionKey;
+
+                                return (
+                                  <div key={questionKey} className="bg-gray-50 rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                      {questionLabel}
+                                      <span className="text-xs font-normal text-gray-500">
+                                        ({questionPoints.length} items)
+                                      </span>
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {questionPoints.map((point, index) => (
+                                        <DataPointCard key={point.id} dataPoint={point} index={index} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Right Side Panel - DQI Assessment */}
         <div
-          className={`fixed top-0 right-0 h-full w-full md:w-[35%]  bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+          className={`fixed top-0 right-0 h-full w-full md:w-[35%] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
             selectedDataPoint ? "translate-x-0" : "translate-x-full"
           }`}
         >
           <div className="h-full flex flex-col">
-            {/* Panel Header */}
-
-            {/* Panel Content */}
             <div className="flex-1 overflow-y-auto p-6 pt-0">
               <DQIAssessmentPanel dataPoint={selectedDataPoint} />
             </div>
