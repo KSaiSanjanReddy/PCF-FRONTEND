@@ -13,19 +13,41 @@ import {
   BarChart3,
   Calendar,
   Building2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import authService from "../lib/authService";
 
 interface DQRItem {
-  _id: string;
   sgiq_id: string;
   bom_pcf_id?: string;
   organization_name?: string;
-  average_rating?: number;
-  assessment_count?: number;
-  created_at: string;
-  status: string;
+  core_business_activitiy?: string;
+  designation?: string;
+  email_address?: string;
+  created_date?: string;
+  update_date?: string;
+  supplier_details?: {
+    sup_id: string;
+    code: string;
+    supplier_name: string;
+    supplier_email: string;
+    supplier_phone_number: string;
+  };
+  bom?: Array<{
+    bom_id: string;
+    material_number: string;
+    component_name: string;
+    production_location: string;
+  }>;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  totalPages: number;
 }
 
 const DataQualityRatingList: React.FC = () => {
@@ -35,34 +57,41 @@ const DataQualityRatingList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterRating, setFilterRating] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    totalRecords: 0,
+    totalPages: 0,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
-    fetchDQRList();
-  }, []);
+    fetchDQRList(currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
     filterDQRList();
-  }, [searchTerm, filterRating, dqrList]);
+  }, [searchTerm, filterStatus, dqrList]);
 
-  const fetchDQRList = async () => {
+  const fetchDQRList = async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const user = authService.getCurrentUser();
-      if (!user || !user.id) {
+      if (!authService.isAuthenticated()) {
         setError("User not authenticated");
         return;
       }
 
-      const result = await supplierQuestionnaireService.getDQRList(user.id);
+      const result = await supplierQuestionnaireService.listDQRRatings(page, pageSize);
 
       if (result.success && result.data) {
-        // Transform data to include organization names
-        // For now, we'll use the sgiq_id - in a real scenario, we'd fetch the organization names
-        const dqrItems = result.data.dqr_ratings || result.data || [];
-        setDqrList(dqrItems);
+        setDqrList(result.data);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       } else {
         setError(result.message || "Failed to load DQR list");
       }
@@ -83,28 +112,16 @@ const DataQualityRatingList: React.FC = () => {
       filtered = filtered.filter(
         (item) =>
           item.organization_name?.toLowerCase().includes(searchLower) ||
-          item.sgiq_id?.toLowerCase().includes(searchLower)
+          item.sgiq_id?.toLowerCase().includes(searchLower) ||
+          item.supplier_details?.supplier_name?.toLowerCase().includes(searchLower) ||
+          item.email_address?.toLowerCase().includes(searchLower)
       );
-    }
-
-    // Apply rating filter
-    if (filterRating !== "all") {
-      if (filterRating === "high") {
-        filtered = filtered.filter((item) => (item.average_rating || 0) >= 4);
-      } else if (filterRating === "medium") {
-        filtered = filtered.filter(
-          (item) =>
-            (item.average_rating || 0) >= 2 && (item.average_rating || 0) < 4
-        );
-      } else if (filterRating === "low") {
-        filtered = filtered.filter((item) => (item.average_rating || 0) < 2);
-      }
     }
 
     setFilteredDQR(filtered);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -114,46 +131,25 @@ const DataQualityRatingList: React.FC = () => {
     });
   };
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4) return "text-green-600";
-    if (rating >= 2) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getRatingBadge = (rating: number) => {
-    let colorClass = "bg-gray-100 text-gray-700 border-gray-200";
-    if (rating >= 4)
-      colorClass = "bg-green-100 text-green-700 border-green-200";
-    else if (rating >= 2)
-      colorClass = "bg-yellow-100 text-yellow-700 border-yellow-200";
-    else if (rating > 0) colorClass = "bg-red-100 text-red-700 border-red-200";
-
-    return (
-      <span
-        className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}
-      >
-        <Star size={12} />
-        {rating.toFixed(1)}
-      </span>
-    );
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   const calculateStats = () => {
-    const total = dqrList.length;
+    const total = pagination.totalRecords;
     const completed = dqrList.filter(
-      (item) => item.status === "completed"
+      (item) => item.update_date && item.update_date !== item.created_date
     ).length;
-    const pending = dqrList.filter((item) => item.status === "pending").length;
-    const avgRating =
-      dqrList.reduce((sum, item) => sum + (item.average_rating || 0), 0) /
-        total || 0;
+    const pending = dqrList.length - completed;
 
-    return { total, completed, pending, avgRating };
+    return { total, completed, pending };
   };
 
   const stats = calculateStats();
 
-  if (isLoading) {
+  if (isLoading && dqrList.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -211,7 +207,7 @@ const DataQualityRatingList: React.FC = () => {
                   <CheckCircle className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-green-600 font-medium">Done</div>
+                  <div className="text-xs text-green-600 font-medium">Updated</div>
                   <div className="text-xl font-bold text-green-700">{stats.completed}</div>
                 </div>
               </div>
@@ -224,21 +220,8 @@ const DataQualityRatingList: React.FC = () => {
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-amber-600 font-medium">Pending</div>
+                  <div className="text-xs text-amber-600 font-medium">New</div>
                   <div className="text-xl font-bold text-amber-700">{stats.pending}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Average Rating */}
-            <div className="bg-purple-50 rounded-xl p-4 min-w-[140px] border border-purple-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <div className="text-xs text-purple-600 font-medium">Avg Rating</div>
-                  <div className="text-xl font-bold text-purple-700">{stats.avgRating.toFixed(1)}</div>
                 </div>
               </div>
             </div>
@@ -257,25 +240,20 @@ const DataQualityRatingList: React.FC = () => {
             />
             <input
               type="text"
-              placeholder="Search by organization or ID..."
+              placeholder="Search by organization, supplier, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter size={20} className="text-gray-400" />
-            <select
-              value={filterRating}
-              onChange={(e) => setFilterRating(e.target.value)}
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
-            >
-              <option value="all">All Ratings</option>
-              <option value="high">High (4-5)</option>
-              <option value="medium">Medium (2-4)</option>
-              <option value="low">Low (&lt;2)</option>
-            </select>
-          </div>
+          <button
+            onClick={() => fetchDQRList(currentPage)}
+            disabled={isLoading}
+            className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading ? <Loader size={18} className="animate-spin" /> : null}
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -298,8 +276,8 @@ const DataQualityRatingList: React.FC = () => {
               <Star size={48} className="mb-4 opacity-20" />
               <p className="text-lg font-medium">No assessments found</p>
               <p className="text-sm">
-                {searchTerm || filterRating !== "all"
-                  ? "Try adjusting your filters"
+                {searchTerm
+                  ? "Try adjusting your search"
                   : "Complete supplier questionnaires to see data quality ratings"}
               </p>
             </div>
@@ -307,7 +285,7 @@ const DataQualityRatingList: React.FC = () => {
         ) : (
           filteredDQR.map((item) => (
             <div
-              key={item._id}
+              key={item.sgiq_id}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-green-200 transition-all overflow-hidden"
             >
               <div className="p-6">
@@ -318,38 +296,37 @@ const DataQualityRatingList: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">
-                        {item.organization_name ||
-                          `ID: ${item.sgiq_id?.slice(0, 8)}...`}
+                        {item.organization_name || item.supplier_details?.supplier_name || `ID: ${item.sgiq_id?.slice(0, 8)}...`}
                       </h3>
                       <p className="text-xs text-gray-500">
-                        {item.assessment_count || 0} assessments
+                        {item.bom?.length || 0} BOM items
                       </p>
                     </div>
                   </div>
-                  {getRatingBadge(item.average_rating || 0)}
                 </div>
 
                 <div className="space-y-3 mb-4">
+                  {item.supplier_details && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Supplier</span>
+                      <span className="font-medium text-gray-900">
+                        {item.supplier_details.supplier_name}
+                      </span>
+                    </div>
+                  )}
+                  {item.core_business_activitiy && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Business</span>
+                      <span className="font-medium text-gray-900">
+                        {item.core_business_activitiy}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Status</span>
-                    <span
-                      className={`font-medium ${
-                        item.status === "completed"
-                          ? "text-green-600"
-                          : "text-amber-600"
-                      }`}
-                    >
-                      {item.status
-                        ? item.status.charAt(0).toUpperCase() +
-                          item.status.slice(1)
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Date</span>
+                    <span className="text-gray-600">Created</span>
                     <span className="text-gray-900 font-medium flex items-center gap-1">
                       <Calendar size={14} className="text-gray-400" />
-                      {formatDate(item.created_at)}
+                      {formatDate(item.created_date)}
                     </span>
                   </div>
                 </div>
@@ -375,8 +352,65 @@ const DataQualityRatingList: React.FC = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * pageSize) + 1} to{" "}
+              {Math.min(currentPage * pageSize, pagination.totalRecords)} of{" "}
+              {pagination.totalRecords} assessments
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1 || isLoading}
+                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isLoading}
+                      className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                        currentPage === pageNum
+                          ? "bg-green-600 text-white"
+                          : "hover:bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === pagination.totalPages || isLoading}
+                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
-      {filteredDQR.length > 0 && (
+      {filteredDQR.length > 0 && pagination.totalPages <= 1 && (
         <div className="mt-6 text-center text-sm text-gray-600">
           Showing {filteredDQR.length} of {dqrList.length} assessments
         </div>

@@ -179,50 +179,59 @@ const UsersPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Users</h2>
-          <p className="text-gray-600">
-            Manage system users and their permissions
-          </p>
+    <div className="p-6">
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+                <p className="text-gray-500">
+                  Manage system users and their permissions
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
+                <span>Refresh</span>
+              </button>
+              <Link
+                to="/settings/users/create"
+                className="bg-green-600 text-white px-5 py-2.5 rounded-xl hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-600/20 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add User</span>
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-            <span>Refresh</span>
-          </button>
-          <Link
-            to="/settings/users/create"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add User</span>
-          </Link>
-        </div>
-      </div>
 
       {!showUserDetails ? (
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center space-x-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search users..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+              <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
                 <Filter className="h-4 w-4" />
                 <span>Filters</span>
               </button>
@@ -282,7 +291,7 @@ const UsersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                           {user.user_role}
                         </span>
                       </td>
@@ -304,13 +313,13 @@ const UsersPage: React.FC = () => {
                         >
                           <Link
                             to={`/settings/users/edit/${user.user_id}`}
-                            className="text-indigo-600 hover:text-indigo-900 p-2 rounded-md hover:bg-indigo-50"
+                            className="text-gray-500 hover:text-green-600 p-2 rounded-lg hover:bg-green-50 transition-colors"
                             title="Edit User"
                           >
                             <Edit className="h-5 w-5" />
                           </Link>
                           <button
-                            className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
+                            className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
                             onClick={() => handleDeleteUser(user.user_id)}
                             title="Delete User"
                           >
@@ -345,31 +354,29 @@ const UsersPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={closeUserDetails}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span>Back to Users</span>
-                </button>
-              </div>
+              <button
+                onClick={closeUserDetails}
+                className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>Back to Users</span>
+              </button>
             </div>
           </div>
 
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center">
-                <User className="h-4 w-4 text-blue-600" />
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                <User className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
                   User Details
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-gray-500">
                   View user information and permissions
                 </p>
               </div>
@@ -439,24 +446,25 @@ const UsersPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+              <button
+                onClick={closeUserDetails}
+                className="px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
               <Link
                 to={`/settings/users/edit/${selectedUser?.user_id}`}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-lg shadow-green-600/20 transition-colors"
               >
                 <Edit className="h-4 w-4" />
                 <span>Edit User</span>
               </Link>
-              <button
-                onClick={closeUserDetails}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

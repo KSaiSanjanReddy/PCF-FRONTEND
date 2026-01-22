@@ -4,7 +4,6 @@ import {
   Spin,
   Tabs,
   Card,
-  Typography,
   Tag,
   Button,
   Row,
@@ -16,9 +15,9 @@ import {
   InputNumber,
   Select,
   DatePicker,
+  Typography,
 } from "antd";
 import {
-  LeftOutlined,
   EditOutlined,
   DeleteOutlined,
   CloudOutlined,
@@ -29,8 +28,9 @@ import {
   ReloadOutlined,
   EyeOutlined,
   DownloadOutlined,
+  LeftOutlined,
 } from "@ant-design/icons";
-import { Package, FileText } from "lucide-react";
+import { Package, FileText, ArrowLeft, Edit } from "lucide-react";
 import productService from "../lib/productService";
 import type { Product } from "../lib/productService";
 import ownEmissionService from "../lib/ownEmissionService";

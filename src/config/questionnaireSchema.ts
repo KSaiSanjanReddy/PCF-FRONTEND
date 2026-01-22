@@ -18,11 +18,23 @@ export interface QuestionnaireOption {
   value: string | number;
 }
 
+// API Dropdown types for dynamic options
+export type ApiDropdownType =
+  | 'fuelType'           // Q16 - Fuel types
+  | 'subFuelTypeByFuel'  // Q16 - Sub-fuel types (depends on fuel_type)
+  | 'subFuelType'        // Q17 - All sub-fuel types
+  | 'refrigerantType'    // Q19 - Refrigerant types
+  | 'energySource'       // Q22, Q44, Q51 - Energy sources
+  | 'energyTypeBySource' // Q22, Q44, Q51 - Energy types (depends on energy_source)
+  | 'processSpecificEnergy' // Q28 - Process specific energy
+  | 'wasteType'          // Q40, Q68 - Waste types
+  | 'wasteTreatmentType'; // Q40, Q68 - Waste treatment types
+
 export interface QuestionnaireField {
   name: string; // Data key (path in the data object)
   label?: string; // Display label
   type: FieldType;
-  options?: string[] | QuestionnaireOption[]; // For select
+  options?: string[] | QuestionnaireOption[]; // For select (static options)
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -45,6 +57,10 @@ export interface QuestionnaireField {
   content?: React.ReactNode;
   className?: string;
   mode?: 'multiple' | 'tags';
+  // For API-driven dropdowns
+  apiDropdown?: ApiDropdownType;
+  // For cascading/dependent dropdowns - the field name this depends on
+  dependsOnField?: string;
 }
 
 export interface QuestionnaireSection {
@@ -406,16 +422,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'fuel_type',
             label: 'Fuel',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.FUEL_TYPES,
+            apiDropdown: 'fuelType',
             placeholder: 'Select fuel'
           },
           {
             name: 'sub_fuel_type',
             label: 'Sub-Fuel Type',
             type: 'select',
-            options: ["Petrol", "Diesel", "Kerosene", "Coal", "Wood", "Other"],
-            placeholder: 'Select sub-fuel type',
-            mode: 'multiple'
+            apiDropdown: 'subFuelTypeByFuel',
+            dependsOnField: 'fuel_type',
+            placeholder: 'Select sub-fuel type'
           },
           {
             name: 'quantity',
@@ -443,7 +459,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'fuel_type',
             label: 'Fuel',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.VEHICLE_FUEL_TYPES,
+            apiDropdown: 'subFuelType',
             placeholder: 'Select fuel type'
           },
           {
@@ -482,8 +498,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: 'type',
             label: 'Refrigerant Type',
-            type: 'text',
-            placeholder: 'Enter type'
+            type: 'select',
+            apiDropdown: 'refrigerantType',
+            placeholder: 'Select refrigerant type'
           },
           {
             name: 'quantity',
@@ -561,14 +578,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'energy_source',
             label: 'Energy Source Purchased/acquired',
             type: 'select',
-            options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
+            apiDropdown: 'energySource',
             placeholder: 'Select source'
           },
           {
             name: 'energy_type',
             label: 'Energy_Type',
             type: 'select',
-            options: ['Purchased Grid Electricity', 'Renewable Electricity'],
+            apiDropdown: 'energyTypeBySource',
+            dependsOnField: 'energy_source',
             placeholder: 'Select type'
           },
           {
@@ -721,7 +739,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'process_type',
             label: 'Process-specific energy type',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.PROCESS_SPECIFIC_ENERGY_USAGE,
+            apiDropdown: 'processSpecificEnergy',
             placeholder: 'Select type'
           },
           {
@@ -1061,7 +1079,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'waste_type',
             label: 'Waste Type',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.WASTE_TYPES,
+            apiDropdown: 'wasteType',
             placeholder: 'Select type'
           },
           {
@@ -1080,7 +1098,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'treatment_type',
             label: 'Treatment type',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.WASTE_TREATMENT_TYPES,
+            apiDropdown: 'wasteTreatmentType',
             placeholder: 'Select treatment'
           }
         ]
@@ -1131,14 +1149,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
                 name: 'energy_source',
                 label: 'Energy Source Purchased/acquired',
                 type: 'select',
-                options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
+                apiDropdown: 'energySource',
                 placeholder: 'Select source'
             },
             {
                 name: 'energy_type',
                 label: 'Energy_Type',
                 type: 'select',
-                options: ['Purchased Grid Electricity', 'Renewable Electricity'],
+                apiDropdown: 'energyTypeBySource',
+                dependsOnField: 'energy_source',
                 placeholder: 'Select type'
             },
             {
@@ -1294,14 +1313,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
                 name: 'energy_source',
                 label: 'Energy Source Purchased/acquired',
                 type: 'select',
-                options: ['Electricity Energy', 'Heating Energy', 'Cooling Energy', 'Steam Energy'],
+                apiDropdown: 'energySource',
                 placeholder: 'Select source'
             },
             {
                 name: 'energy_type',
                 label: 'Energy_Type',
                 type: 'select',
-                options: ['Purchased Grid Electricity', 'Renewable Electricity'],
+                apiDropdown: 'energyTypeBySource',
+                dependsOnField: 'energy_source',
                 placeholder: 'Select type'
             },
             {
@@ -1651,7 +1671,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'waste_type',
             label: 'Waste Type',
             type: 'select',
-            options: QUESTIONNAIRE_OPTIONS.WASTE_TYPES,
+            apiDropdown: 'wasteType',
             placeholder: 'Select type'
           },
           {
@@ -1670,7 +1690,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: 'treatment_type',
             label: 'Treatment type',
             type: 'select',
-            options: ['landfill', 'incineration', 'recycling', 'Other\'s'],
+            apiDropdown: 'wasteTreatmentType',
             placeholder: 'Select treatment'
           }
         ]

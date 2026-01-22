@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from "react";
 import {
   Button,
-  Card,
   Col,
-  ConfigProvider,
   Form,
   Input,
   InputNumber,
   Row,
   Select,
-  Space,
-  Typography,
   message,
   Spin,
-  Divider,
-  Tag,
 } from "antd";
-import { LeftOutlined, SaveOutlined, ReloadOutlined, DeleteOutlined, CloudUploadOutlined } from "@ant-design/icons";
+import { ReloadOutlined, CloudUploadOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Package, ArrowLeft, Save, FileText } from "lucide-react";
 import productService from "../lib/productService";
 import type {
   ProductCategory,
@@ -31,7 +25,6 @@ import dayjs from "dayjs";
 import { documentMasterService } from "../lib/documentMasterService";
 import type { DocumentItem as DocumentItemType } from "../lib/documentMasterService";
 
-const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const ProductEdit: React.FC = () => {
@@ -167,60 +160,54 @@ const ProductEdit: React.FC = () => {
 
   if (initialLoading) {
       return (
-        <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="flex justify-center items-center h-screen">
           <Spin size="large" />
         </div>
       );
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          borderRadius: 8,
-          colorPrimary: "#1890ff",
-        },
-        components: {
-          Card: { borderRadius: 12 },
-          Button: { borderRadius: 8 },
-          Select: { borderRadius: 8 },
-          Input: { borderRadius: 8 },
-          InputNumber: { borderRadius: 8 },
-        },
-      }}
-    >
-      <div className="bg-gray-50 p-6 min-h-screen w-full">
-        <Spin spinning={loading}>
-          <Space direction="vertical" size={16} className="w-full mx-auto">
-            {/* Header */}
-            <div className="mb-4">
-                <Button
-                type="text"
-                icon={<LeftOutlined />}
-                onClick={() => navigate(`/product-portfolio/view/${id}`)}
-                className="p-0 text-gray-600 hover:text-blue-600 mb-2"
+    <div className="p-6">
+      <Spin spinning={loading}>
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate(`/product-portfolio/view/${id}`)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                 >
-                Back to Product Overview
-                </Button>
-                
-                <Card className="shadow-sm border-0">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-green-600 p-3 rounded-xl">
-                            <Package className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <Title level={3} style={{ margin: 0 }}>
-                            Edit Product
-                            </Title>
-                            <Text type="secondary">
-                            Update Product Information and attributes
-                            </Text>
-                        </div>
-                    </div>
-                </Card>
+                  <ArrowLeft size={20} className="text-gray-600" />
+                </button>
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
+                  <p className="text-gray-500">Update product information and attributes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(`/product-portfolio/view/${id}`)}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-600/20 transition-all"
+                >
+                  <Save size={18} />
+                  <span>Save Changes</span>
+                </button>
+              </div>
             </div>
+          </div>
 
-            <Form
+          <Form
                 form={form}
                 layout="vertical"
                 onFinish={handleSave}
@@ -228,9 +215,15 @@ const ProductEdit: React.FC = () => {
                 <Row gutter={24}>
                     {/* Main Content */}
                     <Col xs={24} lg={16}>
-                        <Space direction="vertical" size={24} className="w-full">
+                        <div className="space-y-6">
                             {/* Basic Information */}
-                            <Card className="shadow-sm" title="Basic Information">
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-green-600" />
+                                  </div>
+                                  Basic Information
+                                </h3>
                                 <Row gutter={24}>
                                     <Col xs={24} md={12}>
                                         <Form.Item
@@ -286,10 +279,16 @@ const ProductEdit: React.FC = () => {
                                         </Form.Item>
                                     </Col>
                                 </Row>
-                            </Card>
+                            </div>
 
                             {/* Technical Specifications */}
-                            <Card className="shadow-sm" title="Technical Specifications">
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-blue-600" />
+                                  </div>
+                                  Technical Specifications
+                                </h3>
                                 <Row gutter={24}>
                                     <Col xs={24} md={8}>
                                         <Form.Item
@@ -349,10 +348,16 @@ const ProductEdit: React.FC = () => {
                                         </Form.Item>
                                     </Col>
                                 </Row>
-                            </Card>
+                            </div>
 
                             {/* Environmental Data */}
-                            <Card className="shadow-sm" title="Environmental Data">
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-amber-600" />
+                                  </div>
+                                  Environmental Data
+                                </h3>
                                 <Row gutter={24}>
                                     <Col xs={24} md={12}>
                                         <Form.Item
@@ -394,15 +399,16 @@ const ProductEdit: React.FC = () => {
                                         </Form.Item>
                                     </Col>
                                 </Row>
-                            </Card>
-                        </Space>
+                            </div>
+                        </div>
                     </Col>
 
                     {/* Sidebar */}
                     <Col xs={24} lg={8}>
-                        <Space direction="vertical" size={24} className="w-full">
+                        <div className="space-y-6">
                             {/* Status & Settings */}
-                            <Card className="shadow-sm" title="Status & Settings">
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-6">Status & Settings</h3>
                                 <Form.Item label="Product Status" className="mb-4">
                                     <Select defaultValue="Active" size="large">
                                         <Select.Option value="Active">Active</Select.Option>
@@ -423,13 +429,13 @@ const ProductEdit: React.FC = () => {
                                         <Button icon={<ReloadOutlined />} size="large" />
                                     </div>
                                 </Form.Item>
-                            </Card>
+                            </div>
 
                             {/* Documents */}
-                            <Card className="shadow-sm" title="Documents">
-                                {/* Original: Static drag & drop UI and hardcoded document row without API integration */}
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
                                 <div className="mb-3 flex justify-between items-center">
-                                    <Text type="secondary">Documents linked to this product</Text>
+                                    <span className="text-gray-500 text-sm">Documents linked to this product</span>
                                     <Button
                                         type="link"
                                         icon={<CloudUploadOutlined />}
@@ -465,62 +471,41 @@ const ProductEdit: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="bg-gray-50 p-3 rounded text-center">
-                                            <Text type="secondary" className="text-sm">
+                                        <div className="bg-gray-50 p-3 rounded-xl text-center">
+                                            <span className="text-gray-500 text-sm">
                                                 No documents linked to this product yet.
-                                            </Text>
+                                            </span>
                                         </div>
                                     )}
                                 </Spin>
-                            </Card>
+                            </div>
 
                             {/* Audit Information */}
-                            <Card className="shadow-sm" title="Audit Information">
+                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Audit Information</h3>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
-                                        <Text type="secondary">Created By:</Text>
-                                        <Text>{product?.created_by || "System"}</Text>
+                                        <span className="text-gray-500">Created By:</span>
+                                        <span className="font-medium">{product?.created_by || "System"}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <Text type="secondary">Created Date:</Text>
-                                        <Text>{product?.created_date ? dayjs(product.created_date).format("DD MMM YYYY") : "-"}</Text>
+                                        <span className="text-gray-500">Created Date:</span>
+                                        <span className="font-medium">{product?.created_date ? dayjs(product.created_date).format("DD MMM YYYY") : "-"}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <Text type="secondary">Last Modified:</Text>
-                                        <Text>{product?.update_date ? dayjs(product.update_date).format("DD MMM YYYY") : "-"}</Text>
+                                        <span className="text-gray-500">Last Modified:</span>
+                                        <span className="font-medium">{product?.update_date ? dayjs(product.update_date).format("DD MMM YYYY") : "-"}</span>
                                     </div>
                                 </div>
-                            </Card>
-                        </Space>
+                            </div>
+                        </div>
                     </Col>
                 </Row>
-
-                <div className="flex justify-end gap-4 mt-8 pb-8">
-                    <Button size="large" onClick={() => navigate(`/product-portfolio/view/${id}`)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        type="primary"
-                        size="large"
-                        htmlType="submit"
-                        icon={<SaveOutlined />}
-                        loading={loading}
-                        className="bg-green-600 hover:bg-green-700"
-                    >
-                        Save Changes
-                    </Button>
-                </div>
             </Form>
-          </Space>
+          </div>
         </Spin>
       </div>
-    </ConfigProvider>
   );
 };
-
-// Helper component for file icon
-const FileText = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-);
 
 export default ProductEdit;

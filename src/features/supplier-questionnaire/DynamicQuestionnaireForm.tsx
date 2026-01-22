@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin } from 'antd';
 import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
-import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import type { QuestionnaireSection, QuestionnaireField } from '../../config/questionnaireSchema';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import type { QuestionnaireSection, QuestionnaireField, ApiDropdownType } from '../../config/questionnaireSchema';
+import questionnaireDropdownService, { type DropdownItem } from '../../lib/questionnaireDropdownService';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -17,9 +18,15 @@ interface DynamicQuestionnaireFormProps {
   formErrors?: Record<string, string[]>;
 }
 
-const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({ 
-  section, 
-  initialValues, 
+// Type for storing dropdown data
+type DropdownDataMap = Record<ApiDropdownType, DropdownItem[]>;
+
+// Type for dependent dropdown data (keyed by parent value)
+type DependentDropdownMap = Record<string, DropdownItem[]>;
+
+const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
+  section,
+  initialValues,
   onFinish,
   form,
   onValuesChange,
@@ -27,6 +34,14 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   formErrors = {}
 }) => {
   const [charCounts, setCharCounts] = useState<Record<string, number>>({});
+
+  // State for API dropdown data
+  const [dropdownData, setDropdownData] = useState<Partial<DropdownDataMap>>({});
+  const [dropdownLoading, setDropdownLoading] = useState<Record<string, boolean>>({});
+
+  // State for dependent/cascading dropdowns (sub-fuel types by fuel type, energy types by source)
+  const [subFuelTypesByFuel, setSubFuelTypesByFuel] = useState<DependentDropdownMap>({});
+  const [energyTypesBySource, setEnergyTypesBySource] = useState<DependentDropdownMap>({});
 
   // Sync initialValues when they change (for auto-population)
   // This is important for Form.List components that need to be updated when data is auto-populated
@@ -56,6 +71,162 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     });
     setCharCounts(counts);
   }, [section, form]);
+
+  // Fetch API dropdown data when section changes
+  useEffect(() => {
+    if (!section) return;
+
+    // Collect all unique apiDropdown types needed for this section
+    const apiDropdownTypes = new Set<ApiDropdownType>();
+
+    const collectApiDropdowns = (fields: QuestionnaireField[]) => {
+      fields.forEach(field => {
+        if (field.apiDropdown && !field.dependsOnField) {
+          // Only fetch non-dependent dropdowns initially
+          apiDropdownTypes.add(field.apiDropdown);
+        }
+        if (field.columns) {
+          field.columns.forEach(col => {
+            if (col.apiDropdown && !col.dependsOnField) {
+              apiDropdownTypes.add(col.apiDropdown);
+            }
+          });
+        }
+      });
+    };
+
+    collectApiDropdowns(section.fields);
+
+    // Fetch each dropdown type
+    const fetchDropdowns = async () => {
+      for (const dropdownType of apiDropdownTypes) {
+        // Skip if already loaded
+        if (dropdownData[dropdownType]) continue;
+
+        setDropdownLoading(prev => ({ ...prev, [dropdownType]: true }));
+
+        try {
+          let data: DropdownItem[] = [];
+
+          switch (dropdownType) {
+            case 'fuelType':
+              data = await questionnaireDropdownService.getFuelTypeDropdown();
+              break;
+            case 'subFuelType':
+              data = await questionnaireDropdownService.getSubFuelTypeDropdown();
+              break;
+            case 'refrigerantType':
+              data = await questionnaireDropdownService.getRefrigerantTypeDropdown();
+              break;
+            case 'energySource':
+              data = await questionnaireDropdownService.getEnergySourceDropdown();
+              break;
+            case 'processSpecificEnergy':
+              data = await questionnaireDropdownService.getProcessSpecificEnergyDropdown();
+              break;
+            case 'wasteType':
+              data = await questionnaireDropdownService.getWasteTypeDropdown();
+              break;
+            case 'wasteTreatmentType':
+              data = await questionnaireDropdownService.getWasteTreatmentTypeDropdown();
+              break;
+          }
+
+          setDropdownData(prev => ({ ...prev, [dropdownType]: data }));
+        } catch (error) {
+          console.error(`Failed to fetch ${dropdownType} dropdown:`, error);
+        } finally {
+          setDropdownLoading(prev => ({ ...prev, [dropdownType]: false }));
+        }
+      }
+    };
+
+    fetchDropdowns();
+  }, [section]);
+
+  // Track in-flight requests to prevent duplicate calls
+  const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
+
+  // Helper to check if a value looks like a valid API ID (ULID format)
+  // ULIDs are 26 characters, alphanumeric
+  const isValidApiId = (value: string): boolean => {
+    if (!value || typeof value !== 'string') return false;
+    // ULID format: 26 alphanumeric characters
+    // Also accept UUIDs and other ID formats that don't contain spaces
+    return /^[A-Za-z0-9_-]{10,}$/.test(value) && !value.includes(' ');
+  };
+
+  // Function to fetch dependent dropdown data (sub-fuel by fuel, energy type by source)
+  const fetchDependentDropdown = useCallback(async (
+    dropdownType: 'subFuelTypeByFuel' | 'energyTypeBySource',
+    parentId: string
+  ) => {
+    if (!parentId) return;
+
+    // Validate that parentId is an actual API ID, not a display name
+    if (!isValidApiId(parentId)) {
+      console.warn(`Invalid API ID format for ${dropdownType}: "${parentId}" - skipping fetch`);
+      return;
+    }
+
+    const cacheKey = `${dropdownType}_${parentId}`;
+
+    // Check if already cached
+    if (dropdownType === 'subFuelTypeByFuel' && subFuelTypesByFuel[parentId]) return;
+    if (dropdownType === 'energyTypeBySource' && energyTypesBySource[parentId]) return;
+
+    // Check if request is already in flight
+    if (pendingRequests.has(cacheKey)) return;
+
+    // Mark request as pending
+    setPendingRequests(prev => new Set(prev).add(cacheKey));
+    setDropdownLoading(prev => ({ ...prev, [cacheKey]: true }));
+
+    try {
+      let data: DropdownItem[] = [];
+
+      if (dropdownType === 'subFuelTypeByFuel') {
+        data = await questionnaireDropdownService.getSubFuelTypeByFuelTypeDropdown(parentId);
+        setSubFuelTypesByFuel(prev => ({ ...prev, [parentId]: data }));
+      } else if (dropdownType === 'energyTypeBySource') {
+        data = await questionnaireDropdownService.getEnergyTypeBySourceDropdown(parentId);
+        setEnergyTypesBySource(prev => ({ ...prev, [parentId]: data }));
+      }
+    } catch (error) {
+      console.error(`Failed to fetch ${dropdownType} for ${parentId}:`, error);
+    } finally {
+      setDropdownLoading(prev => ({ ...prev, [cacheKey]: false }));
+      setPendingRequests(prev => {
+        const next = new Set(prev);
+        next.delete(cacheKey);
+        return next;
+      });
+    }
+  }, [subFuelTypesByFuel, energyTypesBySource, pendingRequests]);
+
+  // Helper to get dropdown options for a field
+  const getDropdownItems = useCallback((
+    apiDropdownType: ApiDropdownType,
+    dependsOnField?: string,
+    parentValue?: string
+  ): DropdownItem[] => {
+    // Handle dependent dropdowns
+    if (dependsOnField && parentValue) {
+      // Only return cached data if parentValue is a valid API ID
+      if (!isValidApiId(parentValue)) {
+        return [];
+      }
+      if (apiDropdownType === 'subFuelTypeByFuel') {
+        return subFuelTypesByFuel[parentValue] || [];
+      }
+      if (apiDropdownType === 'energyTypeBySource') {
+        return energyTypesBySource[parentValue] || [];
+      }
+    }
+
+    // Return static dropdown data
+    return dropdownData[apiDropdownType] || [];
+  }, [dropdownData, subFuelTypesByFuel, energyTypesBySource]);
 
   if (!section) {
     return null;
@@ -389,20 +560,34 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           <Form.Item
             noStyle
             shouldUpdate={(prevValues, currentValues) => {
-              // Watch for changes in the stationary_combustion list
-              if (field.name === 'scope_1.stationary_combustion') {
-                const prevList = prevValues?.scope_1?.stationary_combustion || [];
-                const currList = currentValues?.scope_1?.stationary_combustion || [];
-                if (prevList.length !== currList.length) return true;
+              // Watch for changes in tables with dependent dropdowns
+              const fieldPath = field.name.split('.');
+              const getNestedValue = (obj: any, path: string[]) => {
+                return path.reduce((acc, key) => acc?.[key], obj);
+              };
+              const prevList = getNestedValue(prevValues, fieldPath) || [];
+              const currList = getNestedValue(currentValues, fieldPath) || [];
+
+              if (prevList.length !== currList.length) return true;
+
+              // Check if any dependent field values changed
+              const hasDependentColumns = field.columns?.some(c => c.dependsOnField);
+              if (hasDependentColumns) {
                 return prevList.some((prevRow: any, index: number) => {
-                  return prevRow?.fuel_type !== currList[index]?.fuel_type;
+                  const currRow = currList[index];
+                  return field.columns?.some(col => {
+                    if (col.dependsOnField) {
+                      return prevRow?.[col.dependsOnField] !== currRow?.[col.dependsOnField];
+                    }
+                    return false;
+                  });
                 });
               }
               return false;
             }}
           >
             {() => (
-          <Form.List 
+          <Form.List
             name={field.name.split('.')}
             rules={field.required ? [
               {
@@ -426,101 +611,172 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               const columns = [
                 ...(field.columns?.map((col, colIndex) => {
                   const isAutoPopulatedCol = isAutoPopulated && colIndex < 2; // First 2 columns typically auto-populated
-                  
-                  // Check if this is the sub_fuel_type column in stationary_combustion table
-                  const isSubFuelType = col.name === 'sub_fuel_type' && field.name === 'scope_1.stationary_combustion';
-                  
+
+                  // Check if this column has a dependent dropdown
+                  const hasDependentDropdown = col.apiDropdown && col.dependsOnField;
+
+                  // Check if this column's value is depended on by another column
+                  const isDependedOn = field.columns?.some(c => c.dependsOnField === col.name);
+
                   return {
                     title: (
                       <div className="flex items-center gap-1">
                         <span>{col.label}</span>
                         {col.required && <span className="text-red-500">*</span>}
+                        {col.apiDropdown && dropdownLoading[col.apiDropdown] && (
+                          <LoadingOutlined className="text-blue-500 text-xs" />
+                        )}
                       </div>
                     ),
                     dataIndex: col.name,
                     key: col.name,
                     width: col.type === 'number' ? 120 : undefined,
                     render: (_: any, fieldRecord: any) => {
-                      // For sub_fuel_type, we need to get fuel_type from the same row
-                      if (isSubFuelType) {
-                        const fieldPath = field.name.split('.');
-                        // Get fuel_type from the form - this will be re-evaluated when Form.Item shouldUpdate triggers
+                      const fieldPath = field.name.split('.');
+
+                      // Handle dependent dropdown (e.g., sub_fuel_type depends on fuel_type)
+                      if (hasDependentDropdown) {
                         const rowValues = form.getFieldValue([...fieldPath, fieldRecord.name]);
-                        const fuelType = rowValues?.fuel_type;
-                        const subFuelOptions = fuelType && QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES[fuelType as keyof typeof QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES]
-                          ? QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES[fuelType as keyof typeof QUESTIONNAIRE_OPTIONS.FUEL_SUB_TYPES]
-                          : [];
-                        
+                        const parentValue = rowValues?.[col.dependsOnField!];
+                        const currentValue = rowValues?.[col.name];
+
+                        // Get cached dependent options (fetched when parent was selected)
+                        const dependentOptions = getDropdownItems(col.apiDropdown!, col.dependsOnField, parentValue);
+                        const isLoadingDependent = parentValue ? dropdownLoading[`${col.apiDropdown}_${parentValue}`] : false;
+
+                        // Check if current value exists in options, if not clear it
+                        const isValueValid = !currentValue || dependentOptions.some(opt => opt.id === currentValue);
+                        if (!isValueValid && currentValue) {
+                          // Clear invalid value asynchronously to avoid render issues
+                          setTimeout(() => {
+                            form.setFieldValue([...fieldPath, fieldRecord.name, col.name], null);
+                          }, 0);
+                        }
+
                         return (
                           <Form.Item
                             name={[fieldRecord.name, col.name]}
                             rules={[
-                              { 
-                                required: col.required, 
-                                message: col.required 
+                              {
+                                required: col.required,
+                                message: col.required
                                   ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
                             className="mb-0"
                           >
-                            <Select 
-                              placeholder={fuelType ? col.placeholder : 'Select fuel type first'} 
-                              style={{ minWidth: 120, width: '100%' }} 
+                            <Select
+                              placeholder={parentValue ? col.placeholder : `Select ${col.dependsOnField?.replace('_', ' ')} first`}
+                              style={{ minWidth: 120, width: '100%' }}
                               mode={col.mode}
-                              disabled={!fuelType}
-                              showSearch={subFuelOptions.length > 5}
+                              disabled={!parentValue}
+                              loading={isLoadingDependent}
+                              allowClear
+                              showSearch={dependentOptions.length > 5}
                               filterOption={(input, option) =>
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                             >
-                              {subFuelOptions.map((opt: string) => (
-                                <Select.Option key={opt} value={opt}>{opt}</Select.Option>
+                              {dependentOptions.map((opt: DropdownItem) => (
+                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
                               ))}
                             </Select>
                           </Form.Item>
                         );
                       }
-                      
-                      // For fuel_type, add onChange to clear sub_fuel_type
-                      if (col.name === 'fuel_type' && field.name === 'scope_1.stationary_combustion') {
+
+                      // Handle API dropdown that other columns depend on (parent dropdown)
+                      if (col.apiDropdown && isDependedOn) {
+                        const apiOptions = getDropdownItems(col.apiDropdown);
+                        const isLoadingApi = dropdownLoading[col.apiDropdown];
+
+                        // Find dependent column to clear its value when this changes
+                        const dependentCol = field.columns?.find(c => c.dependsOnField === col.name);
+
                         return (
                           <Form.Item
                             name={[fieldRecord.name, col.name]}
                             rules={[
-                              { 
-                                required: col.required, 
-                                message: col.required 
+                              {
+                                required: col.required,
+                                message: col.required
                                   ? `Please fill in "${col.label}" for this row. This field is required.`
                                   : undefined
                               }
                             ].filter(Boolean)}
                             className="mb-0"
                           >
-                            <Select 
-                              placeholder={col.placeholder} 
-                              style={{ minWidth: 120, width: '100%' }} 
+                            <Select
+                              placeholder={col.placeholder}
+                              style={{ minWidth: 120, width: '100%' }}
                               mode={col.mode}
-                              showSearch={col.options && col.options.length > 5}
+                              loading={isLoadingApi}
+                              showSearch={apiOptions.length > 5}
                               filterOption={(input, option) =>
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
-                                // Clear sub_fuel_type when fuel_type changes
-                                form.setFieldValue([...field.name.split('.'), fieldRecord.name, 'sub_fuel_type'], undefined);
+                                // Clear dependent column value when parent changes
+                                if (dependentCol) {
+                                  const dependentFieldPath = [...fieldPath, fieldRecord.name, dependentCol.name];
+                                  form.setFieldValue(dependentFieldPath, null);
+                                  // Force form to recognize the change
+                                  form.setFields([{ name: dependentFieldPath, value: null, errors: [] }]);
+                                }
+                                // Trigger fetch of dependent options
+                                if (dependentCol?.apiDropdown === 'subFuelTypeByFuel') {
+                                  fetchDependentDropdown('subFuelTypeByFuel', value);
+                                } else if (dependentCol?.apiDropdown === 'energyTypeBySource') {
+                                  fetchDependentDropdown('energyTypeBySource', value);
+                                }
                               }}
                             >
-                              {col.options?.map((opt: any) => {
-                                const label = typeof opt === 'string' ? opt : opt.label;
-                                const value = typeof opt === 'string' ? opt : opt.value;
-                                return <Select.Option key={value} value={value}>{label}</Select.Option>;
-                              })}
+                              {apiOptions.map((opt: DropdownItem) => (
+                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                              ))}
                             </Select>
                           </Form.Item>
                         );
                       }
-                      
-                      // Default rendering for other columns
+
+                      // Handle simple API dropdown (no dependencies)
+                      if (col.apiDropdown && !hasDependentDropdown && !isDependedOn) {
+                        const apiOptions = getDropdownItems(col.apiDropdown);
+                        const isLoadingApi = dropdownLoading[col.apiDropdown];
+
+                        return (
+                          <Form.Item
+                            name={[fieldRecord.name, col.name]}
+                            rules={[
+                              {
+                                required: col.required,
+                                message: col.required
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  : undefined
+                              }
+                            ].filter(Boolean)}
+                            className="mb-0"
+                          >
+                            <Select
+                              placeholder={col.placeholder}
+                              style={{ minWidth: 120, width: '100%' }}
+                              mode={col.mode}
+                              loading={isLoadingApi}
+                              showSearch={apiOptions.length > 5}
+                              filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                              }
+                            >
+                              {apiOptions.map((opt: DropdownItem) => (
+                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        );
+                      }
+
+                      // Default rendering for columns without API dropdown
                       return (
                         <Form.Item
                           name={[fieldRecord.name, col.name]}
