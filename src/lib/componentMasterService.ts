@@ -6,7 +6,6 @@ export interface ComponentItem {
   componentCode?: string;
   componentName?: string;
   lifecycleStage?: string;
-  manufacturer?: string;
   location?: string;
   materialType?: string;
   weight?: string;
@@ -36,7 +35,7 @@ export interface ComponentItem {
     code: string;
     name: string;
   };
-  manufacturer_details?: {
+  manufacturer?: {
     id: string;
     code: string;
     name: string;
@@ -99,6 +98,7 @@ class ComponentMasterService {
     componentCategoryName?: string;
     componentTypeName?: string;
     manufacturerName?: string;
+    pcfStatus?: string;
   }): Promise<ComponentListResponse> {
     try {
       const queryParams = new URLSearchParams();
@@ -154,6 +154,9 @@ class ComponentMasterService {
       if (params?.manufacturerName) {
         queryParams.append("manufacturerName", params.manufacturerName);
       }
+      if (params?.pcfStatus) {
+        queryParams.append("pcf_status", params.pcfStatus);
+      }
 
       const url = `${API_BASE_URL}/api/component-master/list?${queryParams.toString()}`;
       const response = await fetch(url, {
@@ -164,43 +167,12 @@ class ComponentMasterService {
       const result: any = await response.json();
 
       if (result.status || result.success) {
-        // Helper function to safely extract string from object or string
-        const extractString = (value: any, fallback: string = "N/A"): string => {
-          if (!value) return fallback;
-          if (typeof value === "string") return value;
-          if (typeof value === "object" && value.name) return value.name;
-          return fallback;
-        };
-
-        // Transform API response to match ComponentItem interface
-        const transformedData = result.data?.data?.map((item: any) => {
-          // Extract string values first to prevent object rendering
-          const componentCode = item.code || "N/A";
-          const componentName = extractString(item.componentName) || extractString(item.component_category) || extractString(item.component_type) || extractString(item.request_title) || "N/A";
-          const lifecycleStage = extractString(item.lifecycleStage) || extractString(item.component_category) || "N/A";
-          const manufacturer = extractString(item.manufacturer) || extractString(item.manufacturer_details) || "N/A";
-          const location = extractString(item.location) || extractString(item.production_location) || "N/A";
-          const materialType = extractString(item.materialType) || extractString(item.bom_details?.[0]?.material_type) || "N/A";
-          const weight = extractString(item.weight) || (item.bom_details?.[0]?.weight_gms ? `${item.bom_details[0].weight_gms} gms` : "N/A");
-
-          return {
-            // Include all original fields first
-            ...item,
-            // Override with string values to prevent object rendering
-            id: item.id,
-            code: item.code,
-            componentCode,
-            componentName,
-            lifecycleStage,
-            manufacturer,
-            location,
-            materialType,
-            weight,
-            recyclability: "N/A",
-            certificateStatus: "N/A",
-            status: item.status?.toLowerCase() || "active",
-          };
-        }) || [];
+        // Return API data with minimal transformation
+        const transformedData = result.data?.data?.map((item: any) => ({
+          ...item,
+          // Normalize status to lowercase for consistent handling
+          status: item.status || "draft",
+        })) || [];
 
         return {
           success: true,
@@ -287,39 +259,10 @@ class ComponentMasterService {
           };
         }
 
-        // Helper function to safely extract string from object or string
-        const extractString = (value: any, fallback: string = "N/A"): string => {
-          if (!value) return fallback;
-          if (typeof value === "string") return value;
-          if (typeof value === "object" && value.name) return value.name;
-          return fallback;
-        };
-
-        // Extract string values first to prevent object rendering
-        const componentCode = item.code || "N/A";
-        const componentName = extractString(item.componentName) || extractString(item.component_category) || extractString(item.component_type) || extractString(item.request_title) || "N/A";
-        const lifecycleStage = extractString(item.lifecycleStage) || extractString(item.component_category) || "N/A";
-        const manufacturer = extractString(item.manufacturer) || extractString(item.manufacturer_details) || "N/A";
-        const location = extractString(item.location) || extractString(item.production_location) || "N/A";
-        const materialType = extractString(item.materialType) || extractString(item.bom_details?.[0]?.material_type) || "N/A";
-        const weight = extractString(item.weight) || (item.bom_details?.[0]?.weight_gms ? `${item.bom_details[0].weight_gms} gms` : "N/A");
-
-        // Transform API response to match ComponentItem interface
-        // Spread original data first, then override with string values
+        // Return data with minimal transformation
         const transformedData: ComponentItem = {
           ...item,
-          id: item.id,
-          code: item.code,
-          componentCode,
-          componentName,
-          lifecycleStage,
-          manufacturer,
-          location,
-          materialType,
-          weight,
-          recyclability: "N/A",
-          certificateStatus: "N/A",
-          status: item.status?.toLowerCase() || "active",
+          status: item.status || "draft",
         };
 
         return {

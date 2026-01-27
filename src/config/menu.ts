@@ -28,26 +28,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: "projects",
-    title: "Projects",
-    path: "/projects",
-    icon: "FolderOpen",
-    children: [
-      {
-        id: "active-projects",
-        title: "Active Projects",
-        path: "/projects/active",
-        icon: "PlayCircle",
-      },
-      {
-        id: "archived-projects",
-        title: "Archived",
-        path: "/projects/archived",
-        icon: "Archive",
-      },
-    ],
-  },
-  {
     id: "components-master",
     title: "Components Master",
     path: "/components-master",

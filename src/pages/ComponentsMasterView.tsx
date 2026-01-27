@@ -239,7 +239,7 @@ const ComponentsMasterView: React.FC = () => {
         const componentCode = data.code || data.componentCode || "N/A";
         const componentName = extractString(data.componentName) || extractString(data.component_category) || extractString(data.component_type) || extractString(data.request_title) || "N/A";
         const lifecycleStage = extractString(data.lifecycleStage) || extractString(data.component_category) || "N/A";
-        const manufacturer = extractString(data.manufacturer) || extractString(data.manufacturer_details) || "N/A";
+        const manufacturer = extractString(data.manufacturer) || "N/A";
         const location = extractString(data.location) || extractString((data as any).production_location) || "N/A";
         const materialType = extractString(data.materialType) || extractString(data.bom_details?.[0]?.material_type) || "N/A";
         const weight = extractString(data.weight) || (data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A");

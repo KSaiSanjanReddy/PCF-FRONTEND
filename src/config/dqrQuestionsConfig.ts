@@ -64,8 +64,8 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Product manufacturing details including weight and quantity',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  q15_1: {
-    key: 'q15_1',
+  q151: {
+    key: 'q151',
     label: 'Co-Products Economic Value',
     category: DQR_CATEGORIES.PRODUCT,
     description: 'Co-product details and economic value',
@@ -92,8 +92,8 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Types and quantities of refrigerants used',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  q21: {
-    key: 'q21',
+  dq21: {
+    key: 'dq21',
     label: 'Process Emissions',
     category: DQR_CATEGORIES.SCOPE_1,
     description: 'Process-related emissions from manufacturing',
@@ -169,8 +169,8 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Quality control process consumption',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  q34_pressure: {
-    key: 'q34_pressure',
+  q341: {
+    key: 'q341',
     label: 'QC Pressure Flow',
     category: DQR_CATEGORIES.QUALITY_CONTROL,
     description: 'Quality control pressure flow usage',

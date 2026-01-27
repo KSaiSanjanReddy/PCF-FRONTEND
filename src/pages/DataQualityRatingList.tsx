@@ -353,66 +353,84 @@ const DataQualityRatingList: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {pagination.totalRecords > 0 && (
         <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="text-sm text-gray-600">
-              Showing {((currentPage - 1) * pageSize) + 1} to{" "}
-              {Math.min(currentPage * pageSize, pagination.totalRecords)} of{" "}
-              {pagination.totalRecords} assessments
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader size={14} className="animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                <>
+                  Showing {((currentPage - 1) * pageSize) + 1} to{" "}
+                  {Math.min(currentPage * pageSize, pagination.totalRecords)} of{" "}
+                  {pagination.totalRecords} assessments
+                </>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum: number;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      disabled={isLoading}
-                      className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                        currentPage === pageNum
-                          ? "bg-green-600 text-white"
-                          : "hover:bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1 || isLoading}
+                  className="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoading}
+                  className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={isLoading}
+                        className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-green-600 text-white"
+                            : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === pagination.totalPages || isLoading}
+                  className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <button
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages || isLoading}
+                  className="px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Last
+                </button>
               </div>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === pagination.totalPages || isLoading}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Summary */}
-      {filteredDQR.length > 0 && pagination.totalPages <= 1 && (
-        <div className="mt-6 text-center text-sm text-gray-600">
-          Showing {filteredDQR.length} of {dqrList.length} assessments
         </div>
       )}
     </div>
