@@ -29,10 +29,31 @@ import {
 } from "../config/dqrQuestionsConfig";
 
 // API response data point structure
+// Note: Different question types have different ID fields
 interface DQRDataPointAPI {
-  edrqn_id: string;
   sgiq_id: string;
   data: string; // JSON string
+  // Various ID fields depending on question type
+  edrqn_id?: string;
+  spqrqe_id?: string;  // q11
+  spqrqt_id?: string;  // q12
+  psdrqt_id?: string;  // q13
+  pcmrqf_id?: string;  // q15
+  scoserqs_id?: string; // q16
+  mccoqrqs_id?: string; // q17
+  stidefpeqtt_id?: string; // q22
+  stieqts_id?: string; // q26
+  stideqto_id?: string; // q31
+  stideqfo_id?: string; // q41
+  rmuicmqft_id?: string; // q52
+  stoieqft_id?: string; // q53
+  stoieqff_id?: string; // q54
+  woppupqso_id?: string; // q61
+  stoieqsf_id?: string; // q64
+  stoieqsn_id?: string; // q69, q79
+  dpctqsf_id?: string; // q75
+  stoieqe_id?: string; // q80
+  // DQR tag fields
   ter_tag_type?: string | null;
   ter_tag_value?: string | null;
   ter_data_point?: string | null;
@@ -48,12 +69,38 @@ interface DQRDataPointAPI {
   pds_tag_type?: string | null;
   pds_tag_value?: string | null;
   pds_data_point?: string | null;
+  [key: string]: any; // Allow other dynamic ID fields
 }
+
+// Extract all ID fields from API response item (different questions use different ID field names)
+const extractAllIds = (item: DQRDataPointAPI): Record<string, string> => {
+  const ids: Record<string, string> = {};
+
+  // Extract all fields ending with '_id'
+  for (const key of Object.keys(item)) {
+    if (key.endsWith('_id') && item[key]) {
+      ids[key] = item[key];
+    }
+  }
+
+  return ids;
+};
+
+// Get a unique identifier for the record (for UI key purposes)
+const getRecordUniqueId = (ids: Record<string, string>): string => {
+  // Return the first non-sgiq_id value as unique identifier
+  for (const [key, value] of Object.entries(ids)) {
+    if (key !== 'sgiq_id' && value) {
+      return value;
+    }
+  }
+  return '';
+};
 
 // UI data point structure
 interface DataPoint {
-  id: string; // Unique composite key: questionKey_edrqn_id
-  edrqn_id: string; // Original edrqn_id for API calls
+  id: string; // Unique composite key: questionKey_recordId
+  originalIds: Record<string, string>; // All original ID fields from API (to send back in update)
   questionKey: string; // q9, q16, etc.
   displayName: string;
   rawData: Record<string, any>;
@@ -154,14 +201,17 @@ const DataQualityRating = () => {
       (value as DQRDataPointAPI[]).forEach((item, index) => {
         const parsedData = parseDataField(item.data);
         const displayName = formatDataPointDisplay(parsedData);
-        // Create unique composite key using questionKey and edrqn_id (or index as fallback)
-        const uniqueId = `${key}_${item.edrqn_id || index}`;
+        // Extract all ID fields from the record
+        const allIds = extractAllIds(item);
+        const recordUniqueId = getRecordUniqueId(allIds);
+        // Create unique composite key using questionKey and recordId (or index as fallback)
+        const uniqueId = `${key}_${recordUniqueId || index}`;
 
         points.push({
           id: uniqueId,
-          edrqn_id: item.edrqn_id,
+          originalIds: allIds,
           questionKey: key,
-          displayName: displayName || `${questionConfig.label} - ${(item.edrqn_id || String(index)).slice(0, 8)}`,
+          displayName: displayName || `${questionConfig.label} - ${(recordUniqueId || String(index)).slice(0, 8)}`,
           rawData: parsedData,
           category: questionConfig.category,
           dqiRequired: questionConfig.dqiRequired,
@@ -289,8 +339,9 @@ const DataQualityRating = () => {
           const pointData = dqiData[point.id] || {};
 
           return {
-            sgiq_id: sgiq_id,
-            edrqn_id: point.edrqn_id,
+            // Spread all original IDs from the API response
+            ...point.originalIds,
+            // DQR tag fields
             ter_tag_type: pointData.TeR?.level1 || null,
             ter_tag_value: pointData.TeR?.level2 || null,
             ter_data_point: pointData.TeR?.level2

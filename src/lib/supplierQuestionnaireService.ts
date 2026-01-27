@@ -49,7 +49,8 @@ export interface SupplierQuestionnaireData {
       bom_id?: string;
       mpn?: string;
       material_number?: string;
-      product_name: string;
+      product_name?: string;
+      component_name?: string;
       location: string;
     }[];
     required_environmental_impact_methods: string[];
@@ -721,6 +722,12 @@ class SupplierQuestionnaireService {
       return Boolean(value) ? 'Yes' : 'No';
   }
 
+  // Helper to ensure a value is an array (handles undefined, null, objects, strings, etc.)
+  private ensureArray(value: any): any[] {
+      if (Array.isArray(value)) return value;
+      return [];
+  }
+
   // Helper function to filter out empty objects from arrays
   private filterEmptyObjects<T extends Record<string, any>>(arr: T[]): T[] {
       return arr.filter(item => {
@@ -741,21 +748,21 @@ class SupplierQuestionnaireService {
           supplier_general_info_questions: {
               ...(sup_id && { sup_id }),
               ...(bom_pcf_id && { bom_pcf_id }),
-              ere_acknowledge: this.convertToBoolean(data.general_information.re_technologies_acknowledgement),
-              repm_acknowledge: this.convertToBoolean(data.general_information.re_procurement_acknowledgement),
-              dc_acknowledge: this.convertToBoolean(data.general_information.double_counting_acknowledgement),
-              organization_name: data.organization_details.organization_name,
-              core_business_activitiy: data.organization_details.core_business_activities,
-              specify_other_activity: data.organization_details.core_business_activities_other || null,
-              designation: data.organization_details.designation,
-              email_address: data.organization_details.email_address,
-              no_of_employees: data.organization_details.number_of_employees,
+              ere_acknowledge: this.convertToBoolean(data.general_information?.re_technologies_acknowledgement),
+              repm_acknowledge: this.convertToBoolean(data.general_information?.re_procurement_acknowledgement),
+              dc_acknowledge: this.convertToBoolean(data.general_information?.double_counting_acknowledgement),
+              organization_name: data.organization_details?.organization_name,
+              core_business_activitiy: data.organization_details?.core_business_activities,
+              specify_other_activity: data.organization_details?.core_business_activities_other || null,
+              designation: data.organization_details?.designation,
+              email_address: data.organization_details?.email_address,
+              no_of_employees: data.organization_details?.number_of_employees,
               specify_other_no_of_employees: null, // Not in UI
-              annual_revenue: data.organization_details.annual_revenue,
+              annual_revenue: data.organization_details?.annual_revenue,
               specify_other_annual_revenue: null, // Not in UI
-              annual_reporting_period: data.organization_details.annual_reporting_period,
-              availability_of_scope_one_two_three_emissions_data: this.convertToBoolean(data.organization_details.availability_of_emissions_data),
-              availability_of_scope_one_two_three_emissions_questions: (data.organization_details.emission_data || []).map(item => ({
+              annual_reporting_period: data.organization_details?.annual_reporting_period,
+              availability_of_scope_one_two_three_emissions_data: this.convertToBoolean(data.organization_details?.availability_of_emissions_data),
+              availability_of_scope_one_two_three_emissions_questions: this.ensureArray(data.organization_details?.emission_data).map(item => ({
                   country_iso_three: item.country,
                   scope_one: item.scope_1,
                   scope_two: item.scope_2,
@@ -763,20 +770,20 @@ class SupplierQuestionnaireService {
               })),
           },
           supplier_product_questions: {
-              do_you_have_an_existing_pcf_report: this.convertToBoolean(data.product_details.existing_pcf_report),
-              pcf_methodology_used: data.product_details.pcf_methodology || [],
-              upload_pcf_report: data.product_details.pcf_report_file || [],
-              production_site_details_questions: (data.product_details.production_site_details || [])
-                  .filter(item => item.location || item.product_name || item.mpn || item.material_number || item.bom_id)
+              do_you_have_an_existing_pcf_report: this.convertToBoolean(data.product_details?.existing_pcf_report),
+              pcf_methodology_used: data.product_details?.pcf_methodology || [],
+              upload_pcf_report: data.product_details?.pcf_report_file || [],
+              production_site_details_questions: this.ensureArray(data.product_details?.production_site_details)
+                  .filter(item => item.location || item.component_name || item.product_name || item.mpn || item.material_number || item.bom_id)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
                       ...(item.mpn && { mpn: item.mpn }),
-                      product_name: item.product_name || '',
+                      product_name: item.component_name || item.product_name || '',
                       location: item.location || ''
                   })),
-              required_environmental_impact_methods: data.product_details.required_environmental_impact_methods || [],
-              product_component_manufactured_questions: (data.product_details.products_manufactured || [])
+              required_environmental_impact_methods: data.product_details?.required_environmental_impact_methods || [],
+              product_component_manufactured_questions: this.ensureArray(data.product_details?.products_manufactured)
                   .filter(item => item.product_name || item.mpn || item.material_number || item.bom_id)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -789,8 +796,8 @@ class SupplierQuestionnaireService {
                       price: item.price,
                       quantity: item.quantity
                   })),
-              any_co_product_have_economic_value: this.convertToBoolean(data.product_details.any_co_product_have_economic_value || false),
-              co_product_component_economic_value_questions: (data.product_details.co_products || [])
+              any_co_product_have_economic_value: this.convertToBoolean(data.product_details?.any_co_product_have_economic_value || false),
+              co_product_component_economic_value_questions: this.ensureArray(data.product_details?.co_products)
                   .filter(item => item.product_name && item.co_product_name)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -803,10 +810,10 @@ class SupplierQuestionnaireService {
                   })),
           },
           scope_one_direct_emissions_questions: {
-              stationary_combustion_on_site_energy_use_questions: (data.scope_1.stationary_combustion || [])
+              stationary_combustion_on_site_energy_use_questions: this.ensureArray(data.scope_1?.stationary_combustion)
                   .filter(item => item.fuel_type)
                   .map(item => {
-                      const subFuelTypes = this.filterEmptyObjects((item.sub_fuel_type || []).map(sub => ({
+                      const subFuelTypes = this.filterEmptyObjects(this.ensureArray(item.sub_fuel_type).map(sub => ({
                           sub_fuel_type: sub.sub_fuel_type,
                           consumption_quantity: sub.consumption_quantity,
                           unit: sub.unit
@@ -817,23 +824,23 @@ class SupplierQuestionnaireService {
                       };
                   })
                   .filter(item => item.fuel_type && (item.scoseu_sub_fuel_type_questions.length > 0 || item.fuel_type)),
-              mobile_combustion_company_owned_vehicles_questions: (data.scope_1.mobile_combustion || [])
+              mobile_combustion_company_owned_vehicles_questions: this.ensureArray(data.scope_1?.mobile_combustion)
                   .filter(item => item.fuel_type && item.quantity)
                   .map(item => ({
                       fuel_type: item.fuel_type,
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              refrigerant_top_ups_performed: this.convertToBoolean(data.scope_1.fugitive_emissions?.refrigerant_top_ups || false),
-              refrigerants_questions: (data.scope_1.fugitive_emissions?.refrigerants || [])
+              refrigerant_top_ups_performed: this.convertToBoolean(data.scope_1?.fugitive_emissions?.refrigerant_top_ups || false),
+              refrigerants_questions: this.ensureArray(data.scope_1?.fugitive_emissions?.refrigerants)
                   .filter(item => item.type && item.quantity)
                   .map(item => ({
                       refrigerant_type: item.type,
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              industrial_process_emissions_present: this.convertToBoolean(data.scope_1.process_emissions?.present || false),
-              process_emissions_sources_questions: (data.scope_1.process_emissions?.sources || [])
+              industrial_process_emissions_present: this.convertToBoolean(data.scope_1?.process_emissions?.present || false),
+              process_emissions_sources_questions: this.ensureArray(data.scope_1?.process_emissions?.sources)
                   .filter(item => item.source && item.gas_type && item.quantity)
                   .map(item => ({
                       source: item.source,
@@ -843,7 +850,7 @@ class SupplierQuestionnaireService {
                   })),
           },
           scope_two_indirect_emissions_questions: {
-              scope_two_indirect_emissions_from_purchased_energy_questions: (data.scope_2.purchased_energy || [])
+              scope_two_indirect_emissions_from_purchased_energy_questions: this.ensureArray(data.scope_2?.purchased_energy)
                   .filter(item => item.energy_source && item.energy_type && item.quantity)
                   .map(item => ({
                       energy_source: item.energy_source,
@@ -851,8 +858,8 @@ class SupplierQuestionnaireService {
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              do_you_acquired_standardized_re_certificates: this.convertToBoolean(data.scope_2.standardized_re_certificates || false),
-              scope_two_indirect_emissions_certificates_questions: (data.scope_2.certificates || [])
+              do_you_acquired_standardized_re_certificates: this.convertToBoolean(data.scope_2?.standardized_re_certificates || false),
+              scope_two_indirect_emissions_certificates_questions: this.ensureArray(data.scope_2?.certificates)
                   .filter(item => item.name && item.serial_id)
                   .map(item => ({
                       certificate_name: item.name,
@@ -864,10 +871,10 @@ class SupplierQuestionnaireService {
                       date_of_generation: item.generation_date,
                       issuance_date: item.issuance_date
                   })),
-              methodology_to_allocate_factory_energy_to_product_level: this.convertToBoolean(data.scope_2.manufacturing_process_specific_energy?.allocation_methodology || false),
-              methodology_details_document_url: data.scope_2.manufacturing_process_specific_energy?.methodology_document || [],
-              energy_intensity_of_production_estimated_kwhor_mj: this.convertToBoolean(data.scope_2.manufacturing_process_specific_energy?.energy_intensity_estimated || false),
-              energy_intensity_of_production_estimated_kwhor_mj_questions: (data.scope_2.manufacturing_process_specific_energy?.energy_intensity || [])
+              methodology_to_allocate_factory_energy_to_product_level: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.allocation_methodology || false),
+              methodology_details_document_url: data.scope_2?.manufacturing_process_specific_energy?.methodology_document || [],
+              energy_intensity_of_production_estimated_kwhor_mj: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.energy_intensity_estimated || false),
+              energy_intensity_of_production_estimated_kwhor_mj_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.energy_intensity)
                   .filter(item => item.product_name && item.intensity)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -876,8 +883,8 @@ class SupplierQuestionnaireService {
                       energy_intensity: item.intensity,
                       unit: item.unit
                   })),
-              process_specific_energy_usage: this.convertToBoolean(data.scope_2.manufacturing_process_specific_energy?.process_specific_usage_enabled || false),
-              process_specific_energy_usage_questions: (data.scope_2.manufacturing_process_specific_energy?.process_specific_usage || [])
+              process_specific_energy_usage: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage_enabled || false),
+              process_specific_energy_usage_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage)
                   .filter(item => item.process_type && item.quantity)
                   .map(item => ({
                       process_specific_energy_type: item.process_type,
@@ -885,16 +892,16 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       support_from_enviguide: this.convertToBoolean(item.support_from_enviguide || false)
                   })),
-              do_you_use_any_abatement_systems: this.convertToBoolean(data.scope_2.manufacturing_process_specific_energy?.abatement_systems || false),
-              abatement_systems_used_questions: (data.scope_2.manufacturing_process_specific_energy?.abatement_consumption || [])
+              do_you_use_any_abatement_systems: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.abatement_systems || false),
+              abatement_systems_used_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.abatement_consumption)
                   .filter(item => item.source && item.quantity)
                   .map(item => ({
                       source: item.source,
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              water_consumption_and_treatment_details: data.scope_2.manufacturing_process_specific_energy?.water_consumption_details || '',
-              type_of_quality_control_equipment_usage_questions: (data.scope_2.quality_control?.equipment || [])
+              water_consumption_and_treatment_details: data.scope_2?.manufacturing_process_specific_energy?.water_consumption_details || '',
+              type_of_quality_control_equipment_usage_questions: this.ensureArray(data.scope_2?.quality_control?.equipment)
                   .filter(item => item.name && item.quantity)
                   .map(item => ({
                       equipment_name: item.name,
@@ -902,7 +909,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       avg_operating_hours_per_month: item.operating_hours || ''
                   })),
-              electricity_consumed_for_quality_control_questions: (data.scope_2.quality_control?.electricity_consumption || [])
+              electricity_consumed_for_quality_control_questions: this.ensureArray(data.scope_2?.quality_control?.electricity_consumption)
                   .filter(item => item.type && item.quantity)
                   .map(item => ({
                       energy_type: item.type,
@@ -910,7 +917,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       period: item.period
                   })),
-              quality_control_process_usage_questions: (data.scope_2.quality_control?.utilities || [])
+              quality_control_process_usage_questions: this.ensureArray(data.scope_2?.quality_control?.utilities)
                   .filter(item => item.name && item.quantity)
                   .map(item => ({
                       process_name: item.name,
@@ -918,7 +925,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       period: item.period
                   })),
-              quality_control_process_usage_pressure_or_flow_questions: (data.scope_2.quality_control?.utilities_pressure_flow || [])
+              quality_control_process_usage_pressure_or_flow_questions: this.ensureArray(data.scope_2?.quality_control?.utilities_pressure_flow)
                   .filter(item => item.name && item.quantity)
                   .map(item => ({
                       flow_name: item.name,
@@ -926,7 +933,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       period: item.period
                   })),
-              quality_control_use_any_consumables_questions: (data.scope_2.quality_control?.consumables || [])
+              quality_control_use_any_consumables_questions: this.ensureArray(data.scope_2?.quality_control?.consumables)
                   .filter(item => item.name && item.quantity)
                   .map(item => ({
                       consumable_name: item.name,
@@ -934,8 +941,8 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       period: item.period
                   })),
-              do_you_perform_destructive_testing: this.convertToBoolean(data.scope_2.quality_control?.destructive_testing || false),
-              weight_of_samples_destroyed_questions: (data.scope_2.quality_control?.samples_destroyed || [])
+              do_you_perform_destructive_testing: this.convertToBoolean(data.scope_2?.quality_control?.destructive_testing || false),
+              weight_of_samples_destroyed_questions: this.ensureArray(data.scope_2?.quality_control?.samples_destroyed)
                   .filter(item => item.component_name && item.weight)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -945,7 +952,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       period: item.period
                   })),
-              defect_or_rejection_rate_identified_by_quality_control_questions: (data.scope_2.quality_control?.defect_rate || [])
+              defect_or_rejection_rate_identified_by_quality_control_questions: this.ensureArray(data.scope_2?.quality_control?.defect_rate)
                   .filter(item => item.component_name && item.rate !== undefined && item.rate !== null)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -953,7 +960,7 @@ class SupplierQuestionnaireService {
                       component_name: item.component_name,
                       percentage: item.rate
                   })),
-              rework_rate_due_to_quality_control_questions: (data.scope_2.quality_control?.rework_rate || [])
+              rework_rate_due_to_quality_control_questions: this.ensureArray(data.scope_2?.quality_control?.rework_rate)
                   .filter(item => item.component_name && item.processes_involved && item.rate !== undefined && item.rate !== null)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -962,7 +969,7 @@ class SupplierQuestionnaireService {
                       processes_involved: item.processes_involved,
                       percentage: item.rate
                   })),
-              weight_of_quality_control_waste_generated_questions: (data.scope_2.quality_control?.waste_generated || [])
+              weight_of_quality_control_waste_generated_questions: this.ensureArray(data.scope_2?.quality_control?.waste_generated)
                   .filter(item => item.type && item.quantity)
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
@@ -972,10 +979,10 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       treatment_type: item.treatment
                   })),
-              it_system_use_for_production_control: data.scope_2.it_for_production?.systems_used || [],
-              total_energy_consumption_of_it_hardware_production: this.convertToBoolean(data.scope_2.it_for_production?.energy_consumption_related || false),
-              energy_con_included_total_energy_pur_sec_two_qfortythree: this.convertToBoolean(data.scope_2.it_for_production?.included_in_total || false),
-              energy_consumption_for_qfortyfour_questions: (data.scope_2.it_for_production?.consumption_details || [])
+              it_system_use_for_production_control: data.scope_2?.it_for_production?.systems_used || [],
+              total_energy_consumption_of_it_hardware_production: this.convertToBoolean(data.scope_2?.it_for_production?.energy_consumption_related || false),
+              energy_con_included_total_energy_pur_sec_two_qfortythree: this.convertToBoolean(data.scope_2?.it_for_production?.included_in_total || false),
+              energy_consumption_for_qfortyfour_questions: this.ensureArray(data.scope_2?.it_for_production?.consumption_details)
                   .filter(item => item.energy_purchased && item.energy_type && item.quantity)
                   .map(item => ({
                       energy_purchased: item.energy_purchased,
@@ -983,8 +990,8 @@ class SupplierQuestionnaireService {
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              do_you_use_cloud_based_system_for_production: this.convertToBoolean(data.scope_2.it_for_production?.cloud_based_system || false),
-              cloud_provider_details_questions: (data.scope_2.it_for_production?.cloud_provider_details || [])
+              do_you_use_cloud_based_system_for_production: this.convertToBoolean(data.scope_2?.it_for_production?.cloud_based_system || false),
+              cloud_provider_details_questions: this.ensureArray(data.scope_2?.it_for_production?.cloud_provider_details)
                   .filter(item => item.cloud_provider_name)
                   .map(item => ({
                       cloud_provider_name: item.cloud_provider_name,
@@ -992,7 +999,7 @@ class SupplierQuestionnaireService {
                       data_storage: item.data_storage,
                       data_transfer: item.data_transfer
                   })),
-              dedicated_monitoring_sensor_usage_questions: (data.scope_2.it_for_production?.dedicated_monitoring_sensors || [])
+              dedicated_monitoring_sensor_usage_questions: this.ensureArray(data.scope_2?.it_for_production?.dedicated_monitoring_sensors)
                   .filter(item => item.type_of_sensor && item.sensor_quantity)
                   .map(item => ({
                       type_of_sensor: item.type_of_sensor,
@@ -1000,16 +1007,16 @@ class SupplierQuestionnaireService {
                       energy_consumption: item.energy_consumption,
                       unit: item.unit
                   })),
-              annual_replacement_rate_of_sensor_questions: (data.scope_2.it_for_production?.sensor_replacement_rate || [])
+              annual_replacement_rate_of_sensor_questions: this.ensureArray(data.scope_2?.it_for_production?.sensor_replacement_rate)
                   .filter(item => item.consumable_name && item.quantity)
                   .map(item => ({
                       consumable_name: item.consumable_name,
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              do_you_use_any_cooling_sysytem_for_server: this.convertToBoolean(data.scope_2.it_for_production?.cooling_system || false),
-              energy_con_included_total_energy_pur_sec_two_qfifty: this.convertToBoolean(data.scope_2.it_for_production?.cooling_energy_included || false),
-              energy_consumption_for_qfiftyone_questions: (data.scope_2.it_for_production?.cooling_energy_consumption || [])
+              do_you_use_any_cooling_sysytem_for_server: this.convertToBoolean(data.scope_2?.it_for_production?.cooling_system || false),
+              energy_con_included_total_energy_pur_sec_two_qfifty: this.convertToBoolean(data.scope_2?.it_for_production?.cooling_energy_included || false),
+              energy_consumption_for_qfiftyone_questions: this.ensureArray(data.scope_2?.it_for_production?.cooling_energy_consumption)
                   .filter(item => item.energy_purchased && item.energy_type && item.quantity)
                   .map(item => ({
                       energy_purchased: item.energy_purchased,
@@ -1019,7 +1026,7 @@ class SupplierQuestionnaireService {
                   })),
           },
           scope_three_other_indirect_emissions_questions: {
-              raw_materials_used_in_component_manufacturing_questions: (data.scope_3.materials?.raw_materials || [])
+              raw_materials_used_in_component_manufacturing_questions: this.ensureArray(data.scope_3?.materials?.raw_materials)
                   .filter(item => item.material && item.composition_percent !== undefined && item.composition_percent !== null)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1027,11 +1034,11 @@ class SupplierQuestionnaireService {
                       material_name: item.material,
                       percentage: item.composition_percent
                   })),
-              raw_materials_contact_enviguide_support: this.convertToBoolean(data.scope_3.materials?.raw_materials_contact_support || false),
-              grade_of_metal_used: data.scope_3.materials?.metal_grade || '',
-              msds_link_or_upload_document: Array.isArray(data.scope_3.materials?.msds) ? data.scope_3.materials.msds : (data.scope_3.materials?.msds ? [data.scope_3.materials.msds] : []),
-              use_of_recycled_secondary_materials: this.convertToBoolean(data.scope_3.materials?.recycled_materials_used || false),
-              recycled_materials_with_percentage_questions: (data.scope_3.materials?.recycled_materials || [])
+              raw_materials_contact_enviguide_support: this.convertToBoolean(data.scope_3?.materials?.raw_materials_contact_support || false),
+              grade_of_metal_used: data.scope_3?.materials?.metal_grade || '',
+              msds_link_or_upload_document: Array.isArray(data.scope_3?.materials?.msds) ? data.scope_3?.materials.msds : (data.scope_3?.materials?.msds ? [data.scope_3?.materials.msds] : []),
+              use_of_recycled_secondary_materials: this.convertToBoolean(data.scope_3?.materials?.recycled_materials_used || false),
+              recycled_materials_with_percentage_questions: this.ensureArray(data.scope_3?.materials?.recycled_materials)
                   .filter(item => item.material && item.recycled_percent !== undefined && item.recycled_percent !== null)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1039,20 +1046,20 @@ class SupplierQuestionnaireService {
                       material_name: item.material,
                       percentage: item.recycled_percent
                   })),
-              percentage_of_pre_post_consumer_material_used_in_product: this.convertToBoolean(data.scope_3.materials?.material_type_breakdown_available || false),
-              pre_post_consumer_reutilization_percentage_questions: (data.scope_3.materials?.material_type_percentages || [])
+              percentage_of_pre_post_consumer_material_used_in_product: this.convertToBoolean(data.scope_3?.materials?.material_type_breakdown_available || false),
+              pre_post_consumer_reutilization_percentage_questions: this.ensureArray(data.scope_3?.materials?.material_type_percentages)
                   .filter(item => item.type && item.percentage)
                   .map(item => ({
                       material_type: item.type,
                       percentage: String(item.percentage)
                   })),
-              pir_pcr_material_percentage_questions: (data.scope_3.materials?.pir_pcr_breakdown || [])
+              pir_pcr_material_percentage_questions: this.ensureArray(data.scope_3?.materials?.pir_pcr_breakdown)
                   .filter(item => item.material_type && item.percentage)
                   .map(item => ({
                       material_type: item.material_type,
                       percentage: item.percentage
                   })),
-              type_of_pack_mat_used_for_delivering_questions: (data.scope_3.packaging?.materials || [])
+              type_of_pack_mat_used_for_delivering_questions: this.ensureArray(data.scope_3?.packaging?.materials)
                   .filter(item => item.component_name && item.type)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1062,7 +1069,7 @@ class SupplierQuestionnaireService {
                       packaging_size: item.size,
                       unit: item.unit
                   })),
-              weight_of_packaging_per_unit_product_questions: (data.scope_3.packaging?.weight_per_unit || [])
+              weight_of_packaging_per_unit_product_questions: this.ensureArray(data.scope_3?.packaging?.weight_per_unit)
                   .filter(item => item.component_name && item.weight)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1071,11 +1078,11 @@ class SupplierQuestionnaireService {
                       packagin_weight: item.weight,
                       unit: item.unit
                   })),
-              do_you_use_recycle_mat_for_packaging: this.convertToBoolean(data.scope_3.packaging?.recycled_content_used || false),
-              percentage_of_recycled_content_used_in_packaging: data.scope_3.packaging?.recycled_percent || "",
-              do_you_use_electricity_for_packaging: this.convertToBoolean(data.scope_3.packaging?.electricity_used || false),
-              energy_con_included_total_energy_pur_sec_two_qsixtysix: this.convertToBoolean(data.scope_3.packaging?.included_in_total || false),
-              energy_consumption_for_qsixtyseven_questions: (data.scope_3.packaging?.energy_consumption || [])
+              do_you_use_recycle_mat_for_packaging: this.convertToBoolean(data.scope_3?.packaging?.recycled_content_used || false),
+              percentage_of_recycled_content_used_in_packaging: data.scope_3?.packaging?.recycled_percent || "",
+              do_you_use_electricity_for_packaging: this.convertToBoolean(data.scope_3?.packaging?.electricity_used || false),
+              energy_con_included_total_energy_pur_sec_two_qsixtysix: this.convertToBoolean(data.scope_3?.packaging?.included_in_total || false),
+              energy_consumption_for_qsixtyseven_questions: this.ensureArray(data.scope_3?.packaging?.energy_consumption)
                   .filter(item => item.energy_purchased && item.energy_type && item.quantity)
                   .map(item => ({
                       energy_purchased: item.energy_purchased,
@@ -1083,7 +1090,7 @@ class SupplierQuestionnaireService {
                       quantity: item.quantity,
                       unit: item.unit
                   })),
-              weight_of_pro_packaging_waste_questions: (data.scope_3.waste_disposal?.waste_details || [])
+              weight_of_pro_packaging_waste_questions: this.ensureArray(data.scope_3?.waste_disposal?.waste_details)
                   .filter(item => item.type && item.weight)
                   .map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1094,11 +1101,11 @@ class SupplierQuestionnaireService {
                       unit: item.unit,
                       treatment_type: item.treatment
                   })),
-              internal_or_external_waste_material_per_recycling: typeof data.scope_3.waste_disposal?.recycled_percent === 'string' 
-                  ? data.scope_3.waste_disposal.recycled_percent 
-                  : (data.scope_3.waste_disposal?.recycled_percent || ''),
-              any_by_product_generated: this.convertToBoolean(data.scope_3.waste_disposal?.by_products_generated || false),
-              type_of_by_product_questions: (data.scope_3.waste_disposal?.by_products || [])
+              internal_or_external_waste_material_per_recycling: typeof data.scope_3?.waste_disposal?.recycled_percent === 'string' 
+                  ? data.scope_3?.waste_disposal.recycled_percent 
+                  : (data.scope_3?.waste_disposal?.recycled_percent || ''),
+              any_by_product_generated: this.convertToBoolean(data.scope_3?.waste_disposal?.by_products_generated || false),
+              type_of_by_product_questions: this.ensureArray(data.scope_3?.waste_disposal?.by_products)
                   .filter(item => item.component_name && item.name)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
@@ -1108,8 +1115,8 @@ class SupplierQuestionnaireService {
                       price_per_product: item.price,
                       quantity: item.quantity
                   })),
-              do_you_track_emission_from_transport: this.convertToBoolean(data.scope_3.logistics?.emissions_tracked || false),
-              co_two_emission_of_raw_material_questions: (data.scope_3.logistics?.emissions_data || [])
+              do_you_track_emission_from_transport: this.convertToBoolean(data.scope_3?.logistics?.emissions_tracked || false),
+              co_two_emission_of_raw_material_questions: this.ensureArray(data.scope_3?.logistics?.emissions_data)
                   .filter(item => item.material && item.mode && item.source && item.destination && item.co2e)
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
@@ -1124,8 +1131,8 @@ class SupplierQuestionnaireService {
                       ...(item.destination_long && { destination_long: item.destination_long }),
                       co_two_emission: item.co2e
                   })),
-              mode_of_transport_used_for_transportation: this.convertToBoolean((data.scope_3.logistics?.transport_modes?.length || 0) > 0),
-              mode_of_transport_used_for_transportation_questions: (data.scope_3.logistics?.transport_modes || [])
+              mode_of_transport_used_for_transportation: this.convertToBoolean((data.scope_3?.logistics?.transport_modes?.length || 0) > 0),
+              mode_of_transport_used_for_transportation_questions: this.ensureArray(data.scope_3?.logistics?.transport_modes)
                   .filter(item => item.mode && item.source && item.drop_point && item.distance)
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
@@ -1136,8 +1143,8 @@ class SupplierQuestionnaireService {
                       drop_point: item.drop_point,
                       distance: item.distance
                   })),
-              mode_of_transport_enviguide_support: this.convertToBoolean(data.scope_3.logistics?.enviguide_support || false),
-              destination_plant_component_transportation_questions: (data.scope_3.logistics?.destination_plant || [])
+              mode_of_transport_enviguide_support: this.convertToBoolean(data.scope_3?.logistics?.enviguide_support || false),
+              destination_plant_component_transportation_questions: this.ensureArray(data.scope_3?.logistics?.destination_plant)
                   .filter(item => item.country && item.state && item.city)
                   .map(item => ({
                       country: item.country,
@@ -1145,17 +1152,17 @@ class SupplierQuestionnaireService {
                       city: item.city,
                       pincode: item.pin || ''
                   })),
-              iso_14001_or_iso_50001_certified: this.convertToBoolean(data.scope_3.certifications?.iso_certified || false),
-              standards_followed_iso_14067_GHG_catena_etc: this.convertToBoolean(data.scope_3.certifications?.standards_followed || false),
-              do_you_report_to_cdp_sbti_or_other: this.convertToBoolean(data.scope_3.certifications?.reporting_frameworks || false),
-              measures_to_reduce_carbon_emissions_in_production: data.scope_3.certifications?.additional_notes?.reduction_measures || '',
-              renewable_energy_initiatives_or_recycling_programs: data.scope_3.certifications?.additional_notes?.initiatives || '',
-              your_company_info: data.scope_3.certifications?.additional_notes?.strategies || '',
+              iso_14001_or_iso_50001_certified: this.convertToBoolean(data.scope_3?.certifications?.iso_certified || false),
+              standards_followed_iso_14067_GHG_catena_etc: this.convertToBoolean(data.scope_3?.certifications?.standards_followed || false),
+              do_you_report_to_cdp_sbti_or_other: this.convertToBoolean(data.scope_3?.certifications?.reporting_frameworks || false),
+              measures_to_reduce_carbon_emissions_in_production: data.scope_3?.certifications?.additional_notes?.reduction_measures || '',
+              renewable_energy_initiatives_or_recycling_programs: data.scope_3?.certifications?.additional_notes?.initiatives || '',
+              your_company_info: data.scope_3?.certifications?.additional_notes?.strategies || '',
           },
           scope_four_avoided_emissions_questions: {
-              products_or_services_that_help_reduce_customer_emissions: data.scope_4.products_reducing_customer_emissions,
-              circular_economy_practices_reuse_take_back_epr_refurbishment: data.scope_4.circular_economy_practices,
-              renewable_energy_carbon_offset_projects_implemented: data.scope_4.offset_projects
+              products_or_services_that_help_reduce_customer_emissions: data.scope_4?.products_reducing_customer_emissions,
+              circular_economy_practices_reuse_take_back_epr_refurbishment: data.scope_4?.circular_economy_practices,
+              renewable_energy_carbon_offset_projects_implemented: data.scope_4?.offset_projects
           }
       };
   }
@@ -1813,7 +1820,8 @@ class SupplierQuestionnaireService {
    */
   async listDQRRatings(
     pageNumber: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
+    bomPcfId?: string
   ): Promise<{
     success: boolean;
     message: string;
@@ -1821,8 +1829,12 @@ class SupplierQuestionnaireService {
     pagination?: { page: number; limit: number; totalRecords: number; totalPages: number };
   }> {
     try {
+      let url = `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+      if (bomPcfId) {
+        url += `&bom_pcf_id=${bomPcfId}`;
+      }
       const response = await fetch(
-        `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+        url,
         {
           method: "GET",
           headers: this.getHeaders(),
@@ -1854,9 +1866,19 @@ class SupplierQuestionnaireService {
   }
 
   /**
+   * Get localStorage key for a specific supplier + BOM PCF combination
+   */
+  private getDraftKey(supId?: string | null, bomPcfId?: string | null): string {
+    const parts = ["supplier_questionnaire_draft"];
+    if (supId) parts.push(supId);
+    if (bomPcfId) parts.push(bomPcfId);
+    return parts.join("_");
+  }
+
+  /**
    * Save draft questionnaire (to localStorage)
    */
-  saveDraft(data: any, stepIndex: number): void {
+  saveDraft(data: any, stepIndex: number, supId?: string | null, bomPcfId?: string | null): void {
     try {
       const draftData = {
         formData: data,
@@ -1864,7 +1886,7 @@ class SupplierQuestionnaireService {
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(
-        "supplier_questionnaire_draft",
+        this.getDraftKey(supId, bomPcfId),
         JSON.stringify(draftData)
       );
     } catch (error) {
@@ -1875,9 +1897,9 @@ class SupplierQuestionnaireService {
   /**
    * Load draft questionnaire (from localStorage)
    */
-  loadDraft(): { formData: any; currentStep: number } | null {
+  loadDraft(supId?: string | null, bomPcfId?: string | null): { formData: any; currentStep: number } | null {
     try {
-      const draft = localStorage.getItem("supplier_questionnaire_draft");
+      const draft = localStorage.getItem(this.getDraftKey(supId, bomPcfId));
       if (draft) {
         return JSON.parse(draft);
       }
@@ -1891,9 +1913,9 @@ class SupplierQuestionnaireService {
   /**
    * Clear draft questionnaire
    */
-  clearDraft(): void {
+  clearDraft(supId?: string | null, bomPcfId?: string | null): void {
     try {
-      localStorage.removeItem("supplier_questionnaire_draft");
+      localStorage.removeItem(this.getDraftKey(supId, bomPcfId));
     } catch (error) {
       console.error("Error clearing draft:", error);
     }
@@ -2031,31 +2053,13 @@ class SupplierQuestionnaireService {
 
   /**
    * Update DQR ratings for a specific question type
-   * Uses the new API structure: PUT /api/dqr-rating/update
+   * Uses the new API structure: POST /api/dqr-rating/update
    * @param type - Question type (e.g., "q9", "q16", "q17", etc.)
    * @param records - Array of DQR rating record objects
    */
   async updateDQRRating(
     type: string,
-    records: Array<{
-      sgiq_id: string;
-      edrqn_id: string;
-      ter_tag_type?: string | null;
-      ter_tag_value?: string | null;
-      ter_data_point?: string | null;
-      tir_tag_type?: string | null;
-      tir_tag_value?: string | null;
-      tir_data_point?: string | null;
-      gr_tag_type?: string | null;
-      gr_tag_value?: string | null;
-      gr_data_point?: string | null;
-      c_tag_type?: string | null;
-      c_tag_value?: string | null;
-      c_data_point?: string | null;
-      pds_tag_type?: string | null;
-      pds_tag_value?: string | null;
-      pds_data_point?: string | null;
-    }>
+    records: Array<Record<string, any>>
   ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const payload = {
@@ -2064,7 +2068,7 @@ class SupplierQuestionnaireService {
       };
 
       const response = await fetch(`${API_BASE_URL}/api/dqr-rating/update`, {
-        method: "PUT",
+        method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(payload),
       });

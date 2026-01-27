@@ -27,10 +27,14 @@ export interface Product {
   
   // Expanded fields from joins (optional)
   category_name?: string;
+  category_code?: string;
   sub_category_name?: string;
+  sub_category_code?: string;
   manufacturing_process_name?: string;
   life_cycle_stage_name?: string;
   pcf_status?: string;
+  created_by_name?: string;
+  updated_by_name?: string;
 }
 
 export interface ProductCategory {

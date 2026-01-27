@@ -75,19 +75,31 @@ const PCFRequestCreate: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      // Extract file keys from uploaded documents
+      const technicalSpecificationFileKeys = (formData.technicalSpecifications || [])
+        .filter((f: any) => f.fileKey)
+        .map((f: any) => f.fileKey);
+
+      const productImageKeys = (formData.productImages || [])
+        .filter((f: any) => f.fileKey)
+        .map((f: any) => f.fileKey);
+
       const payload = {
         bom_pcf_request: {
           request_title: formData.title,
           priority: formData.priority,
           request_organization: formData.organization,
-          due_date: formData.dueDate, // Ensure this is in the correct format (e.g., ISO string)
+          due_date: formData.dueDate,
           request_description: formData.description,
           product_category_id: formData.productCategory,
           component_category_id: formData.componentCategory,
-          component_type_id: formData.componentType, // Note: API expects ID, but UI is Input
+          component_type_id: formData.componentType,
           product_code: formData.productCode,
-          manufacturer_id: formData.manufacture, // Note: API expects ID, but UI is Input
+          manufacturer_id: formData.manufacture,
           model_version: formData.modelVersion,
+          technical_specification_file: technicalSpecificationFileKeys,
+          product_images: productImageKeys,
+          is_draft: false,
         },
         bom_pcf_request_product_specification: (
           formData.specifications || []
@@ -99,7 +111,7 @@ const PCFRequestCreate: React.FC = () => {
         bom: (formData.bomData || []).map((item: any) => ({
           material_number: item.materialNumber,
           component_name: item.componentName,
-          quantity: parseInt(item.quantity || "0"),
+          qunatity: parseInt(item.quantity || "0"), // Note: API expects "qunatity" (typo in API)
           production_location: item.productionLocation,
           manufacturer: item.manufacturer,
           detail_description: item.detailedDescription,
@@ -107,8 +119,8 @@ const PCFRequestCreate: React.FC = () => {
           component_category: item.category,
           price: parseFloat(item.totalPrice || item.price || "0"),
           supplier_email: item.supplierEmail,
-          supplier_name: item.supplierName,
-          supplier_phone_number: item.supplierNumber,
+          supplier_name: item.supplierName || null,
+          supplier_phone_number: item.supplierNumber || null,
         })),
       };
 

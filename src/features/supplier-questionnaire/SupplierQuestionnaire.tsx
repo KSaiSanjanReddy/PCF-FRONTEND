@@ -1,12 +1,32 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { Steps, Button, message, Spin, Modal, Form, Progress, Drawer, Badge, Tooltip, Alert } from "antd";
-import { SaveOutlined, ArrowLeftOutlined, ArrowRightOutlined, CheckOutlined, MenuOutlined, CheckCircleOutlined, ClockCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  Steps,
+  Button,
+  message,
+  Spin,
+  Modal,
+  Form,
+  Progress,
+  Drawer,
+  Badge,
+  Tooltip,
+  Alert,
+} from "antd";
+import {
+  SaveOutlined,
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  CheckOutlined,
+  MenuOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  InfoCircleOutlined,
+} from "@ant-design/icons";
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import authService from "../../lib/authService";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
-
 
 const { Step } = Steps;
 
@@ -21,7 +41,7 @@ const SupplierQuestionnaire: React.FC = () => {
   let sup_id = searchParams.get("sup_id");
   let bom_pcf_id = searchParams.get("bom_pcf_id");
   let user_id = searchParams.get("user_id");
-  
+
   if (location.search) {
     const urlParams = new URLSearchParams(location.search);
     sgiq_id = sgiq_id || urlParams.get("sgiq_id");
@@ -32,21 +52,29 @@ const SupplierQuestionnaire: React.FC = () => {
 
   const isViewMode = location.pathname.includes("/view");
   const isEditMode = location.pathname.includes("/edit");
-  const isCreateMode = !sgiq_id && (location.pathname.includes("/new") || !isViewMode && !isEditMode);
+  const isCreateMode =
+    !sgiq_id &&
+    (location.pathname.includes("/new") || (!isViewMode && !isEditMode));
   const isPublicRoute = !!(sup_id && bom_pcf_id); // Public route when accessed via supplier link
 
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [questionnaireId, setQuestionnaireId] = useState<string | null>(sgiq_id);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [questionnaireId, setQuestionnaireId] = useState<string | null>(
+    sgiq_id,
+  );
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
+  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Load data
   useEffect(() => {
@@ -61,7 +89,11 @@ const SupplierQuestionnaire: React.FC = () => {
           }
 
           if (sgiq_id) {
-            const result = await supplierQuestionnaireService.getQuestionnaireById(sgiq_id as string, userIdToUse?? "");
+            const result =
+              await supplierQuestionnaireService.getQuestionnaireById(
+                sgiq_id as string,
+                userIdToUse ?? "",
+              );
             if (result.success && result.data) {
               setFormData(result.data);
               // We need to set form values if we are on the current step
@@ -69,7 +101,9 @@ const SupplierQuestionnaire: React.FC = () => {
               // However, when switching steps, we need to ensure data is preserved
             } else {
               message.error({
-                content: result.message || "Unable to load the questionnaire. Please try refreshing the page or contact support if the issue persists.",
+                content:
+                  result.message ||
+                  "Unable to load the questionnaire. Please try refreshing the page or contact support if the issue persists.",
                 duration: 5,
               });
             }
@@ -77,7 +111,8 @@ const SupplierQuestionnaire: React.FC = () => {
         } catch (error) {
           console.error("Error loading questionnaire:", error);
           message.error({
-            content: "Failed to load the questionnaire. Please check your internet connection and try again. If the problem persists, contact support.",
+            content:
+              "Failed to load the questionnaire. Please check your internet connection and try again. If the problem persists, contact support.",
             duration: 5,
           });
         } finally {
@@ -88,94 +123,126 @@ const SupplierQuestionnaire: React.FC = () => {
         if (sup_id && bom_pcf_id) {
           setIsLoading(true);
           try {
-            const result = await supplierQuestionnaireService.getPCFBOMListToAutoPopulate(bom_pcf_id, sup_id);
+            const result =
+              await supplierQuestionnaireService.getPCFBOMListToAutoPopulate(
+                bom_pcf_id,
+                sup_id,
+              );
             if (result.success && result.data) {
               console.log("Auto-populate API response:", result.data);
-              
+
               // Transform API response array to form data structure
               // API returns: [{ bom_id, bom_code, material_number, component_name, supplier_id }, ...]
               const bomList = Array.isArray(result.data) ? result.data : [];
-              
+
               console.log("BOM list from API:", bomList);
-              
+
               // Map to production_site_details table format
               // Schema expects: [{ bom_id, material_number, mpn, component_name, location }, ...]
-              const productionSiteDetails = bomList.map((item: any, index: number) => {
-                const mapped = {
-                  ...(item.bom_id && { bom_id: item.bom_id }),
-                  ...(item.material_number && { material_number: item.material_number }),
-                  mpn: item.material_number || '',
-                  product_name: item.component_name || '',
-                  location: item.production_location || item.location || '', // May not be in API response
-                };
-                console.log(`Mapped item ${index}:`, { original: item, mapped });
-                return mapped;
-              });
-              
-              console.log("Final productionSiteDetails array:", productionSiteDetails);
-              
+              const productionSiteDetails = bomList.map(
+                (item: any, index: number) => {
+                  const mapped = {
+                    ...(item.bom_id && { bom_id: item.bom_id }),
+                    ...(item.material_number && {
+                      material_number: item.material_number,
+                    }),
+                    mpn: item.material_number || "",
+                    component_name: item.component_name || "",
+                    location: item.production_location || item.location || "", // May not be in API response
+                  };
+                  console.log(`Mapped item ${index}:`, {
+                    original: item,
+                    mapped,
+                  });
+                  return mapped;
+                },
+              );
+
+              console.log(
+                "Final productionSiteDetails array:",
+                productionSiteDetails,
+              );
+
               // Map to products_manufactured table format
               // Expected: [{ bom_id, material_number, mpn, product_name, production_period, weight_per_unit, unit, price, quantity }, ...]
               const productsManufactured = bomList.map((item: any) => ({
                 ...(item.bom_id && { bom_id: item.bom_id }),
-                ...(item.material_number && { material_number: item.material_number }),
-                mpn: item.material_number || '',
-                product_name: item.component_name || '',
-                production_period: '',
+                ...(item.material_number && {
+                  material_number: item.material_number,
+                }),
+                mpn: item.material_number || "",
+                product_name: item.component_name || "",
+                production_period: "",
                 weight_per_unit: 0,
-                unit: '',
+                unit: "",
                 price: 0,
                 quantity: 0,
               }));
-              
+
               const autoPopulatedData: any = {
                 product_details: {
                   production_site_details: productionSiteDetails,
                   products_manufactured: productsManufactured,
-                }
+                },
               };
-              
-              console.log("Transformed auto-populated data:", autoPopulatedData);
+
+              console.log(
+                "Transformed auto-populated data:",
+                autoPopulatedData,
+              );
               console.log("Production site details:", productionSiteDetails);
               console.log("Products manufactured:", productsManufactured);
-              
+
               // Merge with existing form data
               const mergedFormData = {
                 ...formData,
-                ...autoPopulatedData
+                ...autoPopulatedData,
               };
-              
+
               console.log("Merged form data:", mergedFormData);
-              console.log("Production site details in merged data:", mergedFormData.product_details?.production_site_details);
-              
+              console.log(
+                "Production site details in merged data:",
+                mergedFormData.product_details?.production_site_details,
+              );
+
               // Update formData state - this will trigger the useEffect that sets form values
               setFormData(mergedFormData);
-              
+
               // Also directly set form values to ensure they're applied
               // Use setTimeout to ensure form is ready and current step is loaded
               setTimeout(() => {
                 const currentValues = form.getFieldsValue();
-                console.log("Current form values before update:", currentValues);
-                
+                console.log(
+                  "Current form values before update:",
+                  currentValues,
+                );
+
                 // Set the values
                 form.setFieldsValue(mergedFormData);
-                
+
                 // Force update by getting values again
                 const updatedValues = form.getFieldsValue();
                 console.log("Form values after update:", updatedValues);
-                console.log("Production site details in form:", updatedValues.product_details?.production_site_details);
+                console.log(
+                  "Production site details in form:",
+                  updatedValues.product_details?.production_site_details,
+                );
               }, 200);
-              
+
               // Track auto-populated fields
               const autoPopulatedFieldNames = new Set<string>();
               if (productionSiteDetails.length > 0) {
-                autoPopulatedFieldNames.add('product_details.production_site_details');
+                autoPopulatedFieldNames.add(
+                  "product_details.production_site_details",
+                );
               }
               if (productsManufactured.length > 0) {
-                autoPopulatedFieldNames.add('product_details.products_manufactured');
+                autoPopulatedFieldNames.add(
+                  "product_details.products_manufactured",
+                );
               }
               setAutoPopulatedFields(autoPopulatedFieldNames);
-              
+
               if (bomList.length > 0) {
                 message.success({
                   content: `Successfully auto-populated ${bomList.length} item(s) from BOM data.`,
@@ -188,20 +255,24 @@ const SupplierQuestionnaire: React.FC = () => {
           } catch (error) {
             console.error("Error auto-populating data:", error);
             message.warning({
-              content: "Some product details could not be auto-populated. Please fill them in manually.",
+              content:
+                "Some product details could not be auto-populated. Please fill them in manually.",
               duration: 4,
             });
           } finally {
             setIsLoading(false);
           }
         }
-        
+
         // Load draft if exists
-        const draft = supplierQuestionnaireService.loadDraft();
+        const draft = supplierQuestionnaireService.loadDraft(
+          sup_id,
+          bom_pcf_id,
+        );
         if (draft) {
-          setFormData(prevData => ({
+          setFormData((prevData) => ({
             ...prevData,
-            ...draft.formData
+            ...draft.formData,
           }));
           // Validate step index against current schema
           const savedStep = draft.currentStep || 0;
@@ -213,13 +284,21 @@ const SupplierQuestionnaire: React.FC = () => {
     };
 
     loadData();
-  }, [sgiq_id, sup_id, bom_pcf_id, user_id, isViewMode, isEditMode, isCreateMode, form]);
+  }, [
+    sgiq_id,
+    sup_id,
+    bom_pcf_id,
+    user_id,
+    isViewMode,
+    isEditMode,
+    isCreateMode,
+    form,
+  ]);
 
   // Update form values when step changes or data loads
   useEffect(() => {
     form.setFieldsValue(formData);
   }, [currentStep, formData, form]);
-
 
   // Auto-save functionality
   useEffect(() => {
@@ -233,16 +312,21 @@ const SupplierQuestionnaire: React.FC = () => {
       autoSaveTimerRef.current = setTimeout(() => {
         const values = form.getFieldsValue();
         const updatedData = { ...formData, ...values };
-        
+
         if (Object.keys(updatedData).length > 0) {
-          setAutoSaveStatus('saving');
-          supplierQuestionnaireService.saveDraft(updatedData, currentStep);
+          setAutoSaveStatus("saving");
+          supplierQuestionnaireService.saveDraft(
+            updatedData,
+            currentStep,
+            sup_id,
+            bom_pcf_id,
+          );
           setFormData(updatedData);
-          setAutoSaveStatus('saved');
+          setAutoSaveStatus("saved");
           setLastSaved(new Date());
-          
+
           // Reset to idle after 2 seconds
-          setTimeout(() => setAutoSaveStatus('idle'), 2000);
+          setTimeout(() => setAutoSaveStatus("idle"), 2000);
         }
       }, 2000); // Auto-save after 2 seconds of inactivity
 
@@ -261,21 +345,27 @@ const SupplierQuestionnaire: React.FC = () => {
         const values = form.getFieldsValue();
         const section = QUESTIONNAIRE_SCHEMA[currentStep];
         if (section) {
-          const requiredFields = section.fields.filter(f => f.required && !f.dependency);
-          const hasRequiredData = requiredFields.every(field => {
-            const fieldValue = form.getFieldValue(field.name.split('.'));
-            return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
+          const requiredFields = section.fields.filter(
+            (f) => f.required && !f.dependency,
+          );
+          const hasRequiredData = requiredFields.every((field) => {
+            const fieldValue = form.getFieldValue(field.name.split("."));
+            return (
+              fieldValue !== undefined &&
+              fieldValue !== null &&
+              fieldValue !== ""
+            );
           });
-          
+
           if (hasRequiredData) {
-            setCompletedSteps(prev => new Set([...prev, currentStep]));
+            setCompletedSteps((prev) => new Set([...prev, currentStep]));
           }
         }
       } catch (error) {
         // Ignore validation errors for completion check
       }
     };
-    
+
     checkStepCompletion();
   }, [currentStep, formData, form]);
 
@@ -294,7 +384,7 @@ const SupplierQuestionnaire: React.FC = () => {
       const mergedValues = { ...formData, ...allFormValues };
 
       const getNestedValue = (obj: any, path: string): any => {
-        return path.split('.').reduce((acc, part) => {
+        return path.split(".").reduce((acc, part) => {
           if (acc === null || acc === undefined) return undefined;
           return acc[part];
         }, obj);
@@ -303,21 +393,27 @@ const SupplierQuestionnaire: React.FC = () => {
       const isFieldVisible = (field: any): boolean => {
         // Check if field has dependency and if it's met
         if (field.dependency) {
-          const dependencyValue = getNestedValue(mergedValues, field.dependency.field);
+          const dependencyValue = getNestedValue(
+            mergedValues,
+            field.dependency.field,
+          );
           const expectedValue = field.dependency.value;
-          
+
           // Check if dependency field has been answered
-          const isAnswered = dependencyValue !== undefined && 
-                            dependencyValue !== null && 
-                            dependencyValue !== '';
-          
+          const isAnswered =
+            dependencyValue !== undefined &&
+            dependencyValue !== null &&
+            dependencyValue !== "";
+
           if (!isAnswered) return false;
-          
-          if (typeof expectedValue === 'boolean') {
+
+          if (typeof expectedValue === "boolean") {
             // Convert dependencyValue to boolean for comparison (handles "Yes"/"No" strings)
-            const depBool = typeof dependencyValue === 'string' 
-              ? (dependencyValue.toLowerCase() === 'yes' || dependencyValue.toLowerCase() === 'true')
-              : Boolean(dependencyValue);
+            const depBool =
+              typeof dependencyValue === "string"
+                ? dependencyValue.toLowerCase() === "yes" ||
+                  dependencyValue.toLowerCase() === "true"
+                : Boolean(dependencyValue);
             if (depBool !== expectedValue) return false;
           } else if (Array.isArray(dependencyValue)) {
             if (!dependencyValue.includes(expectedValue)) return false;
@@ -333,23 +429,25 @@ const SupplierQuestionnaire: React.FC = () => {
 
       const isFieldAnswered = (field: any): boolean => {
         const fieldValue = getNestedValue(mergedValues, field.name);
-        
+
         // Check if field has a value
-        if (field.type === 'table') {
+        if (field.type === "table") {
           // For tables, check if there's at least one row
           return Array.isArray(fieldValue) && fieldValue.length > 0;
-        } else if (field.type === 'checkbox' && field.options) {
+        } else if (field.type === "checkbox" && field.options) {
           // For multi-select checkboxes, check if at least one is selected
           return Array.isArray(fieldValue) && fieldValue.length > 0;
-        } else if (field.type === 'checkbox') {
+        } else if (field.type === "checkbox") {
           // For single checkbox, check if it's checked
           return fieldValue === true;
         } else {
           // For other fields, check if value exists and is not empty
-          return fieldValue !== undefined && 
-                 fieldValue !== null && 
-                 fieldValue !== '' &&
-                 !(Array.isArray(fieldValue) && fieldValue.length === 0);
+          return (
+            fieldValue !== undefined &&
+            fieldValue !== null &&
+            fieldValue !== "" &&
+            !(Array.isArray(fieldValue) && fieldValue.length === 0)
+          );
         }
       };
 
@@ -357,14 +455,14 @@ const SupplierQuestionnaire: React.FC = () => {
       QUESTIONNAIRE_SCHEMA.forEach((section) => {
         section.fields.forEach((field) => {
           // Skip info fields (they're not questions)
-          if (field.type === 'info') {
+          if (field.type === "info") {
             return;
           }
 
           // Check if field is visible (dependencies met)
           if (isFieldVisible(field)) {
             totalQuestions++;
-            
+
             // Check if field is answered
             if (isFieldAnswered(field)) {
               answeredQuestions++;
@@ -373,7 +471,10 @@ const SupplierQuestionnaire: React.FC = () => {
         });
       });
 
-      const percentage = totalQuestions === 0 ? 0 : Math.round((answeredQuestions / totalQuestions) * 100);
+      const percentage =
+        totalQuestions === 0
+          ? 0
+          : Math.round((answeredQuestions / totalQuestions) * 100);
       setProgressPercentage(percentage);
       setAnsweredCount(answeredQuestions);
       setTotalQuestionsCount(totalQuestions);
@@ -387,7 +488,7 @@ const SupplierQuestionnaire: React.FC = () => {
     const timer = setTimeout(() => {
       const allFormValues = form.getFieldsValue();
       if (Object.keys(allFormValues).length > 0) {
-        setFormData(prev => ({ ...prev, ...allFormValues }));
+        setFormData((prev) => ({ ...prev, ...allFormValues }));
       }
     }, 500); // Debounce form value updates
 
@@ -400,28 +501,33 @@ const SupplierQuestionnaire: React.FC = () => {
     try {
       // Validate current step fields
       const values = await form.validateFields();
-      
+
       // Merge current step values into global form data
       const updatedData = { ...formData, ...values };
       setFormData(updatedData);
       setFormErrors({});
 
       if (isCreateMode) {
-        supplierQuestionnaireService.saveDraft(updatedData, currentStep + 1);
+        supplierQuestionnaireService.saveDraft(
+          updatedData,
+          currentStep + 1,
+          sup_id,
+          bom_pcf_id,
+        );
         setLastSaved(new Date());
       }
 
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      setCompletedSteps((prev) => new Set([...prev, currentStep]));
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error: any) {
       console.error("Validation failed:", error);
-      
+
       // Extract and display field errors
       if (error.errorFields) {
         const errors: Record<string, string[]> = {};
         error.errorFields.forEach((field: any) => {
-          const fieldName = field.name.join('.');
+          const fieldName = field.name.join(".");
           if (!errors[fieldName]) {
             errors[fieldName] = [];
           }
@@ -429,20 +535,22 @@ const SupplierQuestionnaire: React.FC = () => {
         });
         setFormErrors(errors);
       }
-      
+
       const errorCount = error.errorFields?.length || 0;
       if (errorCount > 0) {
         message.error({
-          content: `Please complete ${errorCount} required ${errorCount === 1 ? 'field' : 'fields'} before continuing.`,
+          content: `Please complete ${errorCount} required ${errorCount === 1 ? "field" : "fields"} before continuing.`,
           duration: 4,
         });
       } else {
         message.error("Please fill in all required fields before continuing.");
       }
       // Scroll to first error
-      const firstErrorField = document.querySelector('.ant-form-item-has-error');
+      const firstErrorField = document.querySelector(
+        ".ant-form-item-has-error",
+      );
       if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   };
@@ -453,7 +561,7 @@ const SupplierQuestionnaire: React.FC = () => {
     setFormData({ ...formData, ...values });
     setFormErrors({});
     setCurrentStep(currentStep - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleStepJump = (step: number) => {
@@ -462,32 +570,38 @@ const SupplierQuestionnaire: React.FC = () => {
       setFormData({ ...formData, ...values });
       setFormErrors({});
       setCurrentStep(step);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
       setSidebarVisible(false); // Close mobile sidebar
     }
   };
 
   const handleSaveDraft = async () => {
     setIsSaving(true);
-    setAutoSaveStatus('saving');
+    setAutoSaveStatus("saving");
     try {
       const values = form.getFieldsValue();
       const updatedData = { ...formData, ...values };
       setFormData(updatedData);
-      
-      supplierQuestionnaireService.saveDraft(updatedData, currentStep);
+
+      supplierQuestionnaireService.saveDraft(
+        updatedData,
+        currentStep,
+        sup_id,
+        bom_pcf_id,
+      );
       setLastSaved(new Date());
-      setAutoSaveStatus('saved');
+      setAutoSaveStatus("saved");
       message.success({
         content: "Draft saved successfully! Your progress has been saved.",
         duration: 2,
       });
-      
-      setTimeout(() => setAutoSaveStatus('idle'), 2000);
+
+      setTimeout(() => setAutoSaveStatus("idle"), 2000);
     } catch (error) {
-      setAutoSaveStatus('idle');
+      setAutoSaveStatus("idle");
       message.error({
-        content: "Unable to save your draft. Please check your internet connection and try again. Your progress may be lost if you leave this page.",
+        content:
+          "Unable to save your draft. Please check your internet connection and try again. Your progress may be lost if you leave this page.",
         duration: 5,
       });
     } finally {
@@ -497,35 +611,47 @@ const SupplierQuestionnaire: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      console.log("Submitting questionnaire with formData:", formData);
       const values = await form.validateFields();
       const finalData = { ...formData, ...values };
-      
+
       setIsSaving(true);
       setFormErrors({});
-      
+
       let result;
       if (questionnaireId) {
-        result = await supplierQuestionnaireService.updateQuestionnaire(questionnaireId, finalData);
+        result = await supplierQuestionnaireService.updateQuestionnaire(
+          questionnaireId,
+          finalData,
+        );
       } else {
-        result = await supplierQuestionnaireService.createQuestionnaire(finalData, sup_id || undefined, bom_pcf_id || undefined);
+        result = await supplierQuestionnaireService.createQuestionnaire(
+          finalData,
+          sup_id || undefined,
+          bom_pcf_id || undefined,
+        );
       }
 
       if (result.success) {
-        supplierQuestionnaireService.clearDraft();
+        supplierQuestionnaireService.clearDraft(sup_id, bom_pcf_id);
         message.success({
-          content: "Questionnaire submitted successfully! Thank you for completing the form.",
+          content:
+            "Questionnaire submitted successfully! Thank you for completing the form.",
           duration: 4,
         });
-        
+
         // Navigate to DQR or list
-        const newId = result.data?.general_info?.sgiq_id || result.data?.sgiq_id || questionnaireId;
+        const newId =
+          result.data?.general_info?.sgiq_id ||
+          result.data?.sgiq_id ||
+          questionnaireId;
         if (newId) {
-            // Optional: Redirect to view or DQR
-             navigate('/supplier-questionnaire');
+          // Optional: Redirect to view or DQR
+          navigate("/supplier-questionnaire");
         }
       } else {
         message.error({
-          content: result.message 
+          content: result.message
             ? `Submission failed: ${result.message}. Please review your answers and try again.`
             : "Unable to submit the questionnaire. Please check your internet connection and try again. If the problem persists, contact support.",
           duration: 6,
@@ -533,12 +659,12 @@ const SupplierQuestionnaire: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Submit error:", error);
-      
+
       // Extract and display field errors
       if (error.errorFields) {
         const errors: Record<string, string[]> = {};
         error.errorFields.forEach((field: any) => {
-          const fieldName = field.name.join('.');
+          const fieldName = field.name.join(".");
           if (!errors[fieldName]) {
             errors[fieldName] = [];
           }
@@ -546,20 +672,24 @@ const SupplierQuestionnaire: React.FC = () => {
         });
         setFormErrors(errors);
       }
-      
+
       const errorCount = error.errorFields?.length || 0;
       if (errorCount > 0) {
         message.error({
-          content: `Cannot submit: ${errorCount} required ${errorCount === 1 ? 'field' : 'fields'} ${errorCount === 1 ? 'is' : 'are'} incomplete. Please review and complete all required fields.`,
+          content: `Cannot submit: ${errorCount} required ${errorCount === 1 ? "field" : "fields"} ${errorCount === 1 ? "is" : "are"} incomplete. Please review and complete all required fields.`,
           duration: 5,
         });
       } else {
-        message.error("Please fix all validation errors before submitting the questionnaire.");
+        message.error(
+          "Please fix all validation errors before submitting the questionnaire.",
+        );
       }
       // Scroll to first error
-      const firstErrorField = document.querySelector('.ant-form-item-has-error');
+      const firstErrorField = document.querySelector(
+        ".ant-form-item-has-error",
+      );
       if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     } finally {
       setIsSaving(false);
@@ -569,7 +699,7 @@ const SupplierQuestionnaire: React.FC = () => {
   // Keyboard shortcuts - using refs to avoid dependency issues
   const handleNextRef = useRef(handleNext);
   const handleSubmitRef = useRef(handleSubmit);
-  
+
   useEffect(() => {
     handleNextRef.current = handleNext;
     handleSubmitRef.current = handleSubmit;
@@ -578,7 +708,7 @@ const SupplierQuestionnaire: React.FC = () => {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Ctrl/Cmd + Enter to submit
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         if (currentStep === QUESTIONNAIRE_SCHEMA.length - 1) {
           handleSubmitRef.current();
         } else {
@@ -586,13 +716,13 @@ const SupplierQuestionnaire: React.FC = () => {
         }
       }
       // Escape to close sidebar on mobile
-      if (e.key === 'Escape' && sidebarVisible) {
+      if (e.key === "Escape" && sidebarVisible) {
         setSidebarVisible(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [currentStep, sidebarVisible]);
 
   if (isLoading) {
@@ -612,32 +742,36 @@ const SupplierQuestionnaire: React.FC = () => {
         <div className="mb-6 pb-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm text-gray-500">{currentStep + 1} of {QUESTIONNAIRE_SCHEMA.length}</span>
+            <span className="text-sm text-gray-500">
+              {currentStep + 1} of {QUESTIONNAIRE_SCHEMA.length}
+            </span>
           </div>
-          <Progress 
-            percent={progressPercentage} 
+          <Progress
+            percent={progressPercentage}
             showInfo={false}
             strokeColor={{
-              '0%': '#52c41a',
-              '100%': '#73d13d',
+              "0%": "#52c41a",
+              "100%": "#73d13d",
             }}
             className="mb-2"
           />
           <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>{answeredCount} of {totalQuestionsCount} questions answered</span>
+            <span>
+              {answeredCount} of {totalQuestionsCount} questions answered
+            </span>
             <span>{progressPercentage}%</span>
           </div>
         </div>
 
         {/* Steps */}
-        <Steps 
-          direction="vertical" 
+        <Steps
+          direction="vertical"
           current={currentStep}
           onChange={handleStepJump}
         >
           {QUESTIONNAIRE_SCHEMA.map((section, index) => (
-            <Step 
-              key={section.id} 
+            <Step
+              key={section.id}
               title={
                 <div className="flex items-center justify-between w-full">
                   <span className="text-sm">{section.title}</span>
@@ -647,13 +781,13 @@ const SupplierQuestionnaire: React.FC = () => {
                 </div>
               }
               status={
-                completedSteps.has(index) 
-                  ? 'finish' 
-                  : index === currentStep 
-                    ? 'process' 
-                    : index < currentStep 
-                      ? 'finish' 
-                      : 'wait'
+                completedSteps.has(index)
+                  ? "finish"
+                  : index === currentStep
+                    ? "process"
+                    : index < currentStep
+                      ? "finish"
+                      : "wait"
               }
             />
           ))}
@@ -672,46 +806,52 @@ const SupplierQuestionnaire: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {/* Mobile Menu Button - Always show */}
-              <Button 
-                icon={<MenuOutlined />} 
-                type="text" 
+              <Button
+                icon={<MenuOutlined />}
+                type="text"
                 onClick={() => setSidebarVisible(true)}
                 className="lg:hidden mr-2"
               />
               {!isPublicRoute && (
-                <Button 
-                  icon={<ArrowLeftOutlined />} 
-                  type="text" 
-                  onClick={() => navigate('/dashboard')}
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  type="text"
+                  onClick={() => navigate("/dashboard")}
                   className="mr-2 hidden lg:inline-flex"
                 />
               )}
-              <h1 className="text-xl font-bold text-gray-900">Supplier Questionnaire</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                Supplier Questionnaire
+              </h1>
             </div>
             <div className="flex items-center gap-3">
               {/* Auto-save Status */}
               {isCreateMode && (
                 <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
-                  {autoSaveStatus === 'saving' && (
+                  {autoSaveStatus === "saving" && (
                     <Tooltip title="Saving...">
                       <ClockCircleOutlined className="animate-spin" />
                     </Tooltip>
                   )}
-                  {autoSaveStatus === 'saved' && (
-                    <Tooltip title={`Saved at ${lastSaved?.toLocaleTimeString()}`}>
+                  {autoSaveStatus === "saved" && (
+                    <Tooltip
+                      title={`Saved at ${lastSaved?.toLocaleTimeString()}`}
+                    >
                       <CheckCircleOutlined className="text-green-500" />
                     </Tooltip>
                   )}
-                  {lastSaved && autoSaveStatus === 'idle' && (
-                    <Tooltip title={`Last saved: ${lastSaved.toLocaleTimeString()}`}>
+                  {lastSaved && autoSaveStatus === "idle" && (
+                    <Tooltip
+                      title={`Last saved: ${lastSaved.toLocaleTimeString()}`}
+                    >
                       <span className="text-xs">Auto-saved</span>
                     </Tooltip>
                   )}
                 </div>
               )}
               {isCreateMode && (
-                <Button 
-                  icon={<SaveOutlined />} 
+                <Button
+                  icon={<SaveOutlined />}
                   onClick={handleSaveDraft}
                   loading={isSaving}
                 >
@@ -727,9 +867,7 @@ const SupplierQuestionnaire: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Desktop Sidebar - Always show */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-24">
-              {renderSidebar()}
-            </div>
+            <div className="sticky top-24">{renderSidebar()}</div>
           </div>
 
           {/* Main Content */}
@@ -740,28 +878,44 @@ const SupplierQuestionnaire: React.FC = () => {
                 <Alert
                   message={
                     <span className="font-semibold">
-                      {Object.keys(formErrors).length} {Object.keys(formErrors).length === 1 ? 'Error' : 'Errors'} Found
+                      {Object.keys(formErrors).length}{" "}
+                      {Object.keys(formErrors).length === 1
+                        ? "Error"
+                        : "Errors"}{" "}
+                      Found
                     </span>
                   }
                   description={
                     <div className="mt-2">
                       <p className="text-sm mb-2 text-gray-700">
-                        Please review and fix the following {Object.keys(formErrors).length === 1 ? 'error' : 'errors'} before continuing:
+                        Please review and fix the following{" "}
+                        {Object.keys(formErrors).length === 1
+                          ? "error"
+                          : "errors"}{" "}
+                        before continuing:
                       </p>
                       <ul className="list-disc list-inside mt-2 space-y-1">
                         {Object.entries(formErrors).map(([field, errors]) => {
                           // Try to get the field label from the current section
-                          const fieldConfig = currentSection?.fields.find(f => f.name === field);
-                          const fieldLabel = fieldConfig?.label || field.split('.').pop() || field;
-                          const questionNumber = fieldLabel.match(/^\d+\./)?.[0] || '';
-                          
+                          const fieldConfig = currentSection?.fields.find(
+                            (f) => f.name === field,
+                          );
+                          const fieldLabel =
+                            fieldConfig?.label ||
+                            field.split(".").pop() ||
+                            field;
+                          const questionNumber =
+                            fieldLabel.match(/^\d+\./)?.[0] || "";
+
                           return (
                             <li key={field} className="text-sm text-gray-800">
                               <span className="font-medium">
-                                {questionNumber ? `${questionNumber} ` : ''}
-                                {fieldLabel.replace(/^\d+\.\s*/, '')}:
-                              </span>{' '}
-                              <span className="text-red-600">{errors.join(', ')}</span>
+                                {questionNumber ? `${questionNumber} ` : ""}
+                                {fieldLabel.replace(/^\d+\.\s*/, "")}:
+                              </span>{" "}
+                              <span className="text-red-600">
+                                {errors.join(", ")}
+                              </span>
                             </li>
                           );
                         })}
@@ -774,13 +928,18 @@ const SupplierQuestionnaire: React.FC = () => {
                   onClose={() => setFormErrors({})}
                   className="mb-6"
                   action={
-                    <Button 
-                      size="small" 
-                      type="text" 
+                    <Button
+                      size="small"
+                      type="text"
                       onClick={() => {
-                        const firstErrorField = document.querySelector('.ant-form-item-has-error');
+                        const firstErrorField = document.querySelector(
+                          ".ant-form-item-has-error",
+                        );
                         if (firstErrorField) {
-                          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          firstErrorField.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                          });
                         }
                       }}
                     >
@@ -797,7 +956,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 onFinish={() => {}}
                 onValuesChange={(changedValues, allValues) => {
                   // Update formData when values change to trigger progress recalculation
-                  setFormData(prev => ({ ...prev, ...allValues }));
+                  setFormData((prev) => ({ ...prev, ...allValues }));
                 }}
                 autoPopulatedFields={autoPopulatedFields}
                 formErrors={formErrors}
@@ -806,8 +965,8 @@ const SupplierQuestionnaire: React.FC = () => {
               {/* Navigation Buttons */}
               <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={handlePrev} 
+                  <Button
+                    onClick={handlePrev}
                     disabled={currentStep === 0}
                     icon={<ArrowLeftOutlined />}
                     size="large"
@@ -815,14 +974,15 @@ const SupplierQuestionnaire: React.FC = () => {
                     Previous
                   </Button>
                   {isCreateMode && !isPublicRoute && (
-                    <Button 
+                    <Button
                       onClick={() => {
                         Modal.confirm({
-                          title: 'Save and Continue Later?',
-                          content: 'Your progress will be saved and you can continue later.',
+                          title: "Save and Continue Later?",
+                          content:
+                            "Your progress will be saved and you can continue later.",
                           onOk: () => {
                             handleSaveDraft();
-                            navigate('/dashboard');
+                            navigate("/dashboard");
                           },
                         });
                       }}
@@ -832,11 +992,11 @@ const SupplierQuestionnaire: React.FC = () => {
                     </Button>
                   )}
                 </div>
-                
+
                 <div className="flex gap-2">
                   {currentStep < QUESTIONNAIRE_SCHEMA.length - 1 ? (
                     <>
-                      <Button 
+                      <Button
                         onClick={handleNext}
                         type="primary"
                         icon={<ArrowRightOutlined />}
@@ -845,13 +1005,15 @@ const SupplierQuestionnaire: React.FC = () => {
                         Next
                       </Button>
                       <Tooltip title="Press Ctrl+Enter">
-                        <span className="text-xs text-gray-400 self-center hidden sm:inline">Ctrl+Enter</span>
+                        <span className="text-xs text-gray-400 self-center hidden sm:inline">
+                          Ctrl+Enter
+                        </span>
                       </Tooltip>
                     </>
                   ) : (
                     <>
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         onClick={handleSubmit}
                         loading={isSaving}
                         icon={<CheckOutlined />}
@@ -861,7 +1023,9 @@ const SupplierQuestionnaire: React.FC = () => {
                         Submit Questionnaire
                       </Button>
                       <Tooltip title="Press Ctrl+Enter">
-                        <span className="text-xs text-gray-400 self-center hidden sm:inline">Ctrl+Enter</span>
+                        <span className="text-xs text-gray-400 self-center hidden sm:inline">
+                          Ctrl+Enter
+                        </span>
                       </Tooltip>
                     </>
                   )}

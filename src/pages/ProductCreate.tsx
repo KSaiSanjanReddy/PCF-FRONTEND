@@ -29,9 +29,6 @@ const ProductCreate: React.FC = () => {
   // Dropdown Data
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductSubCategory[]>([]);
-  const [filteredSubCategories, setFilteredSubCategories] = useState<
-    ProductSubCategory[]
-  >([]);
   const [manufacturingProcesses, setManufacturingProcesses] = useState<
     ManufacturingProcess[]
   >([]);
@@ -50,22 +47,15 @@ const ProductCreate: React.FC = () => {
         productService.getLifeCycleStages(),
       ]);
 
-      if (cats.status) setCategories(cats.data.rows || []);
-      if (subCats.status) setSubCategories(subCats.data.rows || []);
-      if (mfgProcs.status) setManufacturingProcesses(mfgProcs.data.rows || []);
-      if (lcs.status) setLifeCycleStages(lcs.data.rows || []);
+      // API returns data as array directly, not data.rows
+      if (cats.status) setCategories(Array.isArray(cats.data) ? cats.data : cats.data?.rows || []);
+      if (subCats.status) setSubCategories(Array.isArray(subCats.data) ? subCats.data : subCats.data?.rows || []);
+      if (mfgProcs.status) setManufacturingProcesses(Array.isArray(mfgProcs.data) ? mfgProcs.data : mfgProcs.data?.rows || []);
+      if (lcs.status) setLifeCycleStages(Array.isArray(lcs.data) ? lcs.data : lcs.data?.rows || []);
     } catch (error) {
       console.error("Error loading dropdowns:", error);
       message.error("Failed to load dropdown options");
     }
-  };
-
-  const handleCategoryChange = (categoryId: string) => {
-    const filtered = subCategories.filter(
-      (sc) => sc.product_category_id === categoryId
-    );
-    setFilteredSubCategories(filtered);
-    form.setFieldsValue({ product_sub_category_id: undefined });
   };
 
   const handleSave = async () => {
@@ -201,7 +191,6 @@ const ProductCreate: React.FC = () => {
                       <Select
                         placeholder="Select category"
                         size="large"
-                        onChange={handleCategoryChange}
                         options={categories.map((c) => ({
                           label: c.name,
                           value: c.id,
@@ -223,8 +212,7 @@ const ProductCreate: React.FC = () => {
                       <Select
                         placeholder="Select sub-category"
                         size="large"
-                        disabled={!form.getFieldValue("product_category_id")}
-                        options={filteredSubCategories.map((sc) => ({
+                        options={subCategories.map((sc) => ({
                           label: sc.name,
                           value: sc.id,
                         }))}
@@ -285,7 +273,7 @@ const ProductCreate: React.FC = () => {
                       <Input placeholder="e.g. Steel" size="large" />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} md={12}>
+                  <Col xs={24} md={8}>
                     <Form.Item
                       label="Manufacturing Process"
                       name="ts_manufacturing_process_id"
@@ -301,7 +289,7 @@ const ProductCreate: React.FC = () => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} md={12}>
+                  <Col xs={24} md={8}>
                     <Form.Item
                       label="Supplier"
                       name="ts_supplier"
@@ -310,7 +298,7 @@ const ProductCreate: React.FC = () => {
                       <Input placeholder="Supplier Name" size="large" />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} md={12}>
+                  <Col xs={24} md={8}>
                     <Form.Item
                       label="Part Number"
                       name="ts_part_number"

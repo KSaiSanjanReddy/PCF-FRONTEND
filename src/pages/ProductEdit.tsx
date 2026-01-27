@@ -10,7 +10,7 @@ import {
   message,
   Spin,
 } from "antd";
-import { ReloadOutlined, CloudUploadOutlined } from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { Package, ArrowLeft, Save, FileText } from "lucide-react";
 import productService from "../lib/productService";
@@ -22,8 +22,6 @@ import type {
   Product,
 } from "../lib/productService";
 import dayjs from "dayjs";
-import { documentMasterService } from "../lib/documentMasterService";
-import type { DocumentItem as DocumentItemType } from "../lib/documentMasterService";
 
 const { TextArea } = Input;
 
@@ -38,11 +36,8 @@ const ProductEdit: React.FC = () => {
   // Dropdown Data
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductSubCategory[]>([]);
-  const [filteredSubCategories, setFilteredSubCategories] = useState<ProductSubCategory[]>([]);
   const [manufacturingProcesses, setManufacturingProcesses] = useState<ManufacturingProcess[]>([]);
   const [lifeCycleStages, setLifeCycleStages] = useState<LifeCycleStage[]>([]);
-  const [productDocuments, setProductDocuments] = useState<DocumentItemType[]>([]);
-  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -58,22 +53,22 @@ const ProductEdit: React.FC = () => {
         productService.getLifeCycleStages(),
       ]);
 
-      if (cats.status) setCategories(cats.data.rows || []);
-      if (subCats.status) setSubCategories(subCats.data.rows || []);
-      if (mfgProcs.status) setManufacturingProcesses(mfgProcs.data.rows || []);
-      if (lcs.status) setLifeCycleStages(lcs.data.rows || []);
+      // API returns data as array directly, not data.rows
+      const catsData = cats.status ? (Array.isArray(cats.data) ? cats.data : cats.data?.rows || []) : [];
+      const subCatsData = subCats.status ? (Array.isArray(subCats.data) ? subCats.data : subCats.data?.rows || []) : [];
+      const mfgProcsData = mfgProcs.status ? (Array.isArray(mfgProcs.data) ? mfgProcs.data : mfgProcs.data?.rows || []) : [];
+      const lcsData = lcs.status ? (Array.isArray(lcs.data) ? lcs.data : lcs.data?.rows || []) : [];
+
+      setCategories(catsData);
+      setSubCategories(subCatsData);
+      setManufacturingProcesses(mfgProcsData);
+      setLifeCycleStages(lcsData);
 
       if (id) {
         const productRes = await productService.getProductById(id);
         if (productRes.status && productRes.data) {
           const prod = productRes.data;
           setProduct(prod);
-          
-          // Filter subcategories initially
-          if (subCats.status && prod.product_category_id) {
-             const filtered = (subCats.data.rows || []).filter((sc: ProductSubCategory) => sc.product_category_id === prod.product_category_id);
-             setFilteredSubCategories(filtered);
-          }
 
           form.setFieldsValue({
             ...prod,
@@ -85,9 +80,6 @@ const ProductEdit: React.FC = () => {
             ed_renewable_energy: Number(prod.ed_renewable_energy),
           });
 
-          if (prod.product_code) {
-            await fetchProductDocuments(prod.product_code);
-          }
         } else {
             message.error("Failed to load product details");
             navigate("/product-portfolio/all-products");
@@ -101,32 +93,6 @@ const ProductEdit: React.FC = () => {
     }
   };
 
-  const fetchProductDocuments = async (productCode: string) => {
-    try {
-      // Original: Documents card in sidebar was using static mock data without API integration
-      setDocumentsLoading(true);
-      const result = await documentMasterService.getDocumentList(1, 50);
-      if (result.success) {
-        const filteredDocs = (result.data || []).filter(
-          (doc: DocumentItemType) => doc.product_code === productCode
-        );
-        setProductDocuments(filteredDocs);
-      } else {
-        message.error(result.message || "Failed to fetch product documents");
-      }
-    } catch (error) {
-      console.error("Error fetching product documents:", error);
-      message.error("Failed to fetch product documents");
-    } finally {
-      setDocumentsLoading(false);
-    }
-  };
-
-  const handleCategoryChange = (categoryId: string) => {
-    const filtered = subCategories.filter(sc => sc.product_category_id === categoryId);
-    setFilteredSubCategories(filtered);
-    form.setFieldsValue({ product_sub_category_id: undefined });
-  };
 
   const handleSave = async () => {
     try {
@@ -251,7 +217,6 @@ const ProductEdit: React.FC = () => {
                                         >
                                             <Select
                                                 size="large"
-                                                onChange={handleCategoryChange}
                                                 options={categories.map(c => ({ label: c.name, value: c.id }))}
                                             />
                                         </Form.Item>
@@ -264,8 +229,7 @@ const ProductEdit: React.FC = () => {
                                         >
                                             <Select
                                                 size="large"
-                                                disabled={!form.getFieldValue("product_category_id")}
-                                                options={filteredSubCategories.map(sc => ({ label: sc.name, value: sc.id }))}
+                                                options={subCategories.map(sc => ({ label: sc.name, value: sc.id }))}
                                             />
                                         </Form.Item>
                                     </Col>
@@ -317,7 +281,7 @@ const ProductEdit: React.FC = () => {
                                             <Input size="large" />
                                         </Form.Item>
                                     </Col>
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Manufacturing Process"
                                             name="ts_manufacturing_process_id"
@@ -329,7 +293,7 @@ const ProductEdit: React.FC = () => {
                                             />
                                         </Form.Item>
                                     </Col>
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Supplier"
                                             name="ts_supplier"
@@ -338,7 +302,7 @@ const ProductEdit: React.FC = () => {
                                             <Input size="large" />
                                         </Form.Item>
                                     </Col>
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Part Number"
                                             name="ts_part_number"
@@ -434,50 +398,17 @@ const ProductEdit: React.FC = () => {
                             {/* Documents */}
                             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
-                                <div className="mb-3 flex justify-between items-center">
-                                    <span className="text-gray-500 text-sm">Documents linked to this product</span>
-                                    <Button
-                                        type="link"
-                                        icon={<CloudUploadOutlined />}
-                                        onClick={() => navigate("/document-master/new")}
-                                    >
-                                        Upload Document
-                                    </Button>
+                                <div className="mb-3">
+                                    <span className="text-gray-500 text-sm">Product documents can be managed via PCF requests in Document Master.</span>
                                 </div>
-                                <Spin spinning={documentsLoading}>
-                                    {productDocuments && productDocuments.length > 0 ? (
-                                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                                            {productDocuments.map((doc) => (
-                                                <div
-                                                    key={doc.id}
-                                                    className="bg-gray-50 p-3 rounded flex justify-between items-center"
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <FileText className="w-4 h-4 text-green-500" />
-                                                        <span className="text-sm">
-                                                            {doc.document_title} ({doc.version})
-                                                        </span>
-                                                    </div>
-                                                    <Button
-                                                        type="link"
-                                                        size="small"
-                                                        onClick={() =>
-                                                            message.info("Open document details from Document Master")
-                                                        }
-                                                    >
-                                                        View
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="bg-gray-50 p-3 rounded-xl text-center">
-                                            <span className="text-gray-500 text-sm">
-                                                No documents linked to this product yet.
-                                            </span>
-                                        </div>
-                                    )}
-                                </Spin>
+                                <Button
+                                    type="default"
+                                    icon={<FileText className="w-4 h-4" />}
+                                    onClick={() => navigate("/document-master")}
+                                    className="w-full"
+                                >
+                                    Go to Document Master
+                                </Button>
                             </div>
 
                             {/* Audit Information */}

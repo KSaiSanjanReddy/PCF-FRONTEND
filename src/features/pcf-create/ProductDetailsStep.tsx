@@ -4,32 +4,28 @@ import {
   Input,
   Select,
   Button,
-  Card,
   Modal,
   Upload,
   message,
-  Space,
-  Row,
-  Col,
   Table,
-  Badge,
-  Tag,
 } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  UploadOutlined,
-  FileExcelOutlined,
-  ArrowLeftOutlined,
-  SaveOutlined,
-  DownOutlined,
-  RightOutlined,
-  ShopOutlined,
-  UserOutlined,
-  EnvironmentOutlined,
-  ExperimentOutlined,
-} from "@ant-design/icons";
 import type { UploadProps } from "antd";
+import {
+  Package,
+  Layers,
+  Settings,
+  Factory,
+  Code,
+  GitBranch,
+  Plus,
+  Trash2,
+  Upload as UploadIcon,
+  FileSpreadsheet,
+  ArrowLeft,
+  ArrowRight,
+  Beaker,
+  ClipboardList,
+} from "lucide-react";
 import { listSetup, type SetupItem } from "../../lib/dataSetupService";
 import BomTable from "./BomTable";
 
@@ -51,37 +47,23 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   const [isMappingModalVisible, setIsMappingModalVisible] = useState(false);
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>(
-    {}
-  );
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [pendingBomData, setPendingBomData] = useState<any[]>([]);
   const [bomData, setBomData] = useState<any[]>(initialValues.bomData || []);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [productCategories, setProductCategories] = useState<SetupItem[]>([]);
-  const [componentCategories, setComponentCategories] = useState<SetupItem[]>(
-    []
-  );
+  const [componentCategories, setComponentCategories] = useState<SetupItem[]>([]);
   const [componentTypes, setComponentTypes] = useState<SetupItem[]>([]);
   const [manufacturers, setManufacturers] = useState<SetupItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [rawCsvData, setRawCsvData] = useState<string>("");
 
-  // Field definitions for mapping
   const fieldDefinitions = [
     { key: "materialNumber", label: "Material Number / MPN", required: false },
     { key: "componentName", label: "Component Name", required: true },
     { key: "quantity", label: "Quantity", required: false },
-    {
-      key: "productionLocation",
-      label: "Production Location",
-      required: false,
-    },
+    { key: "productionLocation", label: "Production Location", required: false },
     { key: "manufacturer", label: "Manufacturer", required: false },
-    {
-      key: "detailedDescription",
-      label: "Detailed Description",
-      required: false,
-    },
+    { key: "detailedDescription", label: "Detailed Description", required: false },
     { key: "weight", label: "Weight (gms) /unit", required: false },
     { key: "totalWeight", label: "Total Weight (gms)", required: false },
     { key: "category", label: "Component Category", required: false },
@@ -92,13 +74,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     { key: "supplierNumber", label: "supplier_number", required: false },
   ];
 
-  // Load dropdown data
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
         setLoading(true);
-        const [productCats, componentCats, compTypes, mfrs] = await Promise.all(
-          [
+        const [productCats, componentCats, compTypes, mfrs] = await Promise.all([
           listSetup("product-category"),
           listSetup("component-category"),
           listSetup("component-type"),
@@ -118,7 +98,6 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     loadDropdowns();
   }, []);
 
-  // Sync form and BOM data with initialValues when they change
   useEffect(() => {
     if (initialValues) {
       form.setFieldsValue(initialValues);
@@ -134,30 +113,13 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     });
   };
 
-  const handleDeleteComponent = (key: string) => {
-    setBomData(bomData.filter((item) => item.key !== key));
-  };
-
-  const handleBomFieldChange = (key: string, field: string, value: string) => {
-    setBomData(
-      bomData.map((item) =>
-        item.key === key ? { ...item, [field]: value } : item
-      )
-    );
-  };
-
-  // Auto-detect column mapping based on header names
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
     const mapping: Record<string, string> = {};
-
     headers.forEach((header) => {
       const headerLower = header.toLowerCase().trim();
-
-      // Try to match each field
       fieldDefinitions.forEach((field) => {
         const fieldLabelLower = field.label.toLowerCase();
         const fieldKeyLower = field.key.toLowerCase();
-
         if (
           headerLower.includes(fieldKeyLower) ||
           headerLower === fieldLabelLower ||
@@ -169,42 +131,33 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
         }
       });
     });
-
     return mapping;
   };
 
-  // Parse CSV file using column mapping
   const parseCSV = (text: string, mapping: Record<string, string>): any[] => {
     const lines = text.split("\n").filter((line) => line.trim());
     if (lines.length < 2) {
       throw new Error("CSV file must have at least a header and one data row");
     }
 
-    // Parse header row
-    const headers = lines[0]
-      .split(",")
-      .map((h) => h.trim().replace(/^"|"$/g, ""));
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
 
-    // Get column index from mapping
     const getColumnIndex = (fieldKey: string): number => {
       const mappedHeader = mapping[fieldKey];
       if (!mappedHeader) return -1;
       return headers.findIndex((h) => h === mappedHeader);
     };
 
-    // Check required fields
     const componentNameIdx = getColumnIndex("componentName");
     if (componentNameIdx === -1) {
       throw new Error('CSV file must have "Component Name" column mapped');
     }
 
-    // Parse data rows
     const data: any[] = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line.trim()) continue;
 
-      // Handle CSV parsing with quoted fields
       const values: string[] = [];
       let current = "";
       let inQuotes = false;
@@ -220,31 +173,22 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
           current += char;
         }
       }
-      values.push(current.trim()); // Add last value
+      values.push(current.trim());
 
-      if (values.length < headers.length) {
-        // Pad with empty strings if needed
-        while (values.length < headers.length) {
-          values.push("");
-        }
+      while (values.length < headers.length) {
+        values.push("");
       }
 
-      // Extract component name (required)
-      const componentName =
-        values[componentNameIdx]?.replace(/^"|"$/g, "") || "";
-      if (!componentName) continue; // Skip empty rows
+      const componentName = values[componentNameIdx]?.replace(/^"|"$/g, "") || "";
+      if (!componentName) continue;
 
-      // Helper to get value by field key
       const getValue = (fieldKey: string): string => {
         const idx = getColumnIndex(fieldKey);
         return idx !== -1 ? values[idx]?.replace(/^"|"$/g, "") || "" : "";
       };
 
-      // Extract numeric values
       const weightGrams = parseFloat(getValue("weight") || "0");
-      const totalWeightGrams = parseFloat(
-        getValue("totalWeight") || weightGrams.toString()
-      );
+      const totalWeightGrams = parseFloat(getValue("totalWeight") || weightGrams.toString());
       const price = parseFloat(getValue("price") || "0");
       const totalPrice = parseFloat(getValue("totalPrice") || price.toString());
 
@@ -273,21 +217,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   };
 
   const handleFileUpload = (file: File) => {
-    // Check file type
     const fileName = file.name.toLowerCase();
     const isCSV = fileName.endsWith(".csv");
-    const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
-    if (!isCSV && !isExcel) {
-      message.error("Please upload a CSV or Excel file (.csv, .xlsx, .xls)");
-      return;
-    }
-
-    // For now, only CSV is supported. Excel support can be added later with a library like xlsx
     if (!isCSV) {
-      message.warning(
-        "Excel file support coming soon. Please use CSV format for now."
-      );
+      message.warning("Please use CSV format for now.");
       return;
     }
 
@@ -301,33 +235,22 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
           return;
         }
 
-        // Parse headers
         const lines = text.split("\n").filter((line) => line.trim());
         if (lines.length < 2) {
-          message.error(
-            "CSV file must have at least a header and one data row"
-          );
+          message.error("CSV file must have at least a header and one data row");
           return;
         }
 
-        const headers = lines[0]
-          .split(",")
-          .map((h) => h.trim().replace(/^"|"$/g, ""));
-
-        // Auto-detect mapping
+        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
         const autoMapping = autoDetectMapping(headers);
 
-        // Store raw data and show mapping modal
         setRawCsvData(text);
         setCsvHeaders(headers);
         setColumnMapping(autoMapping);
         setIsBomModalVisible(false);
         setIsMappingModalVisible(true);
       } catch (error: any) {
-        console.error("CSV reading error:", error);
-        message.error(
-          `Failed to read file: ${error.message || "Invalid file format"}`
-        );
+        message.error(`Failed to read file: ${error.message || "Invalid file format"}`);
       }
     };
 
@@ -340,13 +263,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
 
   const handleMappingConfirm = () => {
     try {
-      // Validate required mapping
       if (!columnMapping.componentName) {
         message.error("Please map 'Component Name' field (required)");
         return;
       }
 
-      // Parse CSV with mapping
       const parsedData = parseCSV(rawCsvData, columnMapping);
 
       if (parsedData.length === 0) {
@@ -354,15 +275,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
         return;
       }
 
-      // Show review modal
       setPendingBomData(parsedData);
       setIsMappingModalVisible(false);
       setIsReviewModalVisible(true);
     } catch (error: any) {
-      console.error("CSV parsing error:", error);
-      message.error(
-        `Failed to parse CSV: ${error.message || "Invalid file format"}`
-      );
+      message.error(`Failed to parse CSV: ${error.message || "Invalid file format"}`);
     }
   };
 
@@ -370,430 +287,376 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     setBomData(pendingBomData);
     setPendingBomData([]);
     setIsReviewModalVisible(false);
-    message.success(
-      `${pendingBomData.length} components imported successfully`
-    );
+    message.success(`${pendingBomData.length} components imported successfully`);
   };
-
-  const handleAddComponent = () => {
-    const newComponent = {
-      key: `bom-new-${Date.now()}`,
-      materialNumber: "",
-      componentName: "",
-      quantity: "1",
-      productionLocation: "",
-      manufacturer: "",
-      detailedDescription: "",
-      weight: "0.00",
-      totalWeight: "0.00",
-      category: "",
-      price: "0.00",
-      totalPrice: "0.00",
-      supplierEmail: "",
-      supplierName: "",
-      supplierNumber: "",
-      emission: "",
-      questionerStatus: "Pending",
-    };
-    setBomData([...bomData, newComponent]);
-  };
-
-  const toggleRowExpansion = (key: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(key)) {
-      newExpanded.delete(key);
-    } else {
-      newExpanded.add(key);
-    }
-    setExpandedRows(newExpanded);
-  };
-
-  const handleBomUpload: UploadProps["onChange"] = (info) => {
-    const file = info.file.originFileObj;
-    if (!file || !(file instanceof File)) return;
-
-    // Handle file reading
-    if (info.file.status === "uploading") {
-      return;
-    }
-
-    if (info.file.status === "done") {
-      handleFileUpload(file);
-    } else if (info.file.status === "error") {
-      message.error(`${info.file.name} file upload failed.`);
-    }
-  };
-
-  // Calculate totals
-  const calculateTotals = () => {
-    const totals = bomData.reduce(
-      (acc, item) => {
-        acc.totalWeight += parseFloat(item.weight || "0");
-        acc.totalCost += parseFloat(item.totalPrice || item.price || "0");
-        acc.totalEmission += parseFloat(item.emission || "0");
-        return acc;
-      },
-      { totalWeight: 0, totalCost: 0, totalEmission: 0 }
-    );
-    return totals;
-  };
-
-  const totals = calculateTotals();
-
-
-
 
   return (
-    <Space direction="vertical" size="large" className="w-full">
-      <Card title="Product Details" className="shadow-sm">
-        <Form form={form} layout="vertical" initialValues={initialValues}>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="Product Category *"
-                name="productCategory"
-                rules={[{ required: true, message: "Select Product Category" }]}
-              >
-                <Select
-                  placeholder="Select Product Category"
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, option) => {
-                    const label =
-                      typeof option?.label === "string"
-                        ? option.label
-                        : String(option?.children || "");
-                    return label.toLowerCase().includes(input.toLowerCase());
-                  }}
-                >
-                  {productCategories.map((cat) => (
-                    <Option key={cat.id || cat.code} value={cat.id || cat.code}>
-                      {cat.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                label="Component Category *"
-                name="componentCategory"
-                rules={[
-                  { required: true, message: "Select Component Category" },
-                ]}
-              >
-                <Select
-                  placeholder="Select Component Category"
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, option) => {
-                    const label =
-                      typeof option?.label === "string"
-                        ? option.label
-                        : String(option?.children || "");
-                    return label.toLowerCase().includes(input.toLowerCase());
-                  }}
-                >
-                  {componentCategories.map((cat) => (
-                    <Option key={cat.id || cat.code} value={cat.id || cat.code}>
-                      {cat.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                label="Component Type *"
-                name="componentType"
-                rules={[{ required: true, message: "Enter Component Type" }]}
-              >
-                <Select
-                  placeholder="Select Component Type"
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, option) => {
-                    const label =
-                      typeof option?.label === "string"
-                        ? option.label
-                        : String(option?.children || "");
-                    return label.toLowerCase().includes(input.toLowerCase());
-                  }}
-                >
-                  {componentTypes.map((type) => (
-                    <Option
-                      key={type.id || type.code}
-                      value={type.id || type.code}
-                    >
-                      {type.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+    <div className="space-y-6">
+      {/* Product Details Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <Package className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Product Details</h3>
+              <p className="text-sm text-gray-500">Define product category and specifications</p>
+            </div>
+          </div>
+        </div>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="Product Code" name="productCode">
-                <Input placeholder="Enter product code" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Manufacture" name="manufacture">
-                <Select
-                  placeholder="Select Manufacturer"
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, option) => {
-                    const label =
-                      typeof option?.label === "string"
-                        ? option.label
-                        : String(option?.children || "");
-                    return label.toLowerCase().includes(input.toLowerCase());
-                  }}
+        <div className="p-6">
+          <Form form={form} layout="vertical" initialValues={initialValues}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Product Category *</span>}
+                  name="productCategory"
+                  rules={[{ required: true, message: "Select Product Category" }]}
                 >
-                  {manufacturers.map((mfr) => (
-                    <Option key={mfr.id || mfr.code} value={mfr.id || mfr.code}>
-                      {mfr.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Model/Version" name="modelVersion">
-                <Input placeholder="Enter model or version" />
-              </Form.Item>
-            </Col>
-          </Row>
+                  <Select
+                    placeholder="Select Product Category"
+                    size="large"
+                    loading={loading}
+                    showSearch
+                    suffixIcon={<Layers className="w-4 h-4 text-gray-400" />}
+                    filterOption={(input, option) => {
+                      const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {productCategories.map((cat) => (
+                      <Option key={cat.id || cat.code} value={cat.id || cat.code}>
+                        {cat.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </div>
 
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <ExperimentOutlined className="text-green-600 text-lg" />
-                <span className="font-semibold text-base text-gray-800">
-                  Product Specifications
-                </span>
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Component Category *</span>}
+                  name="componentCategory"
+                  rules={[{ required: true, message: "Select Component Category" }]}
+                >
+                  <Select
+                    placeholder="Select Component Category"
+                    size="large"
+                    loading={loading}
+                    showSearch
+                    suffixIcon={<Settings className="w-4 h-4 text-gray-400" />}
+                    filterOption={(input, option) => {
+                      const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {componentCategories.map((cat) => (
+                      <Option key={cat.id || cat.code} value={cat.id || cat.code}>
+                        {cat.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </div>
+
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Component Type *</span>}
+                  name="componentType"
+                  rules={[{ required: true, message: "Enter Component Type" }]}
+                >
+                  <Select
+                    placeholder="Select Component Type"
+                    size="large"
+                    loading={loading}
+                    showSearch
+                    suffixIcon={<Settings className="w-4 h-4 text-gray-400" />}
+                    filterOption={(input, option) => {
+                      const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {componentTypes.map((type) => (
+                      <Option key={type.id || type.code} value={type.id || type.code}>
+                        {type.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </div>
+
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Product Code</span>}
+                  name="productCode"
+                >
+                  <Input
+                    placeholder="Enter product code"
+                    size="large"
+                    prefix={<Code className="w-4 h-4 text-gray-400 mr-2" />}
+                  />
+                </Form.Item>
+              </div>
+
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Manufacturer</span>}
+                  name="manufacture"
+                >
+                  <Select
+                    placeholder="Select Manufacturer"
+                    size="large"
+                    loading={loading}
+                    showSearch
+                    suffixIcon={<Factory className="w-4 h-4 text-gray-400" />}
+                    filterOption={(input, option) => {
+                      const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {manufacturers.map((mfr) => (
+                      <Option key={mfr.id || mfr.code} value={mfr.id || mfr.code}>
+                        {mfr.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </div>
+
+              <div>
+                <Form.Item
+                  label={<span className="text-sm font-medium text-gray-700">Model/Version</span>}
+                  name="modelVersion"
+                >
+                  <Input
+                    placeholder="Enter model or version"
+                    size="large"
+                    prefix={<GitBranch className="w-4 h-4 text-gray-400 mr-2" />}
+                  />
+                </Form.Item>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gradient-to-r from-green-50 to-green-100">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider w-1/3">
-                      Specification Name
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider w-1/3">
-                      Value
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider w-1/4">
-                      Unit
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-20">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  <Form.List name="specifications">
-                    {(fields, { add, remove }) => (
-                      <>
-                        {fields.length === 0 && (
-                          <tr>
-                            <td
-                              colSpan={4}
-                              className="px-6 py-12 text-center bg-gray-50/50"
-                            >
-                              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
-                                <ExperimentOutlined className="text-2xl text-gray-400" />
-                              </div>
-                              <p className="text-gray-500 mb-4">
-                                No specifications added yet
-                              </p>
-                              <Button
-                                type="dashed"
-                                onClick={() => add()}
-                                icon={<PlusOutlined />}
-                                className="border-green-500 text-green-600 hover:border-green-600 hover:text-green-700"
-                              >
-                                Add First Specification
-                              </Button>
-                            </td>
-                          </tr>
-                        )}
+            {/* Product Specifications */}
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Beaker className="w-4 h-4 text-green-600" />
+                </div>
+                <h4 className="font-semibold text-gray-900">Product Specifications</h4>
+              </div>
 
-                        {fields.map(({ key, name, ...restField }, index) => (
-                          <tr
-                            key={key}
-                            className={`group hover:bg-gray-50 transition-colors duration-150 ${
-                              index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                            }`}
-                          >
-                            <td className="px-6 py-4">
-                              <Form.Item
-                                {...restField}
-                                name={[name, "name"]}
-                                rules={[
-                                  { required: true, message: "Required" },
-                                ]}
-                                className="!mb-0"
-                              >
-                                <Input
-                                  placeholder="e.g. Voltage"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                                  bordered={false}
-                                  style={{ background: "transparent" }}
-                                />
-                              </Form.Item>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Form.Item
-                                {...restField}
-                                name={[name, "value"]}
-                                rules={[
-                                  { required: true, message: "Required" },
-                                ]}
-                                className="!mb-0"
-                              >
-                                <Input
-                                  placeholder="e.g. 220"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                                  bordered={false}
-                                  style={{ background: "transparent" }}
-                                />
-                              </Form.Item>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Form.Item
-                                {...restField}
-                                name={[name, "unit"]}
-                                className="!mb-0"
-                              >
-                                <Input
-                                  placeholder="e.g. V"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                                  bordered={false}
-                                  style={{ background: "transparent" }}
-                                />
-                              </Form.Item>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <button
-                                onClick={() => remove(name)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-                                title="Remove specification"
-                              >
-                                <DeleteOutlined className="text-lg" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+              <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                <table className="min-w-full">
+                  <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-1/3">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-1/3">Value</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-1/4">Unit</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <Form.List name="specifications">
+                      {(fields, { add, remove }) => (
+                        <>
+                          {fields.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="px-4 py-8 text-center">
+                                <div className="flex flex-col items-center">
+                                  <Beaker className="w-10 h-10 text-gray-300 mb-2" />
+                                  <p className="text-gray-500 text-sm mb-3">No specifications added</p>
+                                  <Button
+                                    type="dashed"
+                                    onClick={() => add()}
+                                    icon={<Plus className="w-4 h-4" />}
+                                    className="!border-green-400 !text-green-600"
+                                  >
+                                    Add Specification
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
 
-                        {fields.length > 0 && (
-                          <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
-                            <td colSpan={4} className="px-6 py-3 text-center">
-                              <Button
-                                type="dashed"
-                                onClick={() => add()}
-                                icon={<PlusOutlined />}
-                                block
-                                className="border-gray-300 text-gray-600 hover:border-green-500 hover:text-green-600"
-                              >
-                                Add Another Specification
-                              </Button>
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    )}
-                  </Form.List>
-                </tbody>
-              </table>
+                          {fields.map(({ key, name, ...restField }, index) => (
+                            <tr key={key} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} group`}>
+                              <td className="px-4 py-2">
+                                <Form.Item {...restField} name={[name, "name"]} rules={[{ required: true, message: "" }]} className="!mb-0">
+                                  <Input placeholder="e.g. Voltage" className="!border-0 !bg-transparent" />
+                                </Form.Item>
+                              </td>
+                              <td className="px-4 py-2">
+                                <Form.Item {...restField} name={[name, "value"]} rules={[{ required: true, message: "" }]} className="!mb-0">
+                                  <Input placeholder="e.g. 220" className="!border-0 !bg-transparent" />
+                                </Form.Item>
+                              </td>
+                              <td className="px-4 py-2">
+                                <Form.Item {...restField} name={[name, "unit"]} className="!mb-0">
+                                  <Input placeholder="e.g. V" className="!border-0 !bg-transparent" />
+                                </Form.Item>
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                <button
+                                  onClick={() => remove(name)}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+
+                          {fields.length > 0 && (
+                            <tr className="border-t border-dashed border-gray-300">
+                              <td colSpan={4} className="px-4 py-2">
+                                <Button
+                                  type="dashed"
+                                  onClick={() => add()}
+                                  icon={<Plus className="w-4 h-4" />}
+                                  block
+                                  className="!border-gray-300 !text-gray-500"
+                                >
+                                  Add Another
+                                </Button>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      )}
+                    </Form.List>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Form>
+        </div>
+      </div>
+
+      {/* BOM Section */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-teal-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Bill of Materials</h3>
+                <p className="text-sm text-gray-500">{bomData.length} components added</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setIsBomModalVisible(true)}
+              className="!border-green-400 !text-green-600 hover:!bg-green-50"
+              icon={<UploadIcon className="w-4 h-4" />}
+            >
+              Import BOM
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <BomTable bomData={bomData} />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <Package className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Categories</p>
+                <p className="text-sm font-semibold text-gray-900">3 required</p>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-gray-200"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <ClipboardList className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">BOM Items</p>
+                <p className="text-sm font-semibold text-gray-900">{bomData.length} components</p>
+              </div>
             </div>
           </div>
-        </Form>
-      </Card>
-
-      <Card
-        title="BOM Details"
-        className="shadow-sm"
-        extra={
-          <Button
-            icon={<UploadOutlined />}
-            onClick={() => setIsBomModalVisible(true)}
-            className="border-green-500 text-green-600 hover:bg-green-50"
-          >
-            ↑ Import BOM
-          </Button>
-        }
-      >
-        {/* BOM Table */}
-
-          <BomTable bomData={bomData} />
-      </Card>
-
-      <div className="flex justify-end gap-3">
-        {onBack && (
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={onBack}
-            className="border-green-500 text-green-600 "
-            size="large"
-          >
-            Back
-          </Button>
-        )}
-        <Button
-          type="primary"
-          onClick={handleSave}
-          icon={<SaveOutlined />}
-          style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
-          size="large"
-        >
-          Save
-        </Button>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <Button
+                size="large"
+                onClick={onBack}
+                icon={<ArrowLeft className="w-4 h-4" />}
+                className="!border-gray-300"
+              >
+                Back
+              </Button>
+            )}
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSave}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="end"
+            >
+              Save & Continue
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Import BOM Modal */}
       <Modal
-        title="Import BOM"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <FileSpreadsheet className="w-4 h-4 text-green-600" />
+            </div>
+            <span>Import BOM from CSV</span>
+          </div>
+        }
         open={isBomModalVisible}
         onCancel={() => setIsBomModalVisible(false)}
         footer={null}
-        width={600}
+        width={500}
       >
-        <div className="p-8 text-center">
+        <div className="py-6">
           <Upload.Dragger
-            name="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv"
             showUploadList={false}
             beforeUpload={(file) => {
-              // Handle file upload immediately (client-side parsing)
               if (file instanceof File) {
                 handleFileUpload(file);
               }
-              return false; // Prevent default upload behavior
+              return false;
             }}
+            className="!border-2 !border-dashed !border-gray-200 !rounded-xl hover:!border-green-400 !bg-gray-50/50"
           >
-            <p className="ant-upload-drag-icon">
-              <FileExcelOutlined style={{ fontSize: 48, color: "#52c41a" }} />
-            </p>
-            <p className="ant-upload-text">
-              Click or drag file to this area to upload
-            </p>
-            <p className="ant-upload-hint">
-              Support for Excel (.xlsx, .xls) and CSV files. Strictly prohibited
-              from uploading company data or other banned files.
-            </p>
+            <div className="py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-2xl flex items-center justify-center">
+                <FileSpreadsheet className="w-8 h-8 text-green-500" />
+              </div>
+              <p className="text-base font-medium text-gray-700 mb-1">
+                Drop your CSV file here or <span className="text-green-600">browse</span>
+              </p>
+              <p className="text-sm text-gray-400">
+                CSV files with component data
+              </p>
+            </div>
           </Upload.Dragger>
         </div>
       </Modal>
 
       {/* Column Mapping Modal */}
       <Modal
-        title="Map CSV Columns to Data Fields"
+        title="Map CSV Columns"
         open={isMappingModalVisible}
         onCancel={() => {
           setIsMappingModalVisible(false);
@@ -802,22 +665,14 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
           setColumnMapping({});
         }}
         footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setIsMappingModalVisible(false);
-              setRawCsvData("");
-              setCsvHeaders([]);
-              setColumnMapping({});
-            }}
-          >
+          <Button key="cancel" onClick={() => setIsMappingModalVisible(false)}>
             Cancel
           </Button>,
           <Button
             key="confirm"
             type="primary"
             onClick={handleMappingConfirm}
-            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+            className="!bg-green-600 !border-green-600"
           >
             Continue to Review
           </Button>,
@@ -826,217 +681,99 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
       >
         <div className="mb-4">
           <p className="text-gray-600 mb-4">
-            Map your CSV columns to the corresponding data fields. Required
-            fields are marked with *.
+            Map your CSV columns to the corresponding data fields. Fields marked with * are required.
           </p>
-          <div className="border rounded-lg overflow-hidden">
-            <Table
-              dataSource={fieldDefinitions}
-              columns={[
-                {
-                  title: "Data Field",
-                  dataIndex: "label",
-                  key: "label",
-                  width: 200,
-                  render: (label: string, record: any) => (
-                    <span>
-                      {label}
-                      {record.required && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
-                    </span>
-                  ),
-                },
-                {
-                  title: "CSV Column",
-                  key: "mapping",
-                  width: 300,
-                  render: (_, record: any) => (
-                    <Select
-                      value={columnMapping[record.key] || undefined}
-                      placeholder="Select CSV column"
-                      onChange={(value) => {
-                        setColumnMapping({
-                          ...columnMapping,
-                          [record.key]: value,
-                        });
-                      }}
-                      style={{ width: "100%" }}
-                      showSearch
-                      filterOption={(input, option) => {
-                        const label =
-                          typeof option?.label === "string"
-                            ? option.label
-                            : String(option?.children || "");
-                        return label
-                          .toLowerCase()
-                          .includes(input.toLowerCase());
-                      }}
-                    >
-                      <Option value="">-- Not Mapped --</Option>
-                      {csvHeaders.map((header) => (
-                        <Option key={header} value={header}>
-                          {header}
-                        </Option>
-                      ))}
-                    </Select>
-                  ),
-                },
-              ]}
-              pagination={false}
-              rowKey="key"
-              size="small"
-            />
-          </div>
+          <Table
+            dataSource={fieldDefinitions}
+            columns={[
+              {
+                title: "Data Field",
+                dataIndex: "label",
+                key: "label",
+                width: 200,
+                render: (label: string, record: any) => (
+                  <span>
+                    {label}
+                    {record.required && <span className="text-red-500 ml-1">*</span>}
+                  </span>
+                ),
+              },
+              {
+                title: "CSV Column",
+                key: "mapping",
+                width: 300,
+                render: (_, record: any) => (
+                  <Select
+                    value={columnMapping[record.key] || undefined}
+                    placeholder="Select CSV column"
+                    onChange={(value) => {
+                      setColumnMapping({ ...columnMapping, [record.key]: value });
+                    }}
+                    style={{ width: "100%" }}
+                    showSearch
+                    allowClear
+                  >
+                    {csvHeaders.map((header) => (
+                      <Option key={header} value={header}>
+                        {header}
+                      </Option>
+                    ))}
+                  </Select>
+                ),
+              },
+            ]}
+            pagination={false}
+            rowKey="key"
+            size="small"
+          />
         </div>
       </Modal>
 
-      {/* Review & Confirm Import Modal */}
+      {/* Review Modal */}
       <Modal
-        title="Review & Confirm Import"
+        title="Review Import Data"
         open={isReviewModalVisible}
         onCancel={() => {
           setIsReviewModalVisible(false);
           setPendingBomData([]);
         }}
         footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setIsReviewModalVisible(false);
-              setPendingBomData([]);
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button
-            key="back"
-            onClick={() => {
-              setIsReviewModalVisible(false);
-              setIsMappingModalVisible(true);
-            }}
-          >
+          <Button key="back" onClick={() => { setIsReviewModalVisible(false); setIsMappingModalVisible(true); }}>
             Back to Mapping
           </Button>,
           <Button
             key="confirm"
             type="primary"
             onClick={handleConfirmImport}
-            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+            className="!bg-green-600 !border-green-600"
           >
-            Confirm Import
+            Confirm Import ({pendingBomData.length} items)
           </Button>,
         ]}
         width={1400}
       >
-        <div className="mb-4">
-          <p className="text-gray-600 mb-4">
-            Review the imported data. <strong>{pendingBomData.length}</strong>{" "}
-            components found.
-          </p>
-          <Table
-            dataSource={pendingBomData}
-            columns={[
-              {
-                title: "Component Name",
-                dataIndex: "componentName",
-                key: "componentName",
-                width: 150,
-                fixed: "left",
-              },
-              {
-                title: "Material Number",
-                dataIndex: "materialNumber",
-                key: "materialNumber",
-                width: 120,
-              },
-              {
-                title: "Quantity",
-                dataIndex: "quantity",
-                key: "quantity",
-                width: 80,
-              },
-              {
-                title: "Production Location",
-                dataIndex: "productionLocation",
-                key: "productionLocation",
-                width: 120,
-              },
-              {
-                title: "Manufacturer",
-                dataIndex: "manufacturer",
-                key: "manufacturer",
-                width: 120,
-              },
-              {
-                title: "Weight (g)",
-                dataIndex: "weight",
-                key: "weight",
-                width: 100,
-              },
-              {
-                title: "Total Weight (g)",
-                dataIndex: "totalWeight",
-                key: "totalWeight",
-                width: 120,
-              },
-              {
-                title: "Category",
-                dataIndex: "category",
-                key: "category",
-                width: 120,
-              },
-              {
-                title: "Price",
-                dataIndex: "price",
-                key: "price",
-                width: 100,
-                render: (price) => `₹ ${price || "0.00"}`,
-              },
-              {
-                title: "Total Price",
-                dataIndex: "totalPrice",
-                key: "totalPrice",
-                width: 100,
-                render: (price) => `₹ ${price || "0.00"}`,
-              },
-              {
-                title: "Supplier Name",
-                dataIndex: "supplierName",
-                key: "supplierName",
-                width: 150,
-              },
-              {
-                title: "Supplier Email",
-                dataIndex: "supplierEmail",
-                key: "supplierEmail",
-                width: 150,
-              },
-              {
-                title: "Supplier Number",
-                dataIndex: "supplierNumber",
-                key: "supplierNumber",
-                width: 120,
-              },
-              {
-                title: "Description",
-                dataIndex: "detailedDescription",
-                key: "detailedDescription",
-                width: 200,
-                ellipsis: true,
-                render: (text: string) => (
-                  <span title={text}>{text || "-"}</span>
-                ),
-              },
-            ]}
-            pagination={{ pageSize: 10 }}
-            scroll={{ x: 1500, y: 400 }}
-            rowKey="key"
-            size="small"
-          />
-        </div>
+        <p className="text-gray-600 mb-4">
+          Review the imported data. <strong>{pendingBomData.length}</strong> components found.
+        </p>
+        <Table
+          dataSource={pendingBomData}
+          columns={[
+            { title: "Component Name", dataIndex: "componentName", key: "componentName", width: 150, fixed: "left" },
+            { title: "Material Number", dataIndex: "materialNumber", key: "materialNumber", width: 120 },
+            { title: "Quantity", dataIndex: "quantity", key: "quantity", width: 80 },
+            { title: "Manufacturer", dataIndex: "manufacturer", key: "manufacturer", width: 120 },
+            { title: "Weight (g)", dataIndex: "weight", key: "weight", width: 100 },
+            { title: "Category", dataIndex: "category", key: "category", width: 120 },
+            { title: "Price", dataIndex: "price", key: "price", width: 100, render: (price) => `₹${price || "0.00"}` },
+            { title: "Supplier Email", dataIndex: "supplierEmail", key: "supplierEmail", width: 150 },
+          ]}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 1200, y: 400 }}
+          rowKey="key"
+          size="small"
+        />
       </Modal>
-    </Space>
+    </div>
   );
 };
 

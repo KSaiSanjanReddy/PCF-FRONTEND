@@ -7,30 +7,28 @@ import {
   Input,
   Select,
   message,
-  Dropdown,
   Spin,
+  Drawer,
+  Upload,
+  Image,
+  Popconfirm,
 } from "antd";
-import type { MenuProps } from "antd/lib/menu";
+import type { UploadProps } from "antd";
 import {
   FileText,
-  Plus,
-  Download,
   Search,
-  MoreHorizontal,
+  Eye,
   File,
   Clock,
-  HardDrive,
-  Trash2,
-  Eye,
-  Edit,
-  Share2,
   CheckCircle,
+  X,
+  Upload as UploadIcon,
+  Image as ImageIcon,
+  FileType,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import {
-  documentMasterService,
-} from "../lib/documentMasterService";
-import type { DocumentItem as DocumentItemType } from "../lib/documentMasterService";
+import { documentMasterService } from "../lib/documentMasterService";
+import type { PCFDocumentItem } from "../lib/documentMasterService";
+import pcfService from "../lib/pcfService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
@@ -39,44 +37,38 @@ dayjs.extend(relativeTime);
 const { Option } = Select;
 
 const DocumentMaster: React.FC = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [documents, setDocuments] = useState<DocumentItemType[]>([]);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [documents, setDocuments] = useState<PCFDocumentItem[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 20,
     total: 0,
   });
-  const [stats, setStats] = useState({
-    totalDocuments: 0,
-    pendingDocuments: 0,
-    pcfDocuments: 0,
-    approvedDocuments: 0,
-  });
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const fetchDocuments = async (page: number = 1, pageSize: number = 10) => {
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<PCFDocumentItem | null>(null);
+  const [techSpecFiles, setTechSpecFiles] = useState<string[]>([]);
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [fileUrls, setFileUrls] = useState<Record<string, string>>({});
+  const [loadingUrls, setLoadingUrls] = useState(false);
+
+  const fetchDocuments = async (page: number = 1, pageSize: number = 20) => {
     setLoading(true);
     try {
       const result = await documentMasterService.getDocumentList(page, pageSize);
-      if (result.data) {
-        setDocuments(result.data);
+      if (result.status && result.data) {
+        setDocuments(result.data.data);
         setPagination({
-          ...pagination,
-          current: result.currentPage || page,
-          total: result.totalRecords || 0,
+          current: result.data.page,
+          pageSize: result.data.pageSize,
+          total: result.data.totalCount,
         });
-
-        if (result.stats) {
-          setStats({
-            totalDocuments: result.stats.totalDocuments,
-            pendingDocuments: result.stats.pendingDocuments,
-            pcfDocuments: result.stats.pcfDocuments,
-            approvedDocuments: result.data.filter((d: DocumentItemType) => d.status === "Approved").length,
-          });
-        }
       } else {
         message.error(result.message || "Failed to fetch documents");
       }
@@ -95,94 +87,189 @@ const DocumentMaster: React.FC = () => {
     fetchDocuments(newPagination.current, newPagination.pageSize);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const result = await documentMasterService.deleteDocument(id);
-      if (result.success) {
-        message.success("Document deleted successfully");
-        fetchDocuments(pagination.current, pagination.pageSize);
-      } else {
-        message.error(result.message);
-      }
-    } catch (error) {
-      message.error("Failed to delete document");
+  const fetchFileUrls = async (files: string[]) => {
+    setLoadingUrls(true);
+    const urls: Record<string, string> = {};
+
+    await Promise.all(
+      files.map(async (file) => {
+        try {
+          const result = await documentMasterService.getFileUrl(file);
+          if (result.success && result.url) {
+            urls[file] = result.url;
+          }
+        } catch (error) {
+          console.error(`Error fetching URL for ${file}:`, error);
+        }
+      })
+    );
+
+    setFileUrls(urls);
+    setLoadingUrls(false);
+  };
+
+  const openDrawer = async (record: PCFDocumentItem) => {
+    setSelectedRecord(record);
+    setTechSpecFiles([...record.technical_specification_file]);
+    setProductImages([...record.product_images]);
+    setHasChanges(false);
+    setFileUrls({});
+    setDrawerOpen(true);
+
+    // Fetch signed URLs for all files
+    const allFiles = [
+      ...record.technical_specification_file,
+      ...record.product_images,
+    ];
+    if (allFiles.length > 0) {
+      fetchFileUrls(allFiles);
     }
   };
 
-  const getRowActions = (record: DocumentItemType): MenuProps["items"] => [
-    {
-      key: "view",
-      label: "View Details",
-      icon: <Eye size={16} />,
-      onClick: () => navigate(`/document-master/view/${record.id}`),
+  const closeDrawer = () => {
+    if (hasChanges) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to close?")) {
+        return;
+      }
+    }
+    setDrawerOpen(false);
+    setSelectedRecord(null);
+    setTechSpecFiles([]);
+    setProductImages([]);
+    setHasChanges(false);
+    setFileUrls({});
+  };
+
+  const handleSaveDocuments = async () => {
+    if (!selectedRecord) return;
+
+    setSaving(true);
+    try {
+      const result = await documentMasterService.updateDocuments({
+        id: selectedRecord.id,
+        technical_specification_file: techSpecFiles,
+        product_images: productImages,
+      });
+
+      if (result.success) {
+        message.success("Documents updated successfully");
+        setHasChanges(false);
+        setDrawerOpen(false);
+        fetchDocuments(pagination.current, pagination.pageSize);
+      } else {
+        message.error(result.message || "Failed to update documents");
+      }
+    } catch (error) {
+      message.error("Failed to update documents");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveTechSpec = (index: number) => {
+    const newFiles = techSpecFiles.filter((_, i) => i !== index);
+    setTechSpecFiles(newFiles);
+    setHasChanges(true);
+  };
+
+  const handleRemoveProductImage = (index: number) => {
+    const newImages = productImages.filter((_, i) => i !== index);
+    setProductImages(newImages);
+    setHasChanges(true);
+  };
+
+  const handleUpload = async (file: File, type: "techSpec" | "productImage") => {
+    setUploading(true);
+    try {
+      const result = await pcfService.uploadBOMFile(file);
+      if (result.success && result.key) {
+        const fileKey = result.key;
+        if (type === "techSpec") {
+          setTechSpecFiles([...techSpecFiles, fileKey]);
+        } else {
+          setProductImages([...productImages, fileKey]);
+        }
+        setHasChanges(true);
+        message.success(`${file.name} uploaded successfully`);
+
+        // Fetch signed URL for the new file
+        const urlResult = await documentMasterService.getFileUrl(fileKey);
+        if (urlResult.success && urlResult.url) {
+          setFileUrls((prev) => ({ ...prev, [fileKey]: urlResult.url }));
+        }
+      } else {
+        message.error(result.message || "Upload failed");
+      }
+    } catch (error) {
+      message.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const techSpecUploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      handleUpload(file, "techSpec");
+      return false;
     },
-    {
-      key: "edit",
-      label: "Edit",
-      icon: <Edit size={16} />,
-      onClick: () => navigate(`/document-master/edit/${record.id}`),
+    showUploadList: false,
+    accept: ".pdf,.png,.jpg,.jpeg,.doc,.docx",
+  };
+
+  const productImageUploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      handleUpload(file, "productImage");
+      return false;
     },
-    {
-      key: "download",
-      label: "Download",
-      icon: <Download size={16} />,
-      onClick: () => message.success(`Downloading ${record.document_title}`),
-    },
-    {
-      key: "share",
-      label: "Share",
-      icon: <Share2 size={16} />,
-      onClick: () => message.info(`Sharing ${record.document_title}`),
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "delete",
-      label: "Delete",
-      icon: <Trash2 size={16} />,
-      danger: true,
-      onClick: () => handleDelete(record.id),
-    },
-  ];
+    showUploadList: false,
+    accept: ".png,.jpg,.jpeg,.gif,.webp",
+  };
+
+  const getFileUrl = (filePath: string) => {
+    return fileUrls[filePath] || "";
+  };
+
+  const getFileName = (filePath: string) => {
+    const parts = filePath.split("/");
+    const fullName = parts[parts.length - 1];
+    // Remove the UUID prefix if present (format: IMG-timestamp-uuid-filename)
+    const match = fullName.match(/IMG-\d+-[\w-]+-(.+)/);
+    return match ? match[1] : fullName;
+  };
+
+  const isImageFile = (filePath: string) => {
+    const ext = filePath.toLowerCase().split(".").pop();
+    return ["png", "jpg", "jpeg", "gif", "webp"].includes(ext || "");
+  };
+
+  // Calculate stats from current data
+  const stats = {
+    total: pagination.total,
+    approved: documents.filter((d) => d.status === "Approved").length,
+    pending: documents.filter((d) => d.status === "Pending").length,
+  };
 
   const columns = [
     {
-      title: "Document Name",
-      dataIndex: "document_title",
-      key: "document_title",
-      render: (text: string, record: DocumentItemType) => (
+      title: "PCF Request",
+      key: "pcf_request",
+      render: (_: any, record: PCFDocumentItem) => (
         <Space>
           <div className="p-2 bg-green-100 rounded-xl">
             <FileText size={20} className="text-green-600" />
           </div>
           <Space direction="vertical" size={0}>
-            <span className="font-medium text-gray-900">{text}</span>
-            <span className="text-xs text-gray-500">
-              {record.code} • {record.version}
-            </span>
+            <span className="font-medium text-gray-900">{record.request_title}</span>
+            <span className="text-xs text-gray-500">{record.code}</span>
           </Space>
         </Space>
       ),
     },
     {
-      title: "Type",
-      dataIndex: "document_type",
-      key: "document_type",
-      render: (text: string) => <Tag color="green">{text}</Tag>,
-    },
-    {
-      title: "Category",
-      dataIndex: "category_details",
-      key: "category",
-      render: (category: any) => category?.name || "-",
-      responsive: ["md"],
-    },
-    {
-      title: "Size",
-      dataIndex: "file_size",
-      key: "file_size",
-      responsive: ["sm"],
+      title: "Product Code",
+      dataIndex: "product_code",
+      key: "product_code",
+      render: (text: string) => <span className="text-gray-700">{text || "-"}</span>,
     },
     {
       title: "Status",
@@ -197,37 +284,56 @@ const DocumentMaster: React.FC = () => {
       },
     },
     {
+      title: "Documents",
+      key: "documents",
+      render: (_: any, record: PCFDocumentItem) => {
+        const techCount = record.technical_specification_file?.length || 0;
+        const imageCount = record.product_images?.length || 0;
+        const total = techCount + imageCount;
+        return (
+          <Space size="small">
+            <Tag color="blue" className="rounded-full">
+              <FileType size={12} className="inline mr-1" />
+              {techCount} specs
+            </Tag>
+            <Tag color="purple" className="rounded-full">
+              <ImageIcon size={12} className="inline mr-1" />
+              {imageCount} images
+            </Tag>
+          </Space>
+        );
+      },
+    },
+    {
       title: "Last Modified",
       dataIndex: "update_date",
       key: "update_date",
-      responsive: ["xl"],
+      responsive: ["lg"] as const,
       render: (date: string) => dayjs(date).format("DD MMM YYYY"),
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: DocumentItemType) => (
-        <Dropdown menu={{ items: getRowActions(record) }} trigger={["click"]}>
-          <Button type="text" icon={<MoreHorizontal size={16} />} />
-        </Dropdown>
+      render: (_: any, record: PCFDocumentItem) => (
+        <Button
+          type="primary"
+          icon={<Eye size={16} />}
+          onClick={() => openDrawer(record)}
+          className="shadow-lg shadow-green-600/20"
+        >
+          View / Edit
+        </Button>
       ),
     },
   ];
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(newSelectedRowKeys);
-  };
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: onSelectChange,
-  };
-
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.document_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          doc.code?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || doc.document_type === typeFilter;
-    return matchesSearch && matchesType;
+  const filteredDocuments = documents.filter((doc) => {
+    const matchesSearch =
+      doc.request_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.product_code?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -243,11 +349,9 @@ const DocumentMaster: React.FC = () => {
                   <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Document Master
-                  </h1>
+                  <h1 className="text-2xl font-bold text-gray-900">Document Master</h1>
                   <p className="text-gray-500">
-                    Centralized document management and organization
+                    Manage documents attached to PCF requests
                   </p>
                 </div>
               </div>
@@ -255,28 +359,28 @@ const DocumentMaster: React.FC = () => {
 
             {/* Right Section - Summary Cards */}
             <div className="flex gap-3 flex-wrap">
-              {/* Total Documents */}
+              {/* Total */}
               <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                    <File className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">Total</div>
-                    <div className="text-xl font-bold text-blue-700">{stats.totalDocuments}</div>
+                    <div className="text-xs text-blue-600 font-medium">Total PCFs</div>
+                    <div className="text-xl font-bold text-blue-700">{stats.total}</div>
                   </div>
                 </div>
               </div>
 
-              {/* PCF Documents */}
+              {/* Approved */}
               <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <File className="w-5 h-5 text-green-600" />
+                    <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-green-600 font-medium">PCF Docs</div>
-                    <div className="text-xl font-bold text-green-700">{stats.pcfDocuments}</div>
+                    <div className="text-xs text-green-600 font-medium">Approved</div>
+                    <div className="text-xl font-bold text-green-700">{stats.approved}</div>
                   </div>
                 </div>
               </div>
@@ -289,20 +393,7 @@ const DocumentMaster: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-xs text-amber-600 font-medium">Pending</div>
-                    <div className="text-xl font-bold text-amber-700">{stats.pendingDocuments}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Approved */}
-              <div className="bg-purple-50 rounded-xl p-4 min-w-[140px] border border-purple-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-purple-600 font-medium">Approved</div>
-                    <div className="text-xl font-bold text-purple-700">{stats.approvedDocuments}</div>
+                    <div className="text-xl font-bold text-amber-700">{stats.pending}</div>
                   </div>
                 </div>
               </div>
@@ -313,12 +404,12 @@ const DocumentMaster: React.FC = () => {
         {/* Documents Section */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">All Documents</h2>
+            <h2 className="text-lg font-semibold text-gray-900">PCF Documents</h2>
             <Space wrap>
               <Input
                 prefix={<Search size={16} className="text-gray-400" />}
-                placeholder="Search documents..."
-                className="w-[200px]"
+                placeholder="Search by code, title, product..."
+                className="w-[250px]"
                 size="large"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -327,51 +418,40 @@ const DocumentMaster: React.FC = () => {
                 defaultValue="all"
                 className="w-[140px]"
                 size="large"
-                value={typeFilter}
-                onChange={(value) => setTypeFilter(value)}
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value)}
               >
-                <Option value="all">All Types</Option>
-                <Option value="Manual">Manual</Option>
-                <Option value="Specification">Specification</Option>
-                <Option value="Report">Report</Option>
-                <Option value="Certificate">Certificate</Option>
+                <Option value="all">All Status</Option>
+                <Option value="Approved">Approved</Option>
+                <Option value="Pending">Pending</Option>
+                <Option value="Rejected">Rejected</Option>
               </Select>
-              <Button
-                icon={<Download size={16} />}
-                size="large"
-              >
-                Export
-              </Button>
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                size="large"
-                onClick={() => navigate("/document-master/new")}
-                className="shadow-lg shadow-green-600/20"
-              >
-                Upload New
-              </Button>
             </Space>
           </div>
 
           <Spin spinning={loading}>
             <Table
-              rowSelection={rowSelection}
               columns={columns as any}
               dataSource={filteredDocuments}
               rowKey="id"
               loading={loading}
               pagination={false}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 900 }}
               className="rounded-xl overflow-hidden"
             />
           </Spin>
 
           <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
             <div className="text-gray-500 text-sm">
-              Showing <span className="font-medium text-gray-900">{(pagination.current - 1) * pagination.pageSize + 1}</span> to{" "}
-              <span className="font-medium text-gray-900">{Math.min(pagination.current * pagination.pageSize, pagination.total)}</span> of{" "}
-              <span className="font-medium text-gray-900">{pagination.total}</span> entries
+              Showing{" "}
+              <span className="font-medium text-gray-900">
+                {Math.min((pagination.current - 1) * pagination.pageSize + 1, pagination.total)}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-gray-900">
+                {Math.min(pagination.current * pagination.pageSize, pagination.total)}
+              </span>{" "}
+              of <span className="font-medium text-gray-900">{pagination.total}</span> entries
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -408,6 +488,171 @@ const DocumentMaster: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Document Edit Drawer */}
+      <Drawer
+        title={
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FileText size={20} className="text-green-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-900">{selectedRecord?.code}</div>
+              <div className="text-sm text-gray-500">{selectedRecord?.request_title}</div>
+            </div>
+          </div>
+        }
+        placement="right"
+        width={520}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button onClick={closeDrawer}>Cancel</Button>
+            <Button
+              type="primary"
+              onClick={handleSaveDocuments}
+              loading={saving}
+              disabled={!hasChanges}
+              className="shadow-lg shadow-green-600/20"
+            >
+              Save Changes
+            </Button>
+          </div>
+        }
+      >
+        <Spin spinning={uploading || loadingUrls}>
+          <div className="space-y-6">
+            {/* Technical Specifications Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FileType size={18} className="text-blue-600" />
+                  Technical Specifications
+                </h3>
+                <Upload {...techSpecUploadProps}>
+                  <Button icon={<UploadIcon size={14} />} size="small">
+                    Add File
+                  </Button>
+                </Upload>
+              </div>
+              <div className="space-y-2">
+                {techSpecFiles.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <FileType size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-500 text-sm">No technical specification files</p>
+                  </div>
+                ) : (
+                  techSpecFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      {getFileUrl(file) ? (
+                        <a
+                          href={getFileUrl(file)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 flex-1 truncate"
+                        >
+                          <File size={16} />
+                          <span className="truncate">{getFileName(file)}</span>
+                        </a>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500 flex-1 truncate">
+                          <File size={16} />
+                          <span className="truncate">{getFileName(file)}</span>
+                        </div>
+                      )}
+                      <Popconfirm
+                        title="Remove this file?"
+                        onConfirm={() => handleRemoveTechSpec(index)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <button className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                          <X size={16} />
+                        </button>
+                      </Popconfirm>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Product Images Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <ImageIcon size={18} className="text-purple-600" />
+                  Product Images
+                </h3>
+                <Upload {...productImageUploadProps}>
+                  <Button icon={<UploadIcon size={14} />} size="small">
+                    Add Image
+                  </Button>
+                </Upload>
+              </div>
+              <div className="space-y-2">
+                {productImages.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-500 text-sm">No product images</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {productImages.map((file, index) => (
+                      <div
+                        key={index}
+                        className="relative group rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors"
+                      >
+                        {isImageFile(file) && getFileUrl(file) ? (
+                          <Image
+                            src={getFileUrl(file)}
+                            alt={getFileName(file)}
+                            className="w-full h-32 object-cover"
+                            preview={{
+                              mask: <Eye size={20} />,
+                            }}
+                          />
+                        ) : getFileUrl(file) ? (
+                          <a
+                            href={getFileUrl(file)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center h-32 bg-gray-100"
+                          >
+                            <File size={32} className="text-gray-400" />
+                          </a>
+                        ) : (
+                          <div className="flex items-center justify-center h-32 bg-gray-100">
+                            <File size={32} className="text-gray-300" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                          <span className="text-white text-xs truncate block">
+                            {getFileName(file)}
+                          </span>
+                        </div>
+                        <Popconfirm
+                          title="Remove this image?"
+                          onConfirm={() => handleRemoveProductImage(index)}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <button className="absolute top-2 right-2 p-1 bg-white/80 text-gray-600 hover:text-red-600 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X size={14} />
+                          </button>
+                        </Popconfirm>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Spin>
+      </Drawer>
     </div>
   );
 };

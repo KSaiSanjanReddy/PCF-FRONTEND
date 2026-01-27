@@ -16,6 +16,8 @@ import {
   Row,
   Col,
   Typography,
+  Tabs,
+  Switch,
 } from "antd";
 import {
   CheckCircle,
@@ -33,6 +35,31 @@ import {
   ThumbsDown,
   Send,
   ChevronLeft,
+  Mail,
+  Phone,
+  XCircle,
+  Database,
+  Star,
+  ExternalLink,
+  Calculator,
+  Play,
+  Loader2,
+  Leaf,
+  Truck,
+  Ship,
+  PieChart,
+  Scale,
+  Factory,
+  Package,
+  Flame,
+  Trash2,
+  MapPin,
+  Route,
+  Weight,
+  Banknote,
+  TrendingUp,
+  BarChart3,
+  Eye,
 } from "lucide-react";
 import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
@@ -57,6 +84,10 @@ const PCFRequestView: React.FC = () => {
   const [newComment, setNewComment] = useState("");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [calculatingPCF, setCalculatingPCF] = useState(false);
+  const [resultValidationTab, setResultValidationTab] = useState("overview");
+  const [expandedTransportRow, setExpandedTransportRow] = useState<string | null>(null);
+  // DQR stages now come from pcf_data_dqr_rating_stage in getById response
 
   useEffect(() => {
     if (id) {
@@ -64,12 +95,23 @@ const PCFRequestView: React.FC = () => {
     }
   }, [id]);
 
-  // Fetch tasks when BOM is verified
+  // Fetch tasks only when in Data Collection stage (step 3)
   useEffect(() => {
-    if (id && requestData?.pcf_request_stages?.is_bom_verified) {
+    const stages = requestData?.pcf_request_stages;
+    const dataCollectionStages = requestData?.pcf_data_collection_stage || [];
+    const isDataCollectionDone = stages?.is_data_collected ||
+      (dataCollectionStages.length > 0 && dataCollectionStages.every(
+        (stage: any) => stage.is_submitted === true && stage.completed_date !== null
+      ));
+
+    // Only fetch tasks when BOM is verified but Data Collection is not complete
+    const isInDataCollectionStage = stages?.is_bom_verified && !isDataCollectionDone;
+
+    if (id && isInDataCollectionStage) {
       fetchTasks(id);
     }
-  }, [id, requestData?.pcf_request_stages?.is_bom_verified]);
+  }, [id, requestData?.pcf_request_stages, requestData?.pcf_data_collection_stage]);
+
 
   const fetchData = async (pcfId: string) => {
     setLoading(true);
@@ -115,6 +157,7 @@ const PCFRequestView: React.FC = () => {
       setTasksLoading(false);
     }
   };
+
 
   const handleApprove = async () => {
     if (!id) return;
@@ -180,6 +223,24 @@ const PCFRequestView: React.FC = () => {
     }
   };
 
+  const handleCalculatePCF = async () => {
+    if (!id) return;
+    setCalculatingPCF(true);
+    try {
+      const result = await pcfService.calculatePCF(id);
+      if (result.success) {
+        message.success(result.message || "PCF calculation initiated successfully");
+        fetchData(id); // Refresh data to update stages
+      } else {
+        message.error(result.message || "Failed to calculate PCF");
+      }
+    } catch (error) {
+      message.error("An error occurred while calculating PCF");
+    } finally {
+      setCalculatingPCF(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -209,18 +270,42 @@ const PCFRequestView: React.FC = () => {
     });
   };
 
-  // Determine current step based on status/flags
+  // Check if all suppliers have completed data collection
+  const isDataCollectionComplete = () => {
+    const dataCollectionStages = requestData.pcf_data_collection_stage || [];
+    if (dataCollectionStages.length === 0) return false;
+    return dataCollectionStages.every(
+      (stage: any) => stage.is_submitted === true && stage.completed_date !== null
+    );
+  };
+
+  // Check if all suppliers have completed DQR using pcf_data_dqr_rating_stage from getById response
+  const isDqrComplete = () => {
+    const dqrStages = requestData.pcf_data_dqr_rating_stage || [];
+    if (dqrStages.length === 0) return false;
+    return dqrStages.every(
+      (stage: any) => stage.is_submitted === true && stage.completed_date !== null
+    );
+  };
+
+  // Determine current IN-PROGRESS step (the step being worked on now)
   const getCurrentStep = () => {
     const stages = requestData.pcf_request_stages || {};
-    if (stages.is_result_submitted) return 7;
-    if (stages.is_result_validation_verified) return 6;
-    if (stages.is_pcf_calculated) return 5;
-    if (stages.is_dqr_completed) return 4;
-    if (stages.is_data_collected) return 3;
-    if (stages.is_bom_verified) return 2;
-    if (stages.is_pcf_request_submitted) return 1;
-    if (stages.is_pcf_request_created) return 0;
-    return 0;
+    // Return the step that is currently IN PROGRESS
+    if (stages.is_result_submitted) return 7; // All done - last step shown as current
+    if (stages.is_result_validation_verified) return 7; // Result Submitted in progress
+    if (stages.is_pcf_calculated) return 6; // Result Validation in progress
+    if (stages.is_dqr_completed || isDqrComplete()) return 5; // PCF Calculation in progress
+    if (stages.is_data_collected || isDataCollectionComplete()) return 4; // DQR in progress
+    if (stages.is_bom_verified) return 3; // Data Collection in progress
+    if (stages.is_pcf_request_submitted) return 2; // BOM Verification in progress
+    if (stages.is_pcf_request_created) return 1; // PCF Request Submission in progress
+    return 0; // PCF Request Creation in progress
+  };
+
+  // Get count of completed steps (steps before current)
+  const getCompletedStepsCount = () => {
+    return getCurrentStep();
   };
 
   const steps = [
@@ -273,7 +358,7 @@ const PCFRequestView: React.FC = () => {
                   Stages Complete
                 </div>
                 <div className="text-sm font-bold text-gray-800">
-                  {getCurrentStep() + 1}/8
+                  {getCompletedStepsCount()}/8
                 </div>
               </div>
             </div>
@@ -404,7 +489,6 @@ const PCFRequestView: React.FC = () => {
               width: 32px !important;
               height: 32px !important;
               line-height: 32px !important;
-
             }
             .pcf-steps-container .ant-steps-item-tail {
               top: 16px !important;
@@ -425,32 +509,53 @@ const PCFRequestView: React.FC = () => {
             .pcf-steps-container .ant-steps-item-finish .ant-steps-item-icon {
               background: transparent !important;
             }
+            /* Green line for completed steps and line leading to current step */
+            .pcf-steps-container .ant-steps-item-finish .ant-steps-item-tail::after {
+              background-color: #22c55e !important;
+            }
+            /* Gray line for steps after current */
+            .pcf-steps-container .ant-steps-item-wait .ant-steps-item-tail::after {
+              background-color: #d1d5db !important;
+            }
+            /* Green line from last completed to current (in-progress) step */
+            .pcf-steps-container .ant-steps-item-process .ant-steps-item-tail::after {
+              background-color: #d1d5db !important;
+            }
           `}</style>
           <div className="pcf-steps-container">
             <Steps current={getCurrentStep()} labelPlacement="vertical" size="small">
-              {steps.map((step, index) => (
-                <Step
-                  key={index}
-                  title={step.title}
-                  icon={
-                    <div
-                      className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                        index <= getCurrentStep()
-                          ? "border-green-500 bg-green-50 text-green-600"
-                          : "border-gray-300 bg-white text-gray-400"
-                      }`}
-                    >
-                      {step.icon}
-                    </div>
-                  }
-                />
-              ))}
+              {steps.map((step, index) => {
+                const currentStep = getCurrentStep();
+                const isCompleted = index < currentStep;
+                const isCurrent = index === currentStep;
+                const isPending = index > currentStep;
+
+                return (
+                  <Step
+                    key={index}
+                    title={step.title}
+                    icon={
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                          isCompleted
+                            ? "border-green-500 bg-green-50 text-green-600"
+                            : isCurrent
+                            ? "border-yellow-500 bg-yellow-50 text-yellow-600"
+                            : "border-gray-300 bg-white text-gray-400"
+                        }`}
+                      >
+                        {isCompleted ? <CheckCircle size={16} /> : step.icon}
+                      </div>
+                    }
+                  />
+                );
+              })}
             </Steps>
           </div>
         </div>
 
-        {/* Current Stage Details - Placeholder for now */}
-        <div className="mt-8 bg-green-50 border border-green-100 rounded-xl p-6">
+        {/* Current Stage Details */}
+        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
@@ -461,13 +566,13 @@ const PCFRequestView: React.FC = () => {
                 {steps[getCurrentStep()].title.toLowerCase()}.
               </p>
             </div>
-            <Tag color="processing">In Progress</Tag>
+            <Tag color="warning">In Progress</Tag>
           </div>
         </div>
       </Card>
 
-      {/* Task Management Section - Show after BOM is verified */}
-      {requestData?.pcf_request_stages?.is_bom_verified && (
+      {/* Task Management Section - Show only in Data Collection stage (step 3) */}
+      {getCurrentStep() === 3 && (
         <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -612,6 +717,796 @@ const PCFRequestView: React.FC = () => {
               </div>
             )}
           </Spin>
+        </Card>
+      )}
+
+      {/* Data Collection Status Section - Show after BOM is verified */}
+      {requestData?.pcf_request_stages?.is_bom_verified && (
+        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Database size={24} className="text-blue-600" />
+              </div>
+              <div>
+                <Title level={4} className="m-0">
+                  Data Collection Status
+                </Title>
+                <Text type="secondary" className="text-sm">
+                  {(() => {
+                    const stages = requestData.pcf_data_collection_stage || [];
+                    const submitted = stages.filter((s: any) => s.is_submitted).length;
+                    return `${submitted}/${stages.length} suppliers submitted`;
+                  })()}
+                </Text>
+              </div>
+            </div>
+            {isDataCollectionComplete() ? (
+              <Tag color="success" className="text-sm px-3 py-1">
+                <CheckCircle size={14} className="inline mr-1" />
+                All Completed
+              </Tag>
+            ) : (
+              <Tag color="processing" className="text-sm px-3 py-1">
+                <Clock size={14} className="inline mr-1" />
+                In Progress
+              </Tag>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {(requestData.pcf_data_collection_stage || []).map((stage: any, index: number) => (
+              <div
+                key={stage.id || index}
+                className={`p-4 rounded-xl border ${
+                  stage.is_submitted
+                    ? "bg-green-50 border-green-200"
+                    : "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className={`p-2 rounded-full ${
+                          stage.is_submitted
+                            ? "bg-green-100 text-green-600"
+                            : "bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        {stage.is_submitted ? (
+                          <CheckCircle size={20} />
+                        ) : (
+                          <XCircle size={20} />
+                        )}
+                      </div>
+                      <div>
+                        <Title level={5} className="m-0">
+                          {stage.supplier?.supplier_name || "Unknown Supplier"}
+                        </Title>
+                        <Text type="secondary" className="text-xs">
+                          {stage.supplier?.code || "N/A"}
+                        </Text>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ml-11">
+                      <div className="flex items-center gap-2">
+                        <Mail size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {stage.supplier?.supplier_email || "N/A"}
+                        </Text>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {stage.supplier?.supplier_phone_number || "N/A"}
+                        </Text>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {stage.completed_date
+                            ? `Completed: ${formatDate(stage.completed_date)}`
+                            : "Not yet submitted"}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Tag
+                    color={stage.is_submitted ? "success" : "default"}
+                    className="ml-4"
+                  >
+                    {stage.is_submitted ? "Submitted" : "Pending"}
+                  </Tag>
+                </div>
+              </div>
+            ))}
+
+            {(requestData.pcf_data_collection_stage || []).length === 0 && (
+              <div className="text-center py-8">
+                <Database size={48} className="text-gray-400 mx-auto mb-4" />
+                <Text type="secondary">
+                  No data collection requests have been sent yet.
+                </Text>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* DQR Status Section - Show when Data Collection is complete (step 4 or beyond) */}
+      {getCurrentStep() >= 4 && (
+        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Star size={24} className="text-purple-600" />
+              </div>
+              <div>
+                <Title level={4} className="m-0">
+                  Data Quality Rating Status
+                </Title>
+                <Text type="secondary" className="text-sm">
+                  {(() => {
+                    const dqrStages = requestData.pcf_data_dqr_rating_stage || [];
+                    const completed = dqrStages.filter((s: any) => s.is_submitted && s.completed_date).length;
+                    return `${completed}/${dqrStages.length} assessments completed`;
+                  })()}
+                </Text>
+              </div>
+            </div>
+            {isDqrComplete() ? (
+              <Tag color="success" className="text-sm px-3 py-1">
+                <CheckCircle size={14} className="inline mr-1" />
+                All Completed
+              </Tag>
+            ) : (
+              <Tag color="warning" className="text-sm px-3 py-1">
+                <Clock size={14} className="inline mr-1" />
+                In Progress
+              </Tag>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {(requestData.pcf_data_dqr_rating_stage || []).map((item: any, index: number) => (
+              <div
+                key={item.id || index}
+                className={`p-4 rounded-xl border ${
+                  item.is_submitted && item.completed_date
+                    ? "bg-green-50 border-green-200"
+                    : "bg-yellow-50 border-yellow-200"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className={`p-2 rounded-full ${
+                          item.is_submitted && item.completed_date
+                            ? "bg-green-100 text-green-600"
+                            : "bg-yellow-100 text-yellow-600"
+                        }`}
+                      >
+                        {item.is_submitted && item.completed_date ? (
+                          <CheckCircle size={20} />
+                        ) : (
+                          <Star size={20} />
+                        )}
+                      </div>
+                      <div>
+                        <Title level={5} className="m-0">
+                          {item.supplier?.supplier_name || "Unknown Supplier"}
+                        </Title>
+                        <Text type="secondary" className="text-xs">
+                          {item.supplier?.code || "N/A"}
+                        </Text>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm ml-11">
+                      <div className="flex items-center gap-2">
+                        <Mail size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {item.supplier?.supplier_email || "N/A"}
+                        </Text>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {item.supplier?.supplier_phone_number || "N/A"}
+                        </Text>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-gray-400" />
+                        <Text className="text-gray-600">
+                          {item.completed_date
+                            ? `Completed: ${formatDate(item.completed_date)}`
+                            : `Created: ${formatDate(item.created_date)}`}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {item.submittedBy && (
+                      <div className="mt-3 ml-11">
+                        <div className="flex items-center gap-2 text-sm">
+                          <User size={14} className="text-gray-400" />
+                          <Text className="text-gray-600">
+                            Submitted by: {item.submittedBy.user_name || "Unknown"} ({item.submittedBy.user_role || "N/A"})
+                          </Text>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-4">
+                    <Tag
+                      color={item.is_submitted && item.completed_date ? "success" : "warning"}
+                    >
+                      {item.is_submitted && item.completed_date ? "Completed" : "Pending"}
+                    </Tag>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ExternalLink size={14} />}
+                      onClick={() => navigate(`/data-quality-rating/view/${item.id}?bom_pcf_id=${id}`)}
+                    >
+                      {item.is_submitted && item.completed_date ? "View" : "Assess"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {(requestData.pcf_data_dqr_rating_stage || []).length === 0 && (
+              <div className="text-center py-8">
+                <Star size={48} className="text-gray-400 mx-auto mb-4" />
+                <Text type="secondary">
+                  No DQR assessments available. Complete data collection first.
+                </Text>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* PCF Calculation Section - Show when in PCF Calculation stage (step 5) */}
+      {getCurrentStep() === 5 && (
+        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Calculator size={24} className="text-emerald-600" />
+              </div>
+              <div>
+                <Title level={4} className="m-0">
+                  PCF Calculation
+                </Title>
+                <Text type="secondary" className="text-sm">
+                  Calculate the Product Carbon Footprint for all BOM items
+                </Text>
+              </div>
+            </div>
+            {requestData?.pcf_request_stages?.is_pcf_calculated ? (
+              <Tag color="success" className="text-sm px-3 py-1">
+                <CheckCircle size={14} className="inline mr-1" />
+                Calculated
+              </Tag>
+            ) : (
+              <Tag color="warning" className="text-sm px-3 py-1">
+                <Clock size={14} className="inline mr-1" />
+                Pending
+              </Tag>
+            )}
+          </div>
+
+          {!requestData?.pcf_request_stages?.is_pcf_calculated ? (
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Cpu size={24} className="text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900 mb-2">Ready for PCF Calculation</h4>
+                  <p className="text-gray-600 text-sm mb-4">
+                    All prerequisites have been completed. Data quality ratings are finalized and the system is ready to calculate
+                    the Product Carbon Footprint values for each BOM component including material, production, packaging, logistics, and waste emissions.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={calculatingPCF ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+                      onClick={handleCalculatePCF}
+                      loading={calculatingPCF}
+                      className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 shadow-lg shadow-emerald-600/20"
+                    >
+                      {calculatingPCF ? "Calculating..." : "Start PCF Calculation"}
+                    </Button>
+                    <Text type="secondary" className="text-sm">
+                      This may take a few moments
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-green-50 rounded-xl p-6 border border-green-100">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle size={24} className="text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-green-800 mb-1">PCF Calculation Complete</h4>
+                  <p className="text-green-700 text-sm">
+                    Product Carbon Footprint values have been calculated for all BOM components. The results are now ready for validation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Result Validation Section - Show when PCF is calculated (step 6 or beyond) */}
+      {requestData?.pcf_request_stages?.is_pcf_calculated && (
+        <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <BarChart3 size={24} className="text-green-600" />
+              </div>
+              <div>
+                <Title level={4} className="m-0">
+                  PCF Results & Validation
+                </Title>
+                <Text type="secondary" className="text-sm">
+                  Review calculated carbon footprint data for all components
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          <Tabs
+            activeKey={resultValidationTab}
+            onChange={setResultValidationTab}
+            type="line"
+            className="result-validation-tabs"
+            items={[
+              {
+                key: "overview",
+                label: (
+                  <span className="flex items-center gap-2">
+                    <Eye size={16} />
+                    Overview
+                  </span>
+                ),
+                children: (
+                  <div className="pt-4">
+                    {/* Overview Tab - BomTable with expandable rows */}
+                    <BomTable
+                      bomData={(requestData?.bom_list || []).map((item: any) => ({
+                        key: item.id,
+                        id: item.id,
+                        componentName: item.component_name || "-",
+                        materialNumber: item.material_number || "-",
+                        quantity: item.quantity?.toString() || "1",
+                        totalWeight: (item.weight_gms || 0).toString(),
+                        totalPrice: (item.price || 0).toString(),
+                        emission: (item.pcf_total_emission_calculation?.total_pcf_value || 0).toString(),
+                        productionLocation: item.production_location || "-",
+                        manufacturer: item.manufacturer || "-",
+                        detailedDescription: item.detail_description || "-",
+                        category: item.component_category || "-",
+                        supplierEmail: item.supplier?.supplier_email || "-",
+                        supplierName: item.supplier?.supplier_name || "-",
+                        supplierNumber: item.supplier?.supplier_phone_number || "-",
+                        questionerStatus: "Completed",
+                        // Pass the calculated emission data
+                        pcf_total_emission_calculation: item.pcf_total_emission_calculation,
+                      }))}
+                      readOnly={true}
+                      showCalculatedEmissions={true}
+                    />
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
+                      {[
+                        { label: "Total Materials", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.material_value || 0), 0), color: "blue" },
+                        { label: "Total Production", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.production_value || 0), 0), color: "purple" },
+                        { label: "Total Packaging", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.packaging_value || 0), 0), color: "orange" },
+                        { label: "Total Waste", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.waste_value || 0), 0), color: "red" },
+                        { label: "Total Logistics", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.logistic_value || 0), 0), color: "cyan" },
+                        { label: "Grand Total", value: (requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.total_pcf_value || 0), 0), color: "green" },
+                      ].map((card, idx) => (
+                        <div key={idx} className={`p-4 rounded-xl border ${card.color === 'green' ? 'bg-green-50 border-green-200' : card.color === 'blue' ? 'bg-blue-50 border-blue-100' : card.color === 'purple' ? 'bg-purple-50 border-purple-100' : card.color === 'orange' ? 'bg-orange-50 border-orange-100' : card.color === 'red' ? 'bg-red-50 border-red-100' : 'bg-cyan-50 border-cyan-100'}`}>
+                          <div className={`text-2xl font-bold ${card.color === 'green' ? 'text-green-700' : card.color === 'blue' ? 'text-blue-700' : card.color === 'purple' ? 'text-purple-700' : card.color === 'orange' ? 'text-orange-700' : card.color === 'red' ? 'text-red-700' : 'text-cyan-700'}`}>
+                            {card.value.toFixed(4)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{card.label}</div>
+                          <div className="text-xs text-gray-400">kg CO₂e</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "emissions",
+                label: (
+                  <span className="flex items-center gap-2">
+                    <Leaf size={16} />
+                    Emissions
+                  </span>
+                ),
+                children: (
+                  <div className="pt-4">
+                    {/* Emissions Breakdown Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Component Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Material Number</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Material (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Production (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Packaging (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Waste (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Logistics (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Total PCF (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">% of Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {(() => {
+                            const bomList = requestData?.bom_list || [];
+                            const grandTotal = bomList.reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.total_pcf_value || 0), 0);
+                            return bomList.map((item: any, index: number) => {
+                              const emissions = item.pcf_total_emission_calculation || {};
+                              const percentage = grandTotal > 0 ? ((emissions.total_pcf_value || 0) / grandTotal * 100) : 0;
+                              return (
+                                <tr key={item.id || index} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.component_name || "-"}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.material_number || "-"}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{(emissions.material_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{(emissions.production_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{(emissions.packaging_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{(emissions.waste_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{(emissions.logistic_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">{(emissions.total_pcf_value || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-green-600 text-right">{percentage.toFixed(1)}%</td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Material Breakdown for each component */}
+                    <div className="mt-8">
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Package size={18} className="text-green-600" />
+                        Material Composition Breakdown
+                      </h4>
+                      <div className="space-y-4">
+                        {(requestData?.bom_list || []).map((item: any, idx: number) => (
+                          <div key={item.id || idx} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h5 className="font-medium text-gray-900">{item.component_name}</h5>
+                                <p className="text-xs text-gray-500">{item.material_number}</p>
+                              </div>
+                              <Tag color="green">{(item.pcf_total_emission_calculation?.material_value || 0).toFixed(4)} kg CO₂e</Tag>
+                            </div>
+                            {item.material_emission && item.material_emission.length > 0 ? (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {item.material_emission.map((mat: any, mIdx: number) => (
+                                  <div key={mat.id || mIdx} className="bg-white rounded-lg p-3 border border-gray-100">
+                                    <div className="text-sm font-medium text-gray-900">{mat.material_type}</div>
+                                    <div className="text-xs text-gray-500 mt-1">{mat.material_composition}% composition</div>
+                                    <div className="text-sm font-semibold text-green-600 mt-1">{(mat.material_emission || 0).toFixed(4)} kg CO₂e</div>
+                                    <div className="text-xs text-gray-400">EF: {mat.material_emission_factor} kg CO₂e/kg</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No material breakdown available</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "transport",
+                label: (
+                  <span className="flex items-center gap-2">
+                    <Truck size={16} />
+                    Transport
+                  </span>
+                ),
+                children: (
+                  <div className="pt-4">
+                    {/* Transport Summary Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider w-12"></th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Component Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Material Number</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">Segments</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Total Distance (km)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Emissions (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Emission Factor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {(requestData?.bom_list || []).map((item: any, index: number) => {
+                            const transportDetails = item.transportation_details || [];
+                            const logisticCalc = item.logistic_emission_calculation || {};
+                            const isExpanded = expandedTransportRow === item.id;
+                            const totalDistance = transportDetails.reduce((sum: number, t: any) => sum + (parseFloat(t.distance) || 0), 0);
+
+                            return (
+                              <React.Fragment key={item.id || index}>
+                                <tr className={`hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-green-50' : ''}`} onClick={() => setExpandedTransportRow(isExpanded ? null : item.id)}>
+                                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                    <Switch
+                                      size="small"
+                                      checked={isExpanded}
+                                      onChange={(checked) => setExpandedTransportRow(checked ? item.id : null)}
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.component_name || "-"}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.material_number || "-"}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-center">{transportDetails.length}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 text-right">{totalDistance.toLocaleString()}</td>
+                                  <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">{(logisticCalc.leg_wise_transport_emissions_per_unit_kg_co2e || 0).toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{logisticCalc.transport_mode_emission_factor_value_kg_co2e_t_km || 0}</td>
+                                </tr>
+                                {isExpanded && transportDetails.length > 0 && (
+                                  <tr>
+                                    <td colSpan={7} className="px-4 py-4 bg-gradient-to-b from-green-50 to-white">
+                                      <div className="ml-8">
+                                        <h5 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                          <Route size={16} className="text-green-600" />
+                                          Transport Journey
+                                        </h5>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {transportDetails.map((leg: any, legIdx: number) => (
+                                            <React.Fragment key={leg.motuft_id || legIdx}>
+                                              <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-[160px]">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  {leg.mode_of_transport?.toLowerCase().includes('ship') || leg.mode_of_transport?.toLowerCase().includes('sea') ? (
+                                                    <Ship size={20} className="text-green-600" />
+                                                  ) : (
+                                                    <Truck size={20} className="text-green-600" />
+                                                  )}
+                                                  <span className="text-sm font-medium text-gray-900">
+                                                    {leg.mode_of_transport?.includes('LCV') ? 'LCV' :
+                                                     leg.mode_of_transport?.includes('Articulated') ? 'Heavy Truck' :
+                                                     leg.mode_of_transport?.includes('Medium') ? 'Medium Truck' : 'Truck'}
+                                                  </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mb-1">{leg.source_point} → {leg.drop_point}</div>
+                                                <div className="text-sm font-medium text-gray-700">{leg.distance}</div>
+                                                <div className="text-xs text-gray-400">{leg.weight_transported}</div>
+                                              </div>
+                                              {legIdx < transportDetails.length - 1 && (
+                                                <ArrowRight size={20} className="text-gray-400 flex-shrink-0" />
+                                              )}
+                                            </React.Fragment>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Transport Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <div className="text-2xl font-bold text-blue-700">
+                          {(requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.transportation_details?.length || 0), 0)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Total Segments</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                        <div className="text-2xl font-bold text-purple-700">
+                          {(requestData?.bom_list || []).reduce((sum: number, item: any) => {
+                            const details = item.transportation_details || [];
+                            return sum + details.reduce((s: number, t: any) => s + (parseFloat(t.distance) || 0), 0);
+                          }, 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Total Distance (km)</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
+                        <div className="text-2xl font-bold text-orange-700">
+                          {(requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.logistic_emission_calculation?.mass_transported_kg || 0), 0).toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Mass Transported (kg)</div>
+                      </div>
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                        <div className="text-2xl font-bold text-green-700">
+                          {(requestData?.bom_list || []).reduce((sum: number, item: any) => sum + (item.pcf_total_emission_calculation?.logistic_value || 0), 0).toFixed(4)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Total Logistics Emission</div>
+                        <div className="text-xs text-gray-400">kg CO₂e</div>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "allocation",
+                label: (
+                  <span className="flex items-center gap-2">
+                    <PieChart size={16} />
+                    Allocation
+                  </span>
+                ),
+                children: (
+                  <div className="pt-4">
+                    {/* Allocation Methods Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="bg-gradient-to-r from-green-600 to-emerald-600">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Component Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Material Number</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">Allocation Method</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Economic Ratio (%)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">PCF (kg CO₂e)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Weight (g)</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">Price (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {(requestData?.bom_list || []).map((item: any, index: number) => {
+                            const allocation = item.allocation_methodology || {};
+                            const productionCalc = item.production_emission_calculation || {};
+                            const allocationMethod = productionCalc.allocation_methodology ||
+                              (item.economic_ratio <= 5 ? allocation.check_er_less_than_five : allocation.econ_allocation_er_greater_than_five) ||
+                              "Physical";
+
+                            return (
+                              <tr key={item.id || index} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.component_name || "-"}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.material_number || "-"}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <Tag color={allocationMethod?.includes('Economic') ? 'blue' : 'green'}>
+                                    {allocationMethod}
+                                  </Tag>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.economic_ratio || 0}%</td>
+                                <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">{(item.pcf_total_emission_calculation?.total_pcf_value || 0).toFixed(4)}</td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right">{(item.weight_gms || 0).toFixed(2)}</td>
+                                <td className="px-4 py-3 text-sm text-gray-900 text-right">₹{(item.price || 0).toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Allocation Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                      <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                        <div className="text-2xl font-bold text-yellow-700">
+                          {(() => {
+                            const bomList = requestData?.bom_list || [];
+                            const totalER = bomList.reduce((sum: number, item: any) => sum + (item.economic_ratio || 0), 0);
+                            return bomList.length > 0 ? (totalER / bomList.length).toFixed(2) : "0";
+                          })()}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Avg Economic Ratio</div>
+                      </div>
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                        <div className="text-2xl font-bold text-green-700">
+                          {(requestData?.bom_list || []).filter((item: any) => {
+                            const method = item.production_emission_calculation?.allocation_methodology || "";
+                            return method.toLowerCase().includes('physical');
+                          }).length}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Physical Allocation</div>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <div className="text-2xl font-bold text-blue-700">
+                          {(requestData?.bom_list || []).filter((item: any) => {
+                            const method = item.production_emission_calculation?.allocation_methodology || "";
+                            return method.toLowerCase().includes('economic');
+                          }).length}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Economic Allocation</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                        <div className="text-2xl font-bold text-purple-700">
+                          {(requestData?.bom_list || []).filter((item: any) => item.allocation_methodology?.split_allocation).length}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Split Allocation</div>
+                      </div>
+                    </div>
+
+                    {/* Production Details for each component */}
+                    <div className="mt-8">
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Factory size={18} className="text-green-600" />
+                        Production & Allocation Details
+                      </h4>
+                      <div className="space-y-4">
+                        {(requestData?.bom_list || []).map((item: any, idx: number) => {
+                          const production = item.production_emission_calculation || {};
+                          const allocation = item.allocation_methodology || {};
+
+                          return (
+                            <div key={item.id || idx} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <div>
+                                  <h5 className="font-medium text-gray-900">{item.component_name}</h5>
+                                  <p className="text-xs text-gray-500">{item.material_number}</p>
+                                </div>
+                                <Tag color={production.allocation_methodology?.includes('Economic') ? 'blue' : 'green'}>
+                                  {production.allocation_methodology || "Physical"}
+                                </Tag>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-xs text-gray-500">Component Weight</p>
+                                  <p className="font-medium">{(production.component_weight_kg || 0).toFixed(4)} kg</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Factory Total Weight</p>
+                                  <p className="font-medium">{(production.total_weight_produced_at_factory_level_kg || 0).toLocaleString()} kg</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Products Produced</p>
+                                  <p className="font-medium">{production.no_of_products_current_component_produced || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Total Energy (kWh)</p>
+                                  <p className="font-medium">{(production.total_energy_consumed_at_factory_level_kwh || 0).toLocaleString()}</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-4 gap-4 text-xs">
+                                <div>
+                                  <p className="text-gray-400">Electricity EF</p>
+                                  <p className="font-medium">{production.emission_factor_of_electricity || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400">Heat EF</p>
+                                  <p className="font-medium">{production.emission_factor_of_heat || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400">Steam EF</p>
+                                  <p className="font-medium">{production.emission_factor_of_steam || 0}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400">Cooling EF</p>
+                                  <p className="font-medium">{production.emission_factor_of_cooling || 0}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </Card>
       )}
 

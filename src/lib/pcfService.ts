@@ -179,11 +179,25 @@ class PCFService {
   }
 
   /**
-   * Get list of PCF BOM requests
+   * Get list of PCF BOM requests with optional filters
    */
   async getPCFBOMList(
     pageNumber: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
+    filters?: {
+      is_approved?: boolean;
+      is_rejected?: boolean;
+      is_draft?: boolean | null;
+      code?: string;
+      request_title?: string;
+      product_category?: string;
+      component_category?: string;
+      component_type?: string;
+      manufacturer?: string;
+      search?: string;
+      from_date?: string; // YYYY-MM-DD format
+      to_date?: string;   // YYYY-MM-DD format
+    }
   ): Promise<{
     success: boolean;
     message: string;
@@ -193,8 +207,29 @@ class PCFService {
     total_count?: number;
   }> {
     try {
+      // Build query params
+      const params = new URLSearchParams();
+      params.append("pageNumber", pageNumber.toString());
+      params.append("pageSize", pageSize.toString());
+
+      // Add filters if provided
+      if (filters) {
+        if (filters.is_approved !== undefined) params.append("is_approved", filters.is_approved.toString());
+        if (filters.is_rejected !== undefined) params.append("is_rejected", filters.is_rejected.toString());
+        if (filters.is_draft !== undefined && filters.is_draft !== null) params.append("is_draft", filters.is_draft.toString());
+        if (filters.code) params.append("code", filters.code);
+        if (filters.request_title) params.append("request_title", filters.request_title);
+        if (filters.product_category) params.append("product_category", filters.product_category);
+        if (filters.component_category) params.append("component_category", filters.component_category);
+        if (filters.component_type) params.append("component_type", filters.component_type);
+        if (filters.manufacturer) params.append("manufacturer", filters.manufacturer);
+        if (filters.search) params.append("search", filters.search);
+        if (filters.from_date) params.append("from_date", filters.from_date);
+        if (filters.to_date) params.append("to_date", filters.to_date);
+      }
+
       const response = await fetch(
-        `${API_BASE_URL}/api/pcf-bom/list?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+        `${API_BASE_URL}/api/pcf-bom/list?${params.toString()}`,
         {
           method: "GET",
           headers: this.getHeaders(),
@@ -236,13 +271,16 @@ class PCFService {
           pageInfo,
         });
         
+        const totalCount = pageInfo.total_count || pageInfo.totalCount || pageInfo.totalRecords || result.total_count || result.totalCount || dataArray.length;
+        const totalPages = pageInfo.total_pages || pageInfo.totalPages || result.total_pages || result.totalPages || Math.ceil(totalCount / pageSize);
+
         return {
           success: true,
           message: result.message || "PCF BOM list fetched successfully",
           data: dataArray as PCFBOMItem[],
-          current_page: pageInfo.page || result.current_page || 1,
-          total_pages: pageInfo.total_pages || result.total_pages || 1,
-          total_count: pageInfo.total_count || result.total_count || dataArray.length,
+          current_page: pageInfo.page || pageInfo.currentPage || result.current_page || 1,
+          total_pages: totalPages,
+          total_count: totalCount,
         };
       } else {
         console.error("PCF Service Error:", result);
@@ -507,6 +545,47 @@ class PCFService {
       }
     } catch (error) {
       console.error("Add PCF comment error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
+   * Calculate PCF for BOM
+   * POST /api/pcf-bom/calculate-bom
+   */
+  async calculatePCF(
+    bom_pcf_id: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any[];
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/calculate-bom`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ bom_pcf_id }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF calculation initiated successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to calculate PCF",
+        };
+      }
+    } catch (error) {
+      console.error("Calculate PCF error:", error);
       return {
         success: false,
         message: "Network error occurred",

@@ -6,7 +6,6 @@ import SuiteManagement from "../pages/SuiteManagement";
 import Bookings from "../pages/Bookings";
 import HardwareManagement from "../pages/HardwareManagement";
 import DocumentsManagement from "../pages/DocumentsManagement";
-import Projects from "../pages/Projects";
 import Settings from "../pages/Settings";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -31,12 +30,9 @@ import AllProducts from "../pages/AllProducts";
 import ProductCreate from "../pages/ProductCreate";
 import ProductView from "../pages/ProductView";
 import ProductEdit from "../pages/ProductEdit";
-import ActiveProjects from "../pages/ActiveProjects";
-import ArchivedProjects from "../pages/ArchivedProjects";
 import ComponentsMaster from "../pages/ComponentsMaster";
 import ComponentsMasterView from "../pages/ComponentsMasterView";
 import DocumentMaster from "../pages/DocumentMaster";
-import DocumentMasterCreate from "../pages/DocumentMasterCreate";
 import TaskManagement from "../pages/TaskManagement";
 import TaskCreate from "../pages/TaskCreate";
 import ReportsMain from "../pages/Reports";
@@ -176,18 +172,6 @@ export const router = createBrowserRouter([
         element: <ProductEdit />,
       },
       {
-        path: "projects",
-        element: <Projects />,
-      },
-      {
-        path: "projects/active",
-        element: <ActiveProjects />,
-      },
-      {
-        path: "projects/archived",
-        element: <ArchivedProjects />,
-      },
-      {
         path: "components-master",
         element: <ComponentsMaster />,
       },
@@ -198,18 +182,6 @@ export const router = createBrowserRouter([
       {
         path: "document-master",
         element: <DocumentMaster />,
-      },
-      {
-        path: "document-master/new",
-        element: <DocumentMasterCreate />,
-      },
-      {
-        path: "document-master/edit/:id",
-        element: <DocumentMasterCreate />,
-      },
-      {
-        path: "document-master/view/:id",
-        element: <DocumentMasterCreate />,
       },
       {
         path: "task-management",
