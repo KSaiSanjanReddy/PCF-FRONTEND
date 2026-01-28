@@ -72,6 +72,14 @@ interface FlattenedBOMRow {
   total_pcf_value: number;
 }
 
+// Helper function to safely format numbers
+const formatNumber = (val: any, decimals: number = 2, fallback: string = "0.00"): string => {
+  if (val === null || val === undefined || val === "") return fallback;
+  const num = typeof val === "number" ? val : parseFloat(val);
+  if (isNaN(num)) return fallback;
+  return num.toFixed(decimals);
+};
+
 const ComponentsMaster: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -382,7 +390,7 @@ const ComponentsMaster: React.FC = () => {
       key: "weight_gms",
       width: 120,
       align: "right",
-      render: (val: number) => val?.toFixed(2) || "0.00",
+      render: (val: any) => formatNumber(val, 2),
     },
     {
       title: "Total Weight (gms)",
@@ -390,7 +398,7 @@ const ComponentsMaster: React.FC = () => {
       key: "total_weight_gms",
       width: 150,
       align: "right",
-      render: (val: number) => val?.toFixed(2) || "0.00",
+      render: (val: any) => formatNumber(val, 2),
     },
     {
       title: "Price (unit)",
@@ -398,7 +406,7 @@ const ComponentsMaster: React.FC = () => {
       key: "price",
       width: 110,
       align: "right",
-      render: (val: number) => val?.toFixed(2) || "0.00",
+      render: (val: any) => formatNumber(val, 2),
     },
     {
       title: "Total Price",
@@ -406,7 +414,7 @@ const ComponentsMaster: React.FC = () => {
       key: "total_price",
       width: 110,
       align: "right",
-      render: (val: number) => val?.toFixed(2) || "0.00",
+      render: (val: any) => formatNumber(val, 2),
     },
     {
       title: "Economic Ratio",
@@ -459,7 +467,7 @@ const ComponentsMaster: React.FC = () => {
       key: "pack_weight_kg",
       width: 140,
       align: "right",
-      render: (val: number) => val?.toFixed(3) || "0.000",
+      render: (val: any) => formatNumber(val, 3, "0.000"),
     },
     {
       title: "Material Emission (kg CO2e)",
@@ -467,7 +475,7 @@ const ComponentsMaster: React.FC = () => {
       key: "material_emission_total",
       width: 180,
       align: "right",
-      render: (val: number) => val?.toFixed(6) || "0.000000",
+      render: (val: any) => formatNumber(val, 6, "0.000000"),
     },
     {
       title: "Logistic Emission (kg CO2e)",
@@ -475,7 +483,7 @@ const ComponentsMaster: React.FC = () => {
       key: "logistic_emission",
       width: 180,
       align: "right",
-      render: (val: number) => val?.toFixed(6) || "0.000000",
+      render: (val: any) => formatNumber(val, 6, "0.000000"),
     },
     {
       title: "Production Emission",
@@ -483,7 +491,7 @@ const ComponentsMaster: React.FC = () => {
       key: "production_emission",
       width: 160,
       align: "right",
-      render: (val: number) => val?.toFixed(6) || "0.000000",
+      render: (val: any) => formatNumber(val, 6, "0.000000"),
     },
     {
       title: "Waste Emission",
@@ -491,7 +499,7 @@ const ComponentsMaster: React.FC = () => {
       key: "waste_emission",
       width: 140,
       align: "right",
-      render: (val: number) => val?.toFixed(6) || "0.000000",
+      render: (val: any) => formatNumber(val, 6, "0.000000"),
     },
     {
       title: "Total PCF (kg CO2e)",
@@ -499,7 +507,7 @@ const ComponentsMaster: React.FC = () => {
       key: "total_pcf_value",
       width: 160,
       align: "right",
-      render: (val: number) => val?.toFixed(6) || "0.000000",
+      render: (val: any) => formatNumber(val, 6, "0.000000"),
     },
     {
       title: "Status",
@@ -532,9 +540,9 @@ const ComponentsMaster: React.FC = () => {
     { title: "Component Name", dataIndex: "component_name", key: "component_name", width: 150 },
     { title: "Material Type", dataIndex: "material_type", key: "material_type", width: 140 },
     { title: "Composition (%)", dataIndex: "material_composition", key: "material_composition", width: 130, align: "right" },
-    { title: "Composition Weight (kg)", dataIndex: "material_composition_weight", key: "material_composition_weight", width: 180, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+    { title: "Composition Weight (kg)", dataIndex: "material_composition_weight", key: "material_composition_weight", width: 180, align: "right", render: (v: any) => formatNumber(v, 6, "0") },
     { title: "Emission Factor", dataIndex: "material_emission_factor", key: "material_emission_factor", width: 140, align: "right" },
-    { title: "Material Emission (kg CO2e)", dataIndex: "material_emission", key: "material_emission", width: 180, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+    { title: "Material Emission (kg CO2e)", dataIndex: "material_emission", key: "material_emission", width: 180, align: "right", render: (v: any) => formatNumber(v, 6, "0") },
   ];
 
   // Production tab columns
@@ -556,7 +564,7 @@ const ComponentsMaster: React.FC = () => {
     { title: "Mode of Transport", dataIndex: "mode_of_transport", key: "mode_of_transport", width: 200 },
     { title: "Mass Transported (kg)", dataIndex: "mass_transported_kg", key: "mass_transported_kg", width: 160, align: "right" },
     { title: "Emission Factor", dataIndex: "transport_mode_emission_factor_value_kg_co2e_t_km", key: "emission_factor", width: 140, align: "right" },
-    { title: "Transport Emission (kg CO2e)", dataIndex: "leg_wise_transport_emissions_per_unit_kg_co2e", key: "transport_emission", width: 200, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+    { title: "Transport Emission (kg CO2e)", dataIndex: "leg_wise_transport_emissions_per_unit_kg_co2e", key: "transport_emission", width: 200, align: "right", render: (v: any) => formatNumber(v, 6, "0") },
   ];
 
   // Packaging tab columns
