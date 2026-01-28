@@ -9,6 +9,7 @@ import {
   Spin,
   message,
   Input,
+  Tabs,
 } from "antd";
 import {
   Puzzle,
@@ -23,10 +24,59 @@ import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import componentMasterService, { type ComponentItem } from "../lib/componentMasterService";
 
+// Flattened BOM row type for the overview table
+interface FlattenedBOMRow {
+  key: string;
+  // PCF Info
+  pcf_request_number: string;
+  pcf_sub_date_time: string;
+  product_category: string;
+  product_code: string;
+  product_name: string;
+  pcf_id: string;
+  status: string;
+  // BOM Info
+  material_number: string;
+  component_name: string;
+  component_category: string;
+  detailed_description: string;
+  manufacturer: string;
+  production_location: string;
+  transport_mode: string;
+  quantity: number;
+  weight_gms: number;
+  total_weight_gms: number;
+  price: number;
+  total_price: number;
+  economic_ratio: number;
+  // Allocation Methodology
+  split_allocation: boolean;
+  sys_expansion_allocation: boolean;
+  check_er_less_than_five: string;
+  phy_mass_allocation: string;
+  econ_allocation: string;
+  // Packaging
+  packaging_type: string;
+  pack_weight_kg: number;
+  emission_factor_box_kg: number;
+  // Material Emissions
+  material_emission_total: number;
+  // Logistic
+  distance_km: number;
+  logistic_emission: number;
+  // Production
+  production_emission: number;
+  // Waste
+  waste_emission: number;
+  // Total PCF
+  total_pcf_value: number;
+}
+
 const ComponentsMaster: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [components, setComponents] = useState<ComponentItem[]>([]);
+  const [flattenedData, setFlattenedData] = useState<FlattenedBOMRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<[string | null, string | null] | null>(null);
@@ -34,6 +84,115 @@ const ComponentsMaster: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Flatten the component data to show each BOM item as a row
+  const flattenComponentData = (components: ComponentItem[]): FlattenedBOMRow[] => {
+    const flattened: FlattenedBOMRow[] = [];
+
+    components.forEach((comp) => {
+      const bomDetails = comp.bom_details || [];
+
+      if (bomDetails.length === 0) {
+        // If no BOM details, still show the PCF row
+        flattened.push({
+          key: comp.id,
+          pcf_request_number: comp.code || "N/A",
+          pcf_sub_date_time: comp.created_date || "",
+          product_category: comp.product_category?.name || "N/A",
+          product_code: comp.product_code || "N/A",
+          product_name: comp.request_title || "N/A",
+          pcf_id: comp.id,
+          status: comp.status || "draft",
+          material_number: "N/A",
+          component_name: "N/A",
+          component_category: "N/A",
+          detailed_description: "N/A",
+          manufacturer: "N/A",
+          production_location: "N/A",
+          transport_mode: "N/A",
+          quantity: 0,
+          weight_gms: 0,
+          total_weight_gms: 0,
+          price: 0,
+          total_price: 0,
+          economic_ratio: 0,
+          split_allocation: false,
+          sys_expansion_allocation: false,
+          check_er_less_than_five: "N/A",
+          phy_mass_allocation: "N/A",
+          econ_allocation: "N/A",
+          packaging_type: "N/A",
+          pack_weight_kg: 0,
+          emission_factor_box_kg: 0,
+          material_emission_total: 0,
+          distance_km: 0,
+          logistic_emission: 0,
+          production_emission: 0,
+          waste_emission: 0,
+          total_pcf_value: 0,
+        });
+      } else {
+        bomDetails.forEach((bom: any, index: number) => {
+          const allocationMethod = bom.allocation_methodology || {};
+          const packaging = bom.packaging_emission_calculation || {};
+          const logistic = bom.logistic_emission_calculation || {};
+          const production = bom.production_emission_calculation || {};
+          const waste = bom.waste_emission_calculation || {};
+          const pcfTotal = bom.pcf_total_emission_calculation || {};
+
+          // Calculate total material emission
+          let materialEmissionTotal = 0;
+          if (bom.material_emission && Array.isArray(bom.material_emission)) {
+            materialEmissionTotal = bom.material_emission.reduce(
+              (sum: number, m: any) => sum + (m.material_emission || 0),
+              0
+            );
+          }
+
+          flattened.push({
+            key: `${comp.id}-${bom.id || index}`,
+            pcf_request_number: comp.code || "N/A",
+            pcf_sub_date_time: comp.created_date || "",
+            product_category: comp.product_category?.name || "N/A",
+            product_code: comp.product_code || "N/A",
+            product_name: comp.request_title || "N/A",
+            pcf_id: comp.id,
+            status: comp.status || "draft",
+            material_number: bom.material_number || "N/A",
+            component_name: bom.component_name || "N/A",
+            component_category: bom.component_category || "N/A",
+            detailed_description: bom.detail_description || "N/A",
+            manufacturer: bom.manufacturer || "N/A",
+            production_location: bom.production_location || "N/A",
+            transport_mode: logistic.mode_of_transport || "N/A",
+            quantity: bom.quantity || 0,
+            weight_gms: bom.weight_gms || 0,
+            total_weight_gms: bom.total_weight_gms || 0,
+            price: bom.price || 0,
+            total_price: bom.total_price || 0,
+            economic_ratio: bom.economic_ratio || 0,
+            split_allocation: allocationMethod.split_allocation || false,
+            sys_expansion_allocation: allocationMethod.sys_expansion_allocation || false,
+            check_er_less_than_five: allocationMethod.check_er_less_than_five || "N/A",
+            phy_mass_allocation: allocationMethod.phy_mass_allocation_er_less_than_five || "N/A",
+            econ_allocation: allocationMethod.econ_allocation_er_greater_than_five || "N/A",
+            packaging_type: packaging.packaging_type || "N/A",
+            pack_weight_kg: packaging.pack_weight_kg || 0,
+            emission_factor_box_kg: packaging.emission_factor_box_kg || 0,
+            material_emission_total: materialEmissionTotal,
+            distance_km: logistic.distance_km || 0,
+            logistic_emission: logistic.leg_wise_transport_emissions_per_unit_kg_co2e || 0,
+            production_emission: pcfTotal.production_value || 0,
+            waste_emission: pcfTotal.waste_value || 0,
+            total_pcf_value: pcfTotal.total_pcf_value || 0,
+          });
+        });
+      }
+    });
+
+    return flattened;
+  };
 
   const fetchComponents = useCallback(async () => {
     setLoading(true);
@@ -50,16 +209,19 @@ const ComponentsMaster: React.FC = () => {
       if (result.success && result.data) {
         const data = result.data;
         setComponents(data.data);
+        setFlattenedData(flattenComponentData(data.data));
         setTotalCount(data.totalCount || data.data.length || 0);
         setTotalPages(Math.ceil((data.totalCount || data.data.length || 0) / pageSize));
       } else {
         message.error(result.message || "Failed to fetch components");
         setComponents([]);
+        setFlattenedData([]);
       }
     } catch (error) {
       console.error("Error fetching components:", error);
       message.error("Failed to fetch components");
       setComponents([]);
+      setFlattenedData([]);
     } finally {
       setLoading(false);
     }
@@ -87,15 +249,24 @@ const ComponentsMaster: React.FC = () => {
     ).length,
   };
 
-  // Filter requests based on status filter
-  const filteredComponents = statusFilter === "all"
-    ? components
-    : components.filter((item) => {
-        const status = item.status?.toLowerCase() || "";
-        if (statusFilter === "Approved") return status === "approved" || status === "completed";
-        if (statusFilter === "null") return !item.status || status === "draft" || status === "null";
-        return status === statusFilter.toLowerCase();
-      });
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const d = new Date(dateString);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const day = d.getDate();
+      const month = months[d.getMonth()];
+      const year = d.getFullYear();
+      const hours = d.getHours();
+      const minutes = d.getMinutes();
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const displayHours = hours % 12 || 12;
+      const displayMinutes = minutes.toString().padStart(2, "0");
+      return `${day} ${month} ${year}, ${displayHours}:${displayMinutes} ${ampm}`;
+    } catch {
+      return "N/A";
+    }
+  };
 
   const getStatusTag = (status: string | undefined) => {
     const statusLower = status?.toLowerCase() || "";
@@ -112,104 +283,434 @@ const ComponentsMaster: React.FC = () => {
     return <Tag color={config.color}>{config.label}</Tag>;
   };
 
-  const columns: ColumnsType<ComponentItem> = [
+  // Overview columns matching the image
+  const overviewColumns: ColumnsType<FlattenedBOMRow> = [
     {
-      title: "PCF Code",
-      dataIndex: "code",
-      key: "code",
-      width: 130,
-      render: (text: string, record: ComponentItem) => (
+      title: "PCF Request Number",
+      dataIndex: "pcf_request_number",
+      key: "pcf_request_number",
+      width: 150,
+      fixed: "left",
+      render: (text: string, record: FlattenedBOMRow) => (
         <Button
           type="link"
-          onClick={() => navigate(`/components-master/view/${record.id}`)}
+          onClick={() => navigate(`/components-master/view/${record.pcf_id}`)}
           className="p-0 font-semibold"
         >
-          {text || "N/A"}
+          {text}
         </Button>
       ),
     },
     {
-      title: "Request Title",
-      dataIndex: "request_title",
-      key: "request_title",
-      width: 200,
-      render: (text: string) => <span className="font-medium">{text || "N/A"}</span>,
+      title: "PCF Sub Date & Time",
+      dataIndex: "pcf_sub_date_time",
+      key: "pcf_sub_date_time",
+      width: 180,
+      render: (text: string) => formatDate(text),
     },
     {
       title: "Product Category",
+      dataIndex: "product_category",
       key: "product_category",
+      width: 140,
+    },
+    {
+      title: "Product Code",
+      dataIndex: "product_code",
+      key: "product_code",
+      width: 120,
+    },
+    {
+      title: "Product Name",
+      dataIndex: "product_name",
+      key: "product_name",
+      width: 180,
+    },
+    {
+      title: "Material Number/ID",
+      dataIndex: "material_number",
+      key: "material_number",
       width: 150,
-      render: (_: any, record: ComponentItem) => (
-        <span>{record.product_category?.name || "N/A"}</span>
-      ),
+    },
+    {
+      title: "Component Name",
+      dataIndex: "component_name",
+      key: "component_name",
+      width: 140,
     },
     {
       title: "Component Category",
+      dataIndex: "component_category",
       key: "component_category",
       width: 150,
-      render: (_: any, record: ComponentItem) => (
-        <span>{record.component_category?.name || "N/A"}</span>
-      ),
+    },
+    {
+      title: "Detailed Descrip",
+      dataIndex: "detailed_description",
+      key: "detailed_description",
+      width: 200,
+      ellipsis: true,
     },
     {
       title: "Manufacturer",
+      dataIndex: "manufacturer",
       key: "manufacturer",
       width: 150,
-      render: (_: any, record: ComponentItem) => (
-        <span>{record.manufacturer?.name || "N/A"}</span>
-      ),
+    },
+    {
+      title: "Production Loc",
+      dataIndex: "production_location",
+      key: "production_location",
+      width: 130,
+    },
+    {
+      title: "Transport Mode",
+      dataIndex: "transport_mode",
+      key: "transport_mode",
+      width: 180,
+    },
+    {
+      title: "Quantity",
+      dataIndex: "quantity",
+      key: "quantity",
+      width: 90,
+      align: "right",
+    },
+    {
+      title: "Weight (gms)",
+      dataIndex: "weight_gms",
+      key: "weight_gms",
+      width: 120,
+      align: "right",
+      render: (val: number) => val?.toFixed(2) || "0.00",
+    },
+    {
+      title: "Total Weight (gms)",
+      dataIndex: "total_weight_gms",
+      key: "total_weight_gms",
+      width: 150,
+      align: "right",
+      render: (val: number) => val?.toFixed(2) || "0.00",
+    },
+    {
+      title: "Price (unit)",
+      dataIndex: "price",
+      key: "price",
+      width: 110,
+      align: "right",
+      render: (val: number) => val?.toFixed(2) || "0.00",
+    },
+    {
+      title: "Total Price",
+      dataIndex: "total_price",
+      key: "total_price",
+      width: 110,
+      align: "right",
+      render: (val: number) => val?.toFixed(2) || "0.00",
+    },
+    {
+      title: "Economic Ratio",
+      dataIndex: "economic_ratio",
+      key: "economic_ratio",
+      width: 130,
+      align: "right",
+    },
+    {
+      title: "Physical Allocation",
+      dataIndex: "phy_mass_allocation",
+      key: "phy_mass_allocation",
+      width: 150,
+    },
+    {
+      title: "Split Allocation",
+      dataIndex: "split_allocation",
+      key: "split_allocation",
+      width: 130,
+      render: (val: boolean) => val ? "Yes" : "No",
+    },
+    {
+      title: "Sys Exp Allocation",
+      dataIndex: "sys_expansion_allocation",
+      key: "sys_expansion_allocation",
+      width: 150,
+      render: (val: boolean) => val ? "Yes" : "No",
+    },
+    {
+      title: "Check ER",
+      dataIndex: "check_er_less_than_five",
+      key: "check_er_less_than_five",
+      width: 100,
+    },
+    {
+      title: "Econ Allocation",
+      dataIndex: "econ_allocation",
+      key: "econ_allocation",
+      width: 140,
+    },
+    {
+      title: "Packaging Type",
+      dataIndex: "packaging_type",
+      key: "packaging_type",
+      width: 130,
+    },
+    {
+      title: "Pack Weight (kg)",
+      dataIndex: "pack_weight_kg",
+      key: "pack_weight_kg",
+      width: 140,
+      align: "right",
+      render: (val: number) => val?.toFixed(3) || "0.000",
+    },
+    {
+      title: "Material Emission (kg CO2e)",
+      dataIndex: "material_emission_total",
+      key: "material_emission_total",
+      width: 180,
+      align: "right",
+      render: (val: number) => val?.toFixed(6) || "0.000000",
+    },
+    {
+      title: "Logistic Emission (kg CO2e)",
+      dataIndex: "logistic_emission",
+      key: "logistic_emission",
+      width: 180,
+      align: "right",
+      render: (val: number) => val?.toFixed(6) || "0.000000",
+    },
+    {
+      title: "Production Emission",
+      dataIndex: "production_emission",
+      key: "production_emission",
+      width: 160,
+      align: "right",
+      render: (val: number) => val?.toFixed(6) || "0.000000",
+    },
+    {
+      title: "Waste Emission",
+      dataIndex: "waste_emission",
+      key: "waste_emission",
+      width: 140,
+      align: "right",
+      render: (val: number) => val?.toFixed(6) || "0.000000",
+    },
+    {
+      title: "Total PCF (kg CO2e)",
+      dataIndex: "total_pcf_value",
+      key: "total_pcf_value",
+      width: 160,
+      align: "right",
+      render: (val: number) => val?.toFixed(6) || "0.000000",
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
       width: 120,
+      fixed: "right",
       render: (status: string) => getStatusTag(status),
-    },
-    {
-      title: "Created By",
-      key: "createdby",
-      width: 150,
-      render: (_: any, record: ComponentItem) => (
-        <span>{record.createdby?.user_name || "N/A"}</span>
-      ),
-    },
-    {
-      title: "Created Date",
-      dataIndex: "created_date",
-      key: "created_date",
-      width: 180,
-      render: (date: string) => {
-        if (!date) return "N/A";
-        try {
-          const d = new Date(date);
-          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          const day = d.getDate();
-          const month = months[d.getMonth()];
-          const year = d.getFullYear();
-          const hours = d.getHours();
-          const minutes = d.getMinutes();
-          const ampm = hours >= 12 ? "PM" : "AM";
-          const displayHours = hours % 12 || 12;
-          const displayMinutes = minutes.toString().padStart(2, "0");
-          return `${day} ${month} ${year}, ${displayHours}:${displayMinutes} ${ampm}`;
-        } catch {
-          return "N/A";
-        }
-      },
     },
     {
       title: "Actions",
       key: "actions",
       width: 100,
-      render: (_: any, record: ComponentItem) => (
+      fixed: "right",
+      render: (_: any, record: FlattenedBOMRow) => (
         <Button
           type="text"
-          onClick={() => navigate(`/components-master/view/${record.id}`)}
+          onClick={() => navigate(`/components-master/view/${record.pcf_id}`)}
           icon={<Eye size={16} className="flex items-center justify-center mt-[5px]" />}
         >
           View
         </Button>
+      ),
+    },
+  ];
+
+  // Material Emissions tab columns
+  const materialEmissionColumns: ColumnsType<any> = [
+    { title: "PCF Code", dataIndex: "code", key: "code", width: 120 },
+    { title: "Component Name", dataIndex: "component_name", key: "component_name", width: 150 },
+    { title: "Material Type", dataIndex: "material_type", key: "material_type", width: 140 },
+    { title: "Composition (%)", dataIndex: "material_composition", key: "material_composition", width: 130, align: "right" },
+    { title: "Composition Weight (kg)", dataIndex: "material_composition_weight", key: "material_composition_weight", width: 180, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+    { title: "Emission Factor", dataIndex: "material_emission_factor", key: "material_emission_factor", width: 140, align: "right" },
+    { title: "Material Emission (kg CO2e)", dataIndex: "material_emission", key: "material_emission", width: 180, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+  ];
+
+  // Production tab columns
+  const productionColumns: ColumnsType<any> = [
+    { title: "PCF Code", dataIndex: "code", key: "code", width: 120 },
+    { title: "Component Name", dataIndex: "component_name", key: "component_name", width: 150 },
+    { title: "Component Weight (kg)", dataIndex: "component_weight_kg", key: "component_weight_kg", width: 160, align: "right" },
+    { title: "Allocation Method", dataIndex: "allocation_methodology", key: "allocation_methodology", width: 200 },
+    { title: "Total Energy (kWh)", dataIndex: "total_energy_consumed_at_factory_level_kwh", key: "total_energy", width: 150, align: "right" },
+    { title: "Electricity Factor", dataIndex: "emission_factor_of_electricity", key: "electricity_factor", width: 140, align: "right" },
+    { title: "Products Produced", dataIndex: "no_of_products_current_component_produced", key: "products_produced", width: 150, align: "right" },
+  ];
+
+  // Logistics tab columns
+  const logisticsColumns: ColumnsType<any> = [
+    { title: "PCF Code", dataIndex: "code", key: "code", width: 120 },
+    { title: "Component Name", dataIndex: "component_name", key: "component_name", width: 150 },
+    { title: "Distance (km)", dataIndex: "distance_km", key: "distance_km", width: 120, align: "right" },
+    { title: "Mode of Transport", dataIndex: "mode_of_transport", key: "mode_of_transport", width: 200 },
+    { title: "Mass Transported (kg)", dataIndex: "mass_transported_kg", key: "mass_transported_kg", width: 160, align: "right" },
+    { title: "Emission Factor", dataIndex: "transport_mode_emission_factor_value_kg_co2e_t_km", key: "emission_factor", width: 140, align: "right" },
+    { title: "Transport Emission (kg CO2e)", dataIndex: "leg_wise_transport_emissions_per_unit_kg_co2e", key: "transport_emission", width: 200, align: "right", render: (v: number) => v?.toFixed(6) || "0" },
+  ];
+
+  // Packaging tab columns
+  const packagingColumns: ColumnsType<any> = [
+    { title: "PCF Code", dataIndex: "code", key: "code", width: 120 },
+    { title: "Component Name", dataIndex: "component_name", key: "component_name", width: 150 },
+    { title: "Packaging Type", dataIndex: "packaging_type", key: "packaging_type", width: 140 },
+    { title: "Pack Weight (kg)", dataIndex: "pack_weight_kg", key: "pack_weight_kg", width: 140, align: "right" },
+    { title: "Emission Factor Box (kg)", dataIndex: "emission_factor_box_kg", key: "emission_factor_box_kg", width: 170, align: "right" },
+  ];
+
+  // Extract data for specific tabs
+  const getMaterialEmissionData = () => {
+    const data: any[] = [];
+    components.forEach((comp) => {
+      comp.bom_details?.forEach((bom: any) => {
+        bom.material_emission?.forEach((me: any) => {
+          data.push({
+            key: me.id,
+            code: comp.code,
+            component_name: bom.component_name,
+            ...me,
+          });
+        });
+      });
+    });
+    return data;
+  };
+
+  const getProductionData = () => {
+    const data: any[] = [];
+    components.forEach((comp) => {
+      comp.bom_details?.forEach((bom: any) => {
+        if (bom.production_emission_calculation) {
+          data.push({
+            key: `${comp.id}-${bom.id}`,
+            code: comp.code,
+            component_name: bom.component_name,
+            ...bom.production_emission_calculation,
+          });
+        }
+      });
+    });
+    return data;
+  };
+
+  const getLogisticsData = () => {
+    const data: any[] = [];
+    components.forEach((comp) => {
+      comp.bom_details?.forEach((bom: any) => {
+        if (bom.logistic_emission_calculation) {
+          data.push({
+            key: `${comp.id}-${bom.id}`,
+            code: comp.code,
+            component_name: bom.component_name,
+            ...bom.logistic_emission_calculation,
+          });
+        }
+      });
+    });
+    return data;
+  };
+
+  const getPackagingData = () => {
+    const data: any[] = [];
+    components.forEach((comp) => {
+      comp.bom_details?.forEach((bom: any) => {
+        if (bom.packaging_emission_calculation) {
+          data.push({
+            key: `${comp.id}-${bom.id}`,
+            code: comp.code,
+            component_name: bom.component_name,
+            ...bom.packaging_emission_calculation,
+          });
+        }
+      });
+    });
+    return data;
+  };
+
+  const tabItems = [
+    {
+      key: "overview",
+      label: "Overview",
+      children: (
+        <Table
+          columns={overviewColumns}
+          dataSource={flattenedData}
+          pagination={false}
+          scroll={{ x: 4000, y: 500 }}
+          rowKey="key"
+          className="rounded-xl overflow-hidden"
+          size="small"
+        />
+      ),
+    },
+    {
+      key: "material",
+      label: "Material Emissions",
+      children: (
+        <Table
+          columns={materialEmissionColumns}
+          dataSource={getMaterialEmissionData()}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 1000 }}
+          rowKey="key"
+          className="rounded-xl overflow-hidden"
+          size="small"
+        />
+      ),
+    },
+    {
+      key: "production",
+      label: "Production",
+      children: (
+        <Table
+          columns={productionColumns}
+          dataSource={getProductionData()}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 1200 }}
+          rowKey="key"
+          className="rounded-xl overflow-hidden"
+          size="small"
+        />
+      ),
+    },
+    {
+      key: "logistics",
+      label: "Logistics",
+      children: (
+        <Table
+          columns={logisticsColumns}
+          dataSource={getLogisticsData()}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 1100 }}
+          rowKey="key"
+          className="rounded-xl overflow-hidden"
+          size="small"
+        />
+      ),
+    },
+    {
+      key: "packaging",
+      label: "Packaging",
+      children: (
+        <Table
+          columns={packagingColumns}
+          dataSource={getPackagingData()}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 800 }}
+          rowKey="key"
+          className="rounded-xl overflow-hidden"
+          size="small"
+        />
       ),
     },
   ];
@@ -351,13 +852,11 @@ const ComponentsMaster: React.FC = () => {
           </div>
 
           <Spin spinning={loading}>
-            <Table
-              columns={columns}
-              dataSource={filteredComponents}
-              pagination={false}
-              scroll={{ x: 1400 }}
-              rowKey="id"
-              className="rounded-xl overflow-hidden"
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={tabItems}
+              className="component-master-tabs"
             />
           </Spin>
 
