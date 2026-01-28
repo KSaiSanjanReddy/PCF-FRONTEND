@@ -284,6 +284,78 @@ class ComponentMasterService {
       };
     }
   }
+
+  /**
+   * Get component by PCF Code
+   * Uses the list endpoint with pcfCode parameter
+   */
+  async getComponentByCode(code: string): Promise<ComponentResponse> {
+    try {
+      if (!code || code.trim() === "") {
+        return {
+          success: false,
+          message: "Component code is required",
+        };
+      }
+
+      const queryParams = new URLSearchParams();
+      queryParams.append("pcfCode", code);
+      queryParams.append("pageNumber", "1");
+      queryParams.append("pageSize", "1");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/component-master/list?${queryParams.toString()}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: any = await response.json();
+
+      if (result.status || result.success) {
+        // Handle both array and single object responses
+        let item;
+        if (result.data?.data && Array.isArray(result.data.data)) {
+          item = result.data.data.length > 0 ? result.data.data[0] : null;
+        } else if (Array.isArray(result.data)) {
+          item = result.data.length > 0 ? result.data[0] : null;
+        } else {
+          item = result.data;
+        }
+
+        if (!item) {
+          return {
+            success: false,
+            message: "Component not found",
+          };
+        }
+
+        // Return data with minimal transformation
+        const transformedData: ComponentItem = {
+          ...item,
+          status: item.status || "draft",
+        };
+
+        return {
+          success: true,
+          message: result.message || "Component fetched successfully",
+          data: transformedData,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch component",
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching component by code:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
 }
 
 const componentMasterService = new ComponentMasterService();
