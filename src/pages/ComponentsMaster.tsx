@@ -9,8 +9,6 @@ import {
   Spin,
   message,
   Input,
-  Tabs,
-  Empty,
 } from "antd";
 import {
   Puzzle,
@@ -20,9 +18,6 @@ import {
   AlertCircle,
   Eye,
   Search,
-  Download,
-  FileText,
-  Shield,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +31,7 @@ const formatNumber = (val: any, decimals: number = 2, fallback: string = "0.00")
   return num.toFixed(decimals);
 };
 
-// Flattened BOM row type for the overview table
+// Flattened BOM row type for the table
 interface FlattenedBOMRow {
   key: string;
   pcf_request_number: string;
@@ -75,24 +70,11 @@ interface FlattenedBOMRow {
   total_pcf_value: number;
 }
 
-// PCF Data aggregated type
-interface PCFDataSummary {
-  total_pcf: number;
-  material_value: number;
-  production_value: number;
-  logistic_value: number;
-  waste_value: number;
-  packaging_value: number;
-  last_updated: string;
-  status: string;
-}
-
 const ComponentsMaster: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [components, setComponents] = useState<ComponentItem[]>([]);
   const [flattenedData, setFlattenedData] = useState<FlattenedBOMRow[]>([]);
-  const [pcfSummary, setPcfSummary] = useState<PCFDataSummary | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<[string | null, string | null] | null>(null);
@@ -100,7 +82,6 @@ const ComponentsMaster: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeTab, setActiveTab] = useState("overview");
 
   // Flatten the component data to show each BOM item as a row
   const flattenComponentData = (components: ComponentItem[]): FlattenedBOMRow[] => {
@@ -206,52 +187,6 @@ const ComponentsMaster: React.FC = () => {
     return flattened;
   };
 
-  // Calculate PCF summary from components
-  const calculatePCFSummary = (components: ComponentItem[]): PCFDataSummary | null => {
-    let total_pcf = 0;
-    let material_value = 0;
-    let production_value = 0;
-    let logistic_value = 0;
-    let waste_value = 0;
-    let packaging_value = 0;
-    let last_updated = "";
-    let status = "draft";
-
-    components.forEach((comp) => {
-      if (comp.update_date && comp.update_date > last_updated) {
-        last_updated = comp.update_date;
-      }
-      if (comp.status === "Approved") {
-        status = "Approved";
-      }
-
-      comp.bom_details?.forEach((bom: any) => {
-        const pcfTotal = bom.pcf_total_emission_calculation;
-        if (pcfTotal) {
-          total_pcf += pcfTotal.total_pcf_value || 0;
-          material_value += pcfTotal.material_value || 0;
-          production_value += pcfTotal.production_value || 0;
-          logistic_value += pcfTotal.logistic_value || 0;
-          waste_value += pcfTotal.waste_value || 0;
-          packaging_value += pcfTotal.packaging_value || 0;
-        }
-      });
-    });
-
-    if (total_pcf === 0) return null;
-
-    return {
-      total_pcf,
-      material_value,
-      production_value,
-      logistic_value,
-      waste_value,
-      packaging_value,
-      last_updated,
-      status,
-    };
-  };
-
   const fetchComponents = useCallback(async () => {
     setLoading(true);
     try {
@@ -268,21 +203,18 @@ const ComponentsMaster: React.FC = () => {
         const data = result.data;
         setComponents(data.data);
         setFlattenedData(flattenComponentData(data.data));
-        setPcfSummary(calculatePCFSummary(data.data));
         setTotalCount(data.totalCount || data.data.length || 0);
         setTotalPages(Math.ceil((data.totalCount || data.data.length || 0) / pageSize));
       } else {
         message.error(result.message || "Failed to fetch components");
         setComponents([]);
         setFlattenedData([]);
-        setPcfSummary(null);
       }
     } catch (error) {
       console.error("Error fetching components:", error);
       message.error("Failed to fetch components");
       setComponents([]);
       setFlattenedData([]);
-      setPcfSummary(null);
     } finally {
       setLoading(false);
     }
@@ -338,8 +270,7 @@ const ComponentsMaster: React.FC = () => {
     return <Tag color={config.color}>{config.label}</Tag>;
   };
 
-  // Overview columns
-  const overviewColumns: ColumnsType<FlattenedBOMRow> = [
+  const columns: ColumnsType<FlattenedBOMRow> = [
     {
       title: "PCF Request Number",
       dataIndex: "pcf_request_number",
@@ -356,13 +287,7 @@ const ComponentsMaster: React.FC = () => {
         </Button>
       ),
     },
-    {
-      title: "PCF Sub Date & Time",
-      dataIndex: "pcf_sub_date_time",
-      key: "pcf_sub_date_time",
-      width: 150,
-      render: (text: string) => formatDate(text),
-    },
+    { title: "PCF Sub Date & Time", dataIndex: "pcf_sub_date_time", key: "pcf_sub_date_time", width: 150, render: (text: string) => formatDate(text) },
     { title: "Product Category", dataIndex: "product_category", key: "product_category", width: 140 },
     { title: "Product Code", dataIndex: "product_code", key: "product_code", width: 120 },
     { title: "Product Name", dataIndex: "product_name", key: "product_name", width: 180 },
@@ -406,221 +331,6 @@ const ComponentsMaster: React.FC = () => {
           View
         </Button>
       ),
-    },
-  ];
-
-  // PCF Data Tab Content
-  const PCFDataTab = () => {
-    if (!pcfSummary) {
-      return (
-        <div className="py-12">
-          <Empty description="No PCF data available" />
-        </div>
-      );
-    }
-
-    const total = pcfSummary.total_pcf || 1;
-    const lifecycleData = [
-      { stage: "Raw Material Extraction", value: pcfSummary.material_value, percentage: (pcfSummary.material_value / total) * 100 },
-      { stage: "Manufacturing", value: pcfSummary.production_value, percentage: (pcfSummary.production_value / total) * 100 },
-      { stage: "Transport", value: pcfSummary.logistic_value, percentage: (pcfSummary.logistic_value / total) * 100 },
-      { stage: "Packaging", value: pcfSummary.packaging_value, percentage: (pcfSummary.packaging_value / total) * 100 },
-      { stage: "End-of-Life", value: pcfSummary.waste_value, percentage: (pcfSummary.waste_value / total) * 100 },
-    ];
-
-    return (
-      <div className="space-y-6">
-        {/* Top Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* PCF Available Card */}
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-green-600 font-medium">PCF Available</span>
-              <Tag color={pcfSummary.status === "Approved" ? "green" : "gold"}>
-                {pcfSummary.status === "Approved" ? "Verified" : "Pending"}
-              </Tag>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-2">
-              {pcfSummary.total_pcf.toExponential(2)} kgCO<sub>2</sub>e
-            </div>
-            <div className="text-sm text-gray-500 mb-4">
-              Last updated: {formatDate(pcfSummary.last_updated)}
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Total Components:</span>
-                <span className="font-medium">{components.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Total BOM Items:</span>
-                <span className="font-medium">{flattenedData.length}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Verification Info Card */}
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Shield className="w-5 h-5 text-green-600" />
-              </div>
-              <span className="font-semibold text-gray-900">Verification Info</span>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Status:</span>
-                <Tag color={pcfSummary.status === "Approved" ? "green" : "gold"}>
-                  {pcfSummary.status === "Approved" ? "Verified" : "Pending"}
-                </Tag>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Last Updated:</span>
-                <span className="font-medium">{formatDate(pcfSummary.last_updated)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Approved Count:</span>
-                <span className="font-medium">{statusCounts.approved}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions Card */}
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-            <span className="font-semibold text-gray-900 block mb-4">Quick Actions</span>
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors">
-                <Download size={16} />
-                Export PCF Report
-              </button>
-              <button
-                onClick={() => navigate("/components-master/new")}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Plus size={16} />
-                Request Component PCF
-              </button>
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-                <Eye size={16} />
-                View Full PCF Details
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Lifecycle Breakdown */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 p-6 pb-4">Lifecycle Breakdown</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-green-600 text-white">
-                  <th className="text-left px-6 py-3 font-medium">Stage</th>
-                  <th className="text-left px-6 py-3 font-medium">PCF Value</th>
-                  <th className="text-left px-6 py-3 font-medium">Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lifecycleData.map((item, index) => (
-                  <tr key={item.stage} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td className="px-6 py-4 text-gray-900">{item.stage}</td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {item.value.toFixed(5)} kgCO<sub>2</sub>e
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{item.percentage.toFixed(1)}%</td>
-                  </tr>
-                ))}
-                <tr className="bg-green-50 font-semibold">
-                  <td className="px-6 py-4 text-green-700">Total</td>
-                  <td className="px-6 py-4 text-green-700">
-                    {pcfSummary.total_pcf.toExponential(2)} kgCO<sub>2</sub>e
-                  </td>
-                  <td className="px-6 py-4 text-green-700">100%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Certificates Tab Content
-  const CertificatesTab = () => (
-    <div className="py-12">
-      <Empty
-        image={<FileText size={48} className="text-gray-300 mx-auto" />}
-        description={
-          <div className="text-center">
-            <p className="text-gray-500 mb-2">No certificates available</p>
-            <p className="text-gray-400 text-sm">Certificates will appear here once PCF data is verified</p>
-          </div>
-        }
-      />
-    </div>
-  );
-
-  // History Tab Content
-  const HistoryTab = () => {
-    const historyData = components.map((comp) => ({
-      key: comp.id,
-      code: comp.code,
-      title: comp.request_title,
-      status: comp.status,
-      created_date: comp.created_date,
-      update_date: comp.update_date,
-      created_by: comp.createdby?.user_name || "N/A",
-    }));
-
-    const historyColumns: ColumnsType<any> = [
-      { title: "PCF Code", dataIndex: "code", key: "code", width: 120 },
-      { title: "Request Title", dataIndex: "title", key: "title", width: 200 },
-      { title: "Status", dataIndex: "status", key: "status", width: 120, render: (status: string) => getStatusTag(status) },
-      { title: "Created By", dataIndex: "created_by", key: "created_by", width: 150 },
-      { title: "Created Date", dataIndex: "created_date", key: "created_date", width: 150, render: (d: string) => formatDate(d) },
-      { title: "Last Updated", dataIndex: "update_date", key: "update_date", width: 150, render: (d: string) => formatDate(d) },
-    ];
-
-    return (
-      <Table
-        columns={historyColumns}
-        dataSource={historyData}
-        pagination={{ pageSize: 10 }}
-        scroll={{ x: 900 }}
-        rowKey="key"
-        size="small"
-      />
-    );
-  };
-
-  const tabItems = [
-    {
-      key: "overview",
-      label: "Overview",
-      children: (
-        <Table
-          columns={overviewColumns}
-          dataSource={flattenedData}
-          pagination={false}
-          scroll={{ x: 4000, y: 500 }}
-          rowKey="key"
-          size="small"
-        />
-      ),
-    },
-    {
-      key: "pcf",
-      label: "PCF Data",
-      children: <PCFDataTab />,
-    },
-    {
-      key: "certificates",
-      label: "Certificates",
-      children: <CertificatesTab />,
-    },
-    {
-      key: "history",
-      label: "History",
-      children: <HistoryTab />,
     },
   ];
 
@@ -682,7 +392,7 @@ const ComponentsMaster: React.FC = () => {
           </div>
         </div>
 
-        {/* Components Section */}
+        {/* Table Section */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
             <h2 className="text-lg font-semibold text-gray-900">Component List</h2>
@@ -745,51 +455,52 @@ const ComponentsMaster: React.FC = () => {
           </div>
 
           <Spin spinning={loading}>
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              items={tabItems}
+            <Table
+              columns={columns}
+              dataSource={flattenedData}
+              pagination={false}
+              scroll={{ x: 4000, y: 500 }}
+              rowKey="key"
+              size="small"
             />
           </Spin>
 
-          {activeTab === "overview" && (
-            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-              <div className="text-gray-500 text-sm">
-                Showing <span className="font-medium text-gray-900">{Math.min((currentPage - 1) * pageSize + 1, totalCount)}</span> to{" "}
-                <span className="font-medium text-gray-900">{Math.min(currentPage * pageSize, totalCount)}</span> of{" "}
-                <span className="font-medium text-gray-900">{totalCount}</span> entries
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((pageNum) => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-9 h-9 rounded-lg font-medium transition-all ${
-                      currentPage === pageNum
-                        ? "bg-green-600 text-white shadow-lg shadow-green-600/20"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
-                >
-                  Next
-                </button>
-              </div>
+          <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
+            <div className="text-gray-500 text-sm">
+              Showing <span className="font-medium text-gray-900">{Math.min((currentPage - 1) * pageSize + 1, totalCount || 1)}</span> to{" "}
+              <span className="font-medium text-gray-900">{Math.min(currentPage * pageSize, totalCount)}</span> of{" "}
+              <span className="font-medium text-gray-900">{totalCount}</span> entries
             </div>
-          )}
+            <div className="flex items-center gap-1">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Previous
+              </button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-9 h-9 rounded-lg font-medium transition-all ${
+                    currentPage === pageNum
+                      ? "bg-green-600 text-white shadow-lg shadow-green-600/20"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
