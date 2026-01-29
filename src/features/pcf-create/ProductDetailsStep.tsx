@@ -108,6 +108,12 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   }, [initialValues, form]);
 
   const handleSave = () => {
+    // Validate BOM data first
+    if (!bomData || bomData.length === 0) {
+      message.error("Please import a BOM file with at least one component before proceeding");
+      return;
+    }
+
     form.validateFields().then((values) => {
       onSave({ ...values, bomData });
     });
@@ -115,22 +121,59 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
 
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
     const mapping: Record<string, string> = {};
-    headers.forEach((header) => {
-      const headerLower = header.toLowerCase().trim();
-      fieldDefinitions.forEach((field) => {
-        const fieldLabelLower = field.label.toLowerCase();
-        const fieldKeyLower = field.key.toLowerCase();
-        if (
-          headerLower.includes(fieldKeyLower) ||
-          headerLower === fieldLabelLower ||
-          (fieldLabelLower.includes(headerLower) && headerLower.length > 3)
-        ) {
-          if (!mapping[field.key] || field.required) {
-            mapping[field.key] = header;
+    const usedHeaders = new Set<string>();
+
+    // Process fields in order of specificity (longer keys first)
+    // This ensures "totalPrice" finds its match before "price" can claim it
+    const sortedFields = [...fieldDefinitions].sort(
+      (a, b) => b.key.length - a.key.length
+    );
+
+    // For each field, find the best matching header
+    sortedFields.forEach((field) => {
+      const fieldKeyLower = field.key.toLowerCase();
+      const fieldLabelLower = field.label.toLowerCase();
+      const fieldLabelNormalized = fieldLabelLower.replace(/[\s_-]/g, "");
+
+      let bestMatch: string | null = null;
+      let bestMatchScore = 0; // Higher is better: 3 = exact, 2 = normalized exact, 1 = partial
+
+      headers.forEach((header) => {
+        if (usedHeaders.has(header)) return; // Skip already used headers
+
+        const headerLower = header.toLowerCase().trim();
+        const headerNormalized = headerLower.replace(/[\s_-]/g, "");
+
+        // Score 3: Exact match on original strings
+        if (headerLower === fieldLabelLower || headerLower === fieldKeyLower) {
+          if (bestMatchScore < 3) {
+            bestMatch = header;
+            bestMatchScore = 3;
           }
+          return;
         }
+
+        // Score 2: Exact match on normalized strings (handles "Total Price" -> "totalprice" -> "totalPrice")
+        if (headerNormalized === fieldKeyLower || headerNormalized === fieldLabelNormalized) {
+          if (bestMatchScore < 2) {
+            bestMatch = header;
+            bestMatchScore = 2;
+          }
+          return;
+        }
+
+        // Score 1: Header contains the field key as a word boundary match
+        // Only for shorter field keys, and only if header is substantially longer
+        // This prevents "price" from matching "total price" but allows "unit price" to match "price" if needed
+        // Actually, let's skip partial matching to avoid confusion - exact/normalized matches are sufficient
       });
+
+      if (bestMatch) {
+        mapping[field.key] = bestMatch;
+        usedHeaders.add(bestMatch);
+      }
     });
+
     return mapping;
   };
 
@@ -578,12 +621,14 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
             </div>
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <ClipboardList className="w-4 h-4 text-green-600" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bomData.length > 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                <ClipboardList className={`w-4 h-4 ${bomData.length > 0 ? 'text-green-600' : 'text-red-600'}`} />
               </div>
               <div>
                 <p className="text-xs text-gray-500">BOM Items</p>
-                <p className="text-sm font-semibold text-gray-900">{bomData.length} components</p>
+                <p className={`text-sm font-semibold ${bomData.length > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                  {bomData.length > 0 ? `${bomData.length} components` : 'Required *'}
+                </p>
               </div>
             </div>
           </div>
@@ -602,7 +647,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
               type="primary"
               size="large"
               onClick={handleSave}
-              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              disabled={bomData.length === 0}
+              className={bomData.length === 0
+                ? "!bg-gray-300 !border-gray-300 !text-gray-500 cursor-not-allowed"
+                : "!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              }
               icon={<ArrowRight className="w-4 h-4" />}
               iconPosition="end"
             >
@@ -767,7 +816,12 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
             { title: "Price", dataIndex: "price", key: "price", width: 100, render: (price) => `₹${price || "0.00"}` },
             { title: "Supplier Email", dataIndex: "supplierEmail", key: "supplierEmail", width: 150 },
           ]}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          }}
           scroll={{ x: 1200, y: 400 }}
           rowKey="key"
           size="small"

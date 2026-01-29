@@ -9,16 +9,23 @@ import {
   Save,
   Download,
   Upload,
+  FileSpreadsheet,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import {
   listSetup,
   addSetup,
   updateSetup,
   deleteSetup,
+  bulkAddSetup,
   type SetupItem,
   type SetupEntity,
 } from "../../lib/dataSetupService";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { Modal, Select, Table, Button, message } from "antd";
+
+const { Option } = Select;
 
 interface DataSetupItem {
   id: string;
@@ -74,6 +81,18 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     tab: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Bulk Import Modal State
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
+    code: "",
+    name: "",
+    description: "",
+  });
+  const [importPreview, setImportPreview] = useState<SetupItem[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const currentTabConfig = tabs.find((t) => t.key === activeTab);
   const currentEntity = currentTabConfig?.entity;
@@ -287,6 +306,54 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     document.body.removeChild(link);
   };
 
+  // Parse CSV line handling quoted values
+  const parseCSVLine = (line: string): string[] => {
+    const values: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === "," && !inQuotes) {
+        values.push(current.trim().replace(/^"|"$/g, ""));
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim().replace(/^"|"$/g, ""));
+    return values;
+  };
+
+  // Auto-detect column mapping based on header names
+  const autoDetectMapping = (headers: string[]): Record<string, string> => {
+    const mapping: Record<string, string> = { code: "", name: "", description: "" };
+    const fieldsToMatch = [
+      { key: "code", patterns: ["code", "id", "identifier", "key"] },
+      { key: "name", patterns: ["name", "title", "label"] },
+      { key: "description", patterns: ["description", "desc", "details", "info"] },
+    ];
+
+    headers.forEach((header) => {
+      const headerLower = header.toLowerCase().trim();
+      fieldsToMatch.forEach((field) => {
+        if (!mapping[field.key]) {
+          for (const pattern of field.patterns) {
+            if (headerLower.includes(pattern) || pattern.includes(headerLower)) {
+              mapping[field.key] = header;
+              break;
+            }
+          }
+        }
+      });
+    });
+
+    return mapping;
+  };
+
+  // Handle file selection
   const handleImport = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -298,64 +365,81 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       const text = await file.text();
       const lines = text.split("\n").filter((line) => line.trim());
       if (lines.length < 2) {
-        alert("CSV file must have at least a header row and one data row");
+        message.error("CSV file must have at least a header row and one data row");
         return;
       }
 
-      // Parse CSV (simple parser, assumes quoted values)
-      const rows = lines.slice(1).map((line) => {
-        const values: string[] = [];
-        let current = "";
-        let inQuotes = false;
+      const headers = parseCSVLine(lines[0]);
+      const dataRows = lines.slice(1).map(parseCSVLine);
 
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === "," && !inQuotes) {
-            values.push(current.trim());
-            current = "";
-          } else {
-            current += char;
-          }
-        }
-        values.push(current.trim());
-        return values;
-      });
+      setCsvHeaders(headers);
+      setCsvData(dataRows);
 
-      // Validate and import
-      const itemsToAdd = rows
-        .filter((row) => row.length >= 3 && row[0] && row[1] && row[2])
-        .map((row) => ({
-          code: row[0].replace(/^"|"$/g, ""),
-          name: row[1].replace(/^"|"$/g, ""),
-          description: row[2].replace(/^"|"$/g, ""),
-        }));
+      // Auto-detect mapping
+      const autoMapping = autoDetectMapping(headers);
+      setColumnMapping(autoMapping);
 
-      if (itemsToAdd.length === 0) {
-        alert("No valid data found in CSV file");
-        return;
-      }
+      // Generate preview
+      updateImportPreview(autoMapping, headers, dataRows);
 
-      // Import items one by one
-      let successCount = 0;
-      let failCount = 0;
+      setShowImportModal(true);
+    };
+    input.click();
+  };
 
-      for (const item of itemsToAdd) {
-        try {
-          const ok = await addSetup(currentEntity!, item);
-          if (ok) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        } catch (error) {
-          failCount++;
-        }
-      }
+  // Update preview when mapping changes
+  const updateImportPreview = (
+    mapping: Record<string, string>,
+    headers: string[],
+    data: string[][]
+  ) => {
+    const getColumnIndex = (fieldKey: string): number => {
+      const mappedHeader = mapping[fieldKey];
+      if (!mappedHeader) return -1;
+      return headers.findIndex((h) => h === mappedHeader);
+    };
 
-      // Reload data
-      if (successCount > 0) {
+    const codeIdx = getColumnIndex("code");
+    const nameIdx = getColumnIndex("name");
+    const descIdx = getColumnIndex("description");
+
+    const previewItems: SetupItem[] = data
+      .filter((row) => {
+        const code = codeIdx >= 0 ? row[codeIdx] : "";
+        const name = nameIdx >= 0 ? row[nameIdx] : "";
+        return code && name; // At least code and name required
+      })
+      .map((row) => ({
+        code: codeIdx >= 0 ? row[codeIdx] : "",
+        name: nameIdx >= 0 ? row[nameIdx] : "",
+        description: descIdx >= 0 ? row[descIdx] : "",
+      }));
+
+    setImportPreview(previewItems);
+  };
+
+  // Handle mapping change
+  const handleMappingChange = (field: string, header: string) => {
+    const newMapping = { ...columnMapping, [field]: header };
+    setColumnMapping(newMapping);
+    updateImportPreview(newMapping, csvHeaders, csvData);
+  };
+
+  // Execute bulk import
+  const handleBulkImport = async () => {
+    if (importPreview.length === 0) {
+      message.error("No valid items to import. Please check your mapping.");
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const result = await bulkAddSetup(currentEntity!, importPreview);
+
+      if (result.success) {
+        message.success(`Successfully imported ${result.addedCount || importPreview.length} items`);
+
+        // Reload data
         const data = await listSetup(currentEntity!);
         const normalized: DataSetupItem[] = (data as SetupItem[]).map(
           (i, idx) => ({
@@ -369,16 +453,30 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           })
         );
         setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
-        alert(
-          `Import completed: ${successCount} items imported${
-            failCount > 0 ? `, ${failCount} failed` : ""
-          }`
-        );
+
+        // Close modal and reset state
+        setShowImportModal(false);
+        setCsvHeaders([]);
+        setCsvData([]);
+        setColumnMapping({ code: "", name: "", description: "" });
+        setImportPreview([]);
       } else {
-        alert("Import failed. Please check your CSV format.");
+        message.error(result.message || "Import failed");
       }
-    };
-    input.click();
+    } catch (error) {
+      message.error("An error occurred during import");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Close import modal
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setCsvHeaders([]);
+    setCsvData([]);
+    setColumnMapping({ code: "", name: "", description: "" });
+    setImportPreview([]);
   };
 
   if (!currentEntity) {
@@ -800,6 +898,168 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Bulk Import Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-900">Bulk Import from CSV</div>
+              <div className="text-sm text-gray-500 font-normal">Map columns and review before importing</div>
+            </div>
+          </div>
+        }
+        open={showImportModal}
+        onCancel={handleCloseImportModal}
+        width={900}
+        footer={null}
+      >
+        <div className="space-y-6 mt-4">
+          {/* Column Mapping Section */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
+              Map CSV Columns
+            </h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Code <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  placeholder="Select column"
+                  value={columnMapping.code || undefined}
+                  onChange={(value) => handleMappingChange("code", value)}
+                  allowClear
+                >
+                  {csvHeaders.map((header) => (
+                    <Option key={header} value={header}>
+                      {header}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  placeholder="Select column"
+                  value={columnMapping.name || undefined}
+                  onChange={(value) => handleMappingChange("name", value)}
+                  allowClear
+                >
+                  {csvHeaders.map((header) => (
+                    <Option key={header} value={header}>
+                      {header}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Description
+                </label>
+                <Select
+                  className="w-full"
+                  placeholder="Select column"
+                  value={columnMapping.description || undefined}
+                  onChange={(value) => handleMappingChange("description", value)}
+                  allowClear
+                >
+                  {csvHeaders.map((header) => (
+                    <Option key={header} value={header}>
+                      {header}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
+              Preview Data
+              <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                {importPreview.length} items
+              </span>
+            </h4>
+
+            {importPreview.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">No valid items found</p>
+                  <p className="text-xs text-amber-600">Please map at least Code and Name columns</p>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <Table
+                  dataSource={importPreview.slice(0, 10)}
+                  columns={[
+                    {
+                      title: "Code",
+                      dataIndex: "code",
+                      key: "code",
+                      render: (text: string) => (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          {text}
+                        </span>
+                      ),
+                    },
+                    { title: "Name", dataIndex: "name", key: "name" },
+                    {
+                      title: "Description",
+                      dataIndex: "description",
+                      key: "description",
+                      render: (text: string) => (
+                        <span className="text-gray-600">{text || "-"}</span>
+                      ),
+                    },
+                  ]}
+                  pagination={false}
+                  size="small"
+                  rowKey={(record, index) => `preview-${index}`}
+                />
+                {importPreview.length > 10 && (
+                  <div className="bg-gray-50 px-4 py-2 text-center text-sm text-gray-500 border-t">
+                    Showing 10 of {importPreview.length} items
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span>Ready to import {importPreview.length} items</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleCloseImportModal}>Cancel</Button>
+              <Button
+                type="primary"
+                onClick={handleBulkImport}
+                loading={isImporting}
+                disabled={importPreview.length === 0}
+                className="!bg-green-600 hover:!bg-green-700 !border-green-600"
+                icon={<Upload className="w-4 h-4" />}
+              >
+                Import {importPreview.length} Items
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

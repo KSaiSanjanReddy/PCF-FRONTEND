@@ -30,11 +30,19 @@ export interface Product {
   category_code?: string;
   sub_category_name?: string;
   sub_category_code?: string;
+  manufacturing_process_code?: string;
   manufacturing_process_name?: string;
+  life_cycle_stage_code?: string;
   life_cycle_stage_name?: string;
   pcf_status?: string;
   created_by_name?: string;
   updated_by_name?: string;
+
+  // Own emission fields (optional)
+  product_status?: string;
+  own_emission_id?: string;
+  own_emission_status?: string;
+  own_emission?: any; // Could be null or emission object
 }
 
 export interface ProductCategory {

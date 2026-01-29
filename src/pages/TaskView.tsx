@@ -172,7 +172,11 @@ const TaskView: React.FC = () => {
                   </h3>
                   <Descriptions layout="vertical" column={{ xxl: 3, xl: 3, lg: 2, md: 2, sm: 1, xs: 1 }}>
                     <Descriptions.Item label="Related Product">
-                      {task?.related_product || "N/A"}
+                      {task?.related_product
+                        ? (typeof task.related_product === 'object'
+                            ? (task.related_product as any).product_name || (task.related_product as any).product_code
+                            : task.related_product)
+                        : "N/A"}
                     </Descriptions.Item>
                     <Descriptions.Item label="PCF Request">
                       {task?.pcf_id ? (

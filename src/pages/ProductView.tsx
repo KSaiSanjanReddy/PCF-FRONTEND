@@ -377,7 +377,7 @@ const ProductView: React.FC = () => {
                   Created By
                 </Text>
                 <Text strong>
-                  {product.created_by || "System"} -{" "}
+                  {product.created_by_name || "System"} -{" "}
                   {product.created_date
                     ? dayjs(product.created_date).format("DD MMM YYYY")
                     : "-"}
@@ -388,7 +388,7 @@ const ProductView: React.FC = () => {
                   Last Updated By
                 </Text>
                 <Text strong>
-                  {product.updated_by || "-"} -{" "}
+                  {product.updated_by_name || "-"} -{" "}
                   {product.update_date
                     ? dayjs(product.update_date).format("DD MMM YYYY")
                     : "-"}

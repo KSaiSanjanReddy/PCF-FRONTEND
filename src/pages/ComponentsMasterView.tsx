@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   Row,
@@ -12,12 +12,11 @@ import {
   Input,
   Select,
   Tabs,
-  Statistic,
   Divider,
-  Timeline,
-  Avatar,
   message,
-  DatePicker,
+  Empty,
+  Image,
+  Spin,
 } from "antd";
 import {
   Puzzle,
@@ -31,24 +30,26 @@ import {
   Plus,
   Shield,
   CheckCircle,
-  AlertCircle,
   FileText,
-  Calendar,
-  User,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
   Wrench,
   Zap,
   Settings,
-  File,
-  ArrowLeft,
-  ChevronRight,
-  MoreHorizontal,
+  Clock,
+  Calendar,
+  User,
+  AlertTriangle,
+  Box,
+  Layers,
 } from "lucide-react";
-import dayjs from "dayjs";
 import componentMasterService, { type ComponentItem } from "../lib/componentMasterService";
+import { documentMasterService } from "../lib/documentMasterService";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 interface ComponentData {
   id: string;
@@ -61,173 +62,131 @@ interface ComponentData {
   weight: string;
   recyclability: string;
   certificateStatus: string;
-  [key: string]: any; // Allow additional fields from API
+  status?: string;
+  update_date?: string;
+  created_date?: string;
+  bom_details?: any[];
+  createdby?: { user_name?: string };
+  [key: string]: any;
 }
 
-interface PCFUsage {
-  pcfRequestNumber: string;
-  productName: string;
-  productIcon: string;
-  quantityUnits: string;
+interface PCFDataSummary {
+  total_pcf: number;
+  material_value: number;
+  production_value: number;
+  logistic_value: number;
+  waste_value: number;
+  packaging_value: number;
+  last_updated: string;
   status: string;
-}
-
-interface LifecycleBreakdown {
-  stage: string;
-  pcfValue: string;
-  percentage: string;
-}
-
-interface Certificate {
-  id: string;
-  name: string;
-  status: string;
-  uploadedDate: string;
-  fileName: string;
-  issueDate: string;
-  verifiedBy: string;
-  expiryDate: string;
-  fileSize: string;
-  daysUntilExpiry: string;
-}
-
-interface CertificateHistory {
-  date: string;
-  action: string;
-  fileName: string;
-  user: string;
-  status: string;
-}
-
-interface HistoryEntry {
-  id: string;
-  user: string;
-  action: string;
-  description: string;
-  date: string;
-  icon: string;
-  color: string;
 }
 
 const ComponentsMasterView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: code } = useParams<{ id: string }>(); // Route param is still "id" but contains the PCF code
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const bomId = searchParams.get('bomId');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [componentData, setComponentData] = useState<ComponentData | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [pcfSummary, setPcfSummary] = useState<PCFDataSummary | null>(null);
+  const [documentUrls, setDocumentUrls] = useState<{ key: string; url: string; name: string }[]>([]);
+  const [imageUrls, setImageUrls] = useState<{ key: string; url: string; name: string }[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
 
-  const mockPCFUsage: PCFUsage[] = [
-    {
-      pcfRequestNumber: "P001",
-      productName: "Engine Control Unit",
-      productIcon: "wrench",
-      quantityUnits: "3 Units",
-      status: "Completed",
-    },
-    {
-      pcfRequestNumber: "P002",
-      productName: "Chassis Frame",
-      productIcon: "zap",
-      quantityUnits: "4 Units",
-      status: "Completed",
-    },
-    {
-      pcfRequestNumber: "P003",
-      productName: "Battery Pack",
-      productIcon: "settings",
-      quantityUnits: "2 Units",
-      status: "Draft",
-    },
-    {
-      pcfRequestNumber: "P004",
-      productName: "Headlight Assembly",
-      productIcon: "file",
-      quantityUnits: "1 Unit",
-      status: "Review",
-    },
-  ];
+  // Calculate PCF summary from component data
+  const calculatePCFSummary = (data: ComponentData): PCFDataSummary | null => {
+    let total_pcf = 0;
+    let material_value = 0;
+    let production_value = 0;
+    let logistic_value = 0;
+    let waste_value = 0;
+    let packaging_value = 0;
 
-  const mockLifecycleBreakdown: LifecycleBreakdown[] = [
-    { stage: "Raw Material Extraction", pcfValue: "0.00021 kgCO₂e", percentage: "60.9%" },
-    { stage: "Manufacturing", pcfValue: "0.00009 kgCO₂e", percentage: "26.1%" },
-    { stage: "Transport", pcfValue: "0.00003 kgCO₂e", percentage: "8.7%" },
-    { stage: "Use Phase", pcfValue: "0.00007 kgCO₂e", percentage: "20.3%" },
-    { stage: "End-of-Life", pcfValue: "0.00007 kgCO₂e", percentage: "14.5%" },
-  ];
+    data.bom_details?.forEach((bom: any) => {
+      const pcfTotal = bom.pcf_total_emission_calculation;
+      if (pcfTotal) {
+        total_pcf += pcfTotal.total_pcf_value || 0;
+        material_value += pcfTotal.material_value || 0;
+        production_value += pcfTotal.production_value || 0;
+        logistic_value += pcfTotal.logistic_value || 0;
+        waste_value += pcfTotal.waste_value || 0;
+        packaging_value += pcfTotal.packaging_value || 0;
+      }
+    });
 
-  const mockCertificate: Certificate = {
-    id: "1",
-    name: "ISO 9001:2015 Quality Management",
-    status: "Valid",
-    uploadedDate: "10 Jul 2025",
-    fileName: "asdfg.PDF",
-    issueDate: "10 May 2025",
-    verifiedBy: "Pranay",
-    expiryDate: "10 May 2026",
-    fileSize: "2.4 MB",
-    daysUntilExpiry: "365 Days",
+    if (total_pcf === 0) return null;
+
+    return {
+      total_pcf,
+      material_value,
+      production_value,
+      logistic_value,
+      waste_value,
+      packaging_value,
+      last_updated: data.update_date || data.created_date || "",
+      status: data.status || "draft",
+    };
   };
 
-  const mockCertificateHistory: CertificateHistory[] = [
-    { date: "P001", action: "Verified", fileName: "asdfg.PDF", user: "3 Units", status: "Active" },
-    { date: "P001", action: "Uploaded", fileName: "asdfg.PDF", user: "3 Units", status: "Active" },
-    { date: "P001", action: "Expired", fileName: "asdfg.PDF", user: "3 Units", status: "Archived" },
-  ];
+  // Fetch document and image URLs
+  const fetchDocumentUrls = async (data: ComponentData) => {
+    setLoadingDocuments(true);
+    try {
+      const docs: { key: string; url: string; name: string }[] = [];
+      const imgs: { key: string; url: string; name: string }[] = [];
 
-  const mockHistory: HistoryEntry[] = [
-    {
-      id: "1",
-      user: "Admin User",
-      action: "Updated PCF Data",
-      description: "New Total PCF: 3.45e-4 kgCO2e",
-      date: "15 Aug 2025, 14:32",
-      icon: "check",
-      color: "blue",
-    },
-    {
-      id: "2",
-      user: "QA Manager",
-      action: "Uploaded Certificate",
-      description: "certificate_steelshaft.pdf",
-      date: "10 Jul 2025, 09:15",
-      icon: "check",
-      color: "green",
-    },
-    {
-      id: "3",
-      user: "Engineer",
-      action: "Updated Component",
-      description: "Updated material specifications and weight",
-      date: "25 Jun 2025, 16:45",
-      icon: "edit",
-      color: "orange",
-    },
-    {
-      id: "4",
-      user: "Engineer",
-      action: "Created Component",
-      description: "Initial setup: Steel Shaft",
-      date: "01 Jun 2025, 10:30",
-      icon: "plus",
-      color: "purple",
-    },
-  ];
+      // Fetch technical specification files
+      if (data.technical_specification_file && Array.isArray(data.technical_specification_file)) {
+        for (const key of data.technical_specification_file) {
+          const result = await documentMasterService.getFileUrl(key);
+          if (result.success && result.url) {
+            docs.push({
+              key,
+              url: result.url,
+              name: key.split('/').pop() || key,
+            });
+          }
+        }
+      }
+
+      // Fetch product images
+      if (data.product_images && Array.isArray(data.product_images)) {
+        for (const key of data.product_images) {
+          const result = await documentMasterService.getFileUrl(key);
+          if (result.success && result.url) {
+            imgs.push({
+              key,
+              url: result.url,
+              name: key.split('/').pop() || key,
+            });
+          }
+        }
+      }
+
+      setDocumentUrls(docs);
+      setImageUrls(imgs);
+    } catch (error) {
+      console.error("Error fetching document URLs:", error);
+      message.error("Failed to load documents");
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
   const fetchComponentData = useCallback(async () => {
-    if (!id) {
-      message.error("Component ID is missing");
+    if (!code) {
+      message.error("Component code is missing");
       navigate("/components-master");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await componentMasterService.getComponentById(id);
+      const result = await componentMasterService.getComponentByCode(code);
 
       if (result.success && result.data) {
         const data = result.data;
-        // Helper function to safely extract string from object or string
         const extractString = (value: any, fallback: string = "N/A"): string => {
           if (!value) return fallback;
           if (typeof value === "string") return value;
@@ -235,33 +194,22 @@ const ComponentsMasterView: React.FC = () => {
           return fallback;
         };
 
-        // Extract string values first to prevent object rendering
-        const componentCode = data.code || data.componentCode || "N/A";
-        const componentName = extractString(data.componentName) || extractString(data.component_category) || extractString(data.component_type) || extractString(data.request_title) || "N/A";
-        const lifecycleStage = extractString(data.lifecycleStage) || extractString(data.component_category) || "N/A";
-        const manufacturer = extractString(data.manufacturer) || "N/A";
-        const location = extractString(data.location) || extractString((data as any).production_location) || "N/A";
-        const materialType = extractString(data.materialType) || extractString(data.bom_details?.[0]?.material_type) || "N/A";
-        const weight = extractString(data.weight) || (data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A");
-        const recyclability = extractString(data.recyclability) || "N/A";
-        const certificateStatus = extractString(data.certificateStatus) || "N/A";
-
-        // Transform API response to ComponentData format
-        // Spread original data first, then override with string values
         const transformedData: ComponentData = {
           ...data,
           id: data.id,
-          componentCode,
-          componentName,
-          lifecycleStage,
-          manufacturer,
-          location,
-          materialType,
-          weight,
-          recyclability,
-          certificateStatus,
+          componentCode: data.code || "N/A",
+          componentName: data.request_title || "N/A",
+          lifecycleStage: extractString(data.component_category) || "N/A",
+          manufacturer: extractString(data.manufacturer) || "N/A",
+          location: data.bom_details?.[0]?.production_location || "N/A",
+          materialType: data.bom_details?.[0]?.material_emission?.[0]?.material_type || "N/A",
+          weight: data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A",
+          recyclability: "N/A",
+          certificateStatus: data.status || "N/A",
         };
         setComponentData(transformedData);
+        setPcfSummary(calculatePCFSummary(transformedData));
+        await fetchDocumentUrls(transformedData);
       } else {
         message.error(result.message || "Failed to fetch component data");
         navigate("/components-master");
@@ -273,657 +221,592 @@ const ComponentsMasterView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate]);
+  }, [code, navigate]);
 
   useEffect(() => {
-    if (id) {
+    if (code) {
       fetchComponentData();
     }
-  }, [id, fetchComponentData]);
+  }, [code, fetchComponentData]);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return "green";
-      case "draft":
-        return "orange";
-      case "review":
-        return "purple";
-      case "verified":
-        return "green";
-      case "uploaded":
-        return "orange";
-      case "expired":
-        return "red";
-      case "active":
-        return "cyan";
-      case "archived":
-        return "default";
-      default:
-        return "default";
+  useEffect(() => {
+    if (bomId) {
+      setActiveTab("overview");
+    }
+  }, [bomId]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const d = new Date(dateString);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    } catch {
+      return "N/A";
     }
   };
 
+  const getStatusColor = (status: string) => {
+    const statusLower = status?.toLowerCase() || "";
+    if (statusLower === "completed" || statusLower === "approved" || statusLower === "verified" || statusLower === "valid") return "green";
+    if (statusLower === "draft" || statusLower === "uploaded") return "orange";
+    if (statusLower === "review" || statusLower === "pending") return "blue";
+    if (statusLower === "expired" || statusLower === "rejected") return "red";
+    return "default";
+  };
+
   const getProductIcon = (iconName: string) => {
-    const icons: { [key: string]: any } = {
-      wrench: Wrench,
-      zap: Zap,
-      settings: Settings,
-      file: FileText,
-    };
+    const icons: { [key: string]: any } = { wrench: Wrench, zap: Zap, settings: Settings, file: FileText };
     const IconComponent = icons[iconName] || FileText;
     return <IconComponent size={16} />;
   };
 
-  const getActionIcon = (iconName: string, color: string) => {
-    const icons: { [key: string]: any } = {
-      check: CheckCircle,
-      edit: Edit,
-      plus: Plus,
-    };
-    const IconComponent = icons[iconName] || FileText;
-    const colorMap: { [key: string]: string } = {
-      blue: "#3b82f6",
-      green: "#10b981",
-      orange: "#f97316",
-      purple: "#a855f7",
-    };
-    return <IconComponent size={16} style={{ color: colorMap[color] || "#666" }} />;
+  // Overview Tab
+  const renderOverviewTab = () => {
+    const bomUsage = componentData?.bom_details?.map((bom: any, idx: number) => ({
+      key: bom.id || idx,
+      id: bom.id,
+      materialNumber: bom.material_number || "N/A",
+      componentName: bom.component_name || "N/A",
+      componentCategory: bom.component_category || "N/A",
+      manufacturer: bom.manufacturer || "N/A",
+      weight: bom.weight_gms ? `${bom.weight_gms} gms` : "N/A",
+      price: bom.price ? `$${bom.price}` : "N/A",
+    })) || [];
+
+    return (
+      <div>
+        <Title level={4} className="mb-4">BOM Details</Title>
+        {bomUsage.length > 0 ? (
+          <Table
+            columns={[
+              { title: "Material Number", dataIndex: "materialNumber", key: "materialNumber", width: 150 },
+              { title: "Component Name", dataIndex: "componentName", key: "componentName", width: 200 },
+              { title: "Component Category", dataIndex: "componentCategory", key: "componentCategory", width: 150 },
+              { title: "Manufacturer", dataIndex: "manufacturer", key: "manufacturer", width: 150 },
+              { title: "Weight", dataIndex: "weight", key: "weight", width: 120 },
+              { title: "Price", dataIndex: "price", key: "price", width: 100 },
+            ]}
+            dataSource={bomUsage}
+            rowKey="key"
+            pagination={false}
+            scroll={{ x: 800 }}
+            rowClassName={(record: any) => record.id === bomId ? 'bg-green-50 border-l-4 border-green-500' : ''}
+          />
+        ) : (
+          <Empty description="No BOM items found" />
+        )}
+      </div>
+    );
   };
 
-  const getTimelineDotStyle = (color: string) => {
-    const colorMap: { [key: string]: { bg: string; border: string } } = {
-      blue: { bg: "#dbeafe", border: "#3b82f6" },
-      green: { bg: "#d1fae5", border: "#10b981" },
-      orange: { bg: "#fed7aa", border: "#f97316" },
-      purple: { bg: "#e9d5ff", border: "#a855f7" },
-    };
-    const colors = colorMap[color] || { bg: "#f3f4f6", border: "#666" };
-    return {
-      width: "32px",
-      height: "32px",
-      borderRadius: "50%",
-      backgroundColor: colors.bg,
-      border: `2px solid ${colors.border}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    };
-  };
-
-  // Overview Tab Content
-  const renderOverviewTab = () => (
-    <div>
-      {/* Component Details */}
-      <Card className="mb-6">
-        <Title level={4} className="mb-4">
-          Components Details
-        </Title>
-        <Row gutter={[24, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Component Code</Text>
-              <div className="text-lg font-semibold">{componentData?.componentCode}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Component Name</Text>
-              <div className="text-lg font-semibold text-green-600">
-                {componentData?.componentName}
-              </div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Lifecycle Stage</Text>
-              <div className="text-lg font-semibold">{componentData?.lifecycleStage}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Manufacturer</Text>
-              <div className="text-lg font-semibold">{componentData?.manufacturer}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Location</Text>
-              <div className="text-lg font-semibold">{componentData?.location}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Material Type</Text>
-              <div className="text-lg font-semibold">{componentData?.materialType}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Weight / Quantity</Text>
-              <div className="text-lg font-semibold">{componentData?.weight}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Recyclability</Text>
-              <div className="text-lg font-semibold">{componentData?.recyclability}</div>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <div>
-              <Text type="secondary">Certificate Status</Text>
-              <div className="text-lg font-semibold text-green-600">
-                {componentData?.certificateStatus}
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Component Used In */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <Title level={4} className="mb-0">
-            Component Used In
-          </Title>
-          <Space>
-            <Input
-              placeholder="Search here..."
-              prefix={<Search size={16} />}
-              className="w-64"
-            />
-            <Button type="text" icon={<MoreHorizontal size={16} />} />
-          </Space>
+  // PCF Data Tab
+  const renderPCFDataTab = () => {
+    if (!pcfSummary) {
+      return (
+        <div className="py-12">
+          <Empty description="No PCF data available" />
         </div>
-        <Table
-          columns={[
-            {
-              title: "PCF Request Number",
-              dataIndex: "pcfRequestNumber",
-              key: "pcfRequestNumber",
-            },
-            {
-              title: "Product Name",
-              dataIndex: "productName",
-              key: "productName",
-              render: (text: string, record: PCFUsage) => (
-                <Space>
-                  {getProductIcon(record.productIcon)}
-                  {text}
-                </Space>
-              ),
-            },
-            {
-              title: "Quantity Units",
-              dataIndex: "quantityUnits",
-              key: "quantityUnits",
-            },
-            {
-              title: "Status",
-              dataIndex: "status",
-              key: "status",
-              render: (status: string) => (
-                <Tag color={getStatusColor(status)}>{status}</Tag>
-              ),
-            },
-          ]}
-          dataSource={mockPCFUsage}
-          rowKey="pcfRequestNumber"
-          pagination={{
-            current: 1,
-            pageSize: 7,
-            total: 24,
-            showTotal: (total, range) =>
-              `Showing ${range[0]} to ${range[1]} of ${total} entries`,
-          }}
-        />
-      </Card>
-    </div>
-  );
+      );
+    }
 
-  // PCF Data Tab Content
-  const renderPCFDataTab = () => (
-    <div>
-      <Row gutter={16} className="mb-6">
-        {/* PCF Available Card */}
-        <Col xs={24} md={8}>
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <Title level={5} className="mb-0">
-                PCF Available
-              </Title>
-              <Tag color="green">Verified</Tag>
-            </div>
-            <Statistic
-              value={3.45e-4}
-              suffix="kgCO₂e"
-              valueStyle={{ color: "#52c41a", fontSize: "24px", fontWeight: "bold" }}
-            />
-            <Divider className="my-4" />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Text type="secondary">Last updated:</Text>
-                <Text>15 Jul 2025</Text>
-              </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Declared Unit:</Text>
-                <Text>Per Component</Text>
-              </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Standard:</Text>
-                <Text>ISO 14067</Text>
-              </div>
-              <div className="flex justify-between">
-                <Text type="secondary">Emission Stage:</Text>
-                <Text>Cradle-to-Gate</Text>
-              </div>
-            </div>
-          </Card>
-        </Col>
+    const total = pcfSummary.total_pcf || 1;
+    const isVerified = pcfSummary.status?.toLowerCase() === "approved";
 
-        {/* Verification Info Card */}
-        <Col xs={24} md={8}>
-          <Card>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Shield className="w-5 h-5 text-blue-600" />
-              </div>
-              <Title level={5} className="mb-0">
-                Verification Info
-              </Title>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <Text type="secondary">Certification:</Text>
-                <div>
-                  <Tag color="green">Verified</Tag>
-                </div>
-              </div>
-              <div>
-                <Text type="secondary">Last Updated:</Text>
-                <div className="font-semibold">15 Aug 2025</div>
-              </div>
-              <div>
-                <Text type="secondary">Data Quality:</Text>
-                <div className="font-semibold">High</div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-
-        {/* Quick Actions Card */}
-        <Col xs={24} md={8}>
-          <Card>
-            <Title level={5} className="mb-4">
-              Quick Actions
-            </Title>
-            <Space direction="vertical" className="w-full">
-              <Button
-                type="primary"
-                icon={<Download size={16} />}
-                block
-                className="bg-green-500 hover:bg-green-600"
-              >
-                Export PCF Report
-              </Button>
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                block
-                className="bg-green-500 hover:bg-green-600"
-              >
-                + Request Component PCF
-              </Button>
-              <Button
-                icon={<Eye size={16} />}
-                block
-              >
-                View Full PCF Details
-              </Button>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Lifecycle Breakdown */}
-      <Card>
-        <Title level={4} className="mb-4">
-          Lifecycle Breakdown
-        </Title>
-        <Table
-          columns={[
-            {
-              title: "Stage",
-              dataIndex: "stage",
-              key: "stage",
-            },
-            {
-              title: "PCF Value",
-              dataIndex: "pcfValue",
-              key: "pcfValue",
-            },
-            {
-              title: "Percentage",
-              dataIndex: "percentage",
-              key: "percentage",
-            },
-          ]}
-          dataSource={[
-            ...mockLifecycleBreakdown,
-            {
-              stage: "Total",
-              pcfValue: "3.45e-4 kgCO₂e",
-              percentage: "100%",
-            },
-          ]}
-          rowKey="stage"
-          pagination={false}
-          rowClassName={(record, index) =>
-            index === mockLifecycleBreakdown.length
-              ? "bg-green-500 text-white font-semibold"
-              : ""
-          }
-        />
-      </Card>
-    </div>
-  );
-
-  // Certificates Tab Content
-  const renderCertificatesTab = () => (
-    <div>
-      {/* Current Certificate */}
-      <Card className="mb-6">
-        <Title level={4} className="mb-4">
-          Certificates
-        </Title>
-        <Card className="bg-gray-50">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                <Puzzle className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <Title level={5} className="mb-2">
-                  {mockCertificate.name}
-                </Title>
-                <Space>
-                  <Tag color="green">{mockCertificate.status}</Tag>
-                  <Text type="secondary">•</Text>
-                  <Text type="secondary">Uploaded on {mockCertificate.uploadedDate}</Text>
-                </Space>
-              </div>
-            </div>
-            <Space>
-              <Button type="text" icon={<Eye size={16} />} />
-              <Button type="text" icon={<Download size={16} />} />
-            </Space>
-          </div>
-          <Divider className="my-4" />
-          <Row gutter={24}>
-            <Col xs={24} sm={12}>
-              <div className="space-y-3">
-                <div>
-                  <Text type="secondary">File Name:</Text>
-                  <div className="font-semibold">{mockCertificate.fileName}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Issue Date:</Text>
-                  <div className="font-semibold">{mockCertificate.issueDate}</div>
-                </div>
-              </div>
-            </Col>
-            <Col xs={24} sm={12}>
-              <div className="space-y-3">
-                <div>
-                  <Text type="secondary">Verified By:</Text>
-                  <div className="font-semibold">{mockCertificate.verifiedBy}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Expiry Date:</Text>
-                  <div className="font-semibold">{mockCertificate.expiryDate}</div>
-                </div>
-                <div>
-                  <Text type="secondary">File Size:</Text>
-                  <div className="font-semibold">{mockCertificate.fileSize}</div>
-                </div>
-                <div>
-                  <Text type="secondary">Days Until Expiry:</Text>
-                  <div className="font-semibold text-green-600">
-                    {mockCertificate.daysUntilExpiry}
-                  </div>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      </Card>
-
-      {/* Certificate History */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <Title level={4} className="mb-0">
-            Certificate History
-          </Title>
-          <Button
-            type="primary"
-            icon={<Share2 size={16} />}
-            className="bg-green-500 hover:bg-green-600"
-          >
-            Share Certificate
-          </Button>
-        </div>
-        <Table
-          columns={[
-            {
-              title: "Date",
-              dataIndex: "date",
-              key: "date",
-            },
-            {
-              title: "Action",
-              dataIndex: "action",
-              key: "action",
-              render: (action: string) => (
-                <Tag color={getStatusColor(action)}>{action}</Tag>
-              ),
-            },
-            {
-              title: "File Name",
-              dataIndex: "fileName",
-              key: "fileName",
-            },
-            {
-              title: "User",
-              dataIndex: "user",
-              key: "user",
-            },
-            {
-              title: "Status",
-              dataIndex: "status",
-              key: "status",
-              render: (status: string) => (
-                <Tag color={getStatusColor(status)}>{status}</Tag>
-              ),
-            },
-          ]}
-          dataSource={mockCertificateHistory}
-          rowKey="date"
-          pagination={false}
-        />
-      </Card>
-    </div>
-  );
-
-  // History Tab Content
-  const renderHistoryTab = () => (
-    <div>
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <Title level={4} className="mb-0">
-            Component History
-          </Title>
-          <Button
-            type="primary"
-            icon={<Download size={16} />}
-            className="bg-green-500 hover:bg-green-600"
-          >
-            Export History
-          </Button>
-        </div>
-
-        {/* Filters */}
+    return (
+      <div>
         <Row gutter={16} className="mb-6">
-          <Col xs={24} sm={12} md={6}>
-            <Select placeholder="Filter by Action" className="w-full" defaultValue="all">
-              <Option value="all">All Actions</Option>
-              <Option value="created">Created</Option>
-              <Option value="updated">Updated</Option>
-              <Option value="certificate">Certificate</Option>
-            </Select>
+          {/* PCF Available Card */}
+          <Col xs={24} md={8}>
+            <Card className="h-full border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-green-600 font-semibold">PCF Available</span>
+                <Tag color={isVerified ? "green" : "gold"}>{isVerified ? "Verified" : "Pending"}</Tag>
+              </div>
+              <div className="text-3xl font-bold text-gray-900 mb-2">
+                {pcfSummary.total_pcf.toExponential(2)} kgCO<sub>2</sub>e
+              </div>
+              <Divider className="my-4" />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Text type="secondary">Last updated:</Text>
+                  <Text>{formatDate(pcfSummary.last_updated)}</Text>
+                </div>
+                <div className="flex justify-between">
+                  <Text type="secondary">BOM Items:</Text>
+                  <Text>{componentData?.bom_details?.length || 0}</Text>
+                </div>
+              </div>
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select placeholder="Date Range" className="w-full" defaultValue="all">
-              <Option value="all">All Time</Option>
-              <Option value="week">Last Week</Option>
-              <Option value="month">Last Month</Option>
-            </Select>
+
+          {/* Verification Info */}
+          <Col xs={24} md={8}>
+            <Card className="h-full border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-green-600" />
+                </div>
+                <span className="font-semibold text-gray-900">Verification Info</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Text type="secondary">Status:</Text>
+                  <Tag color={isVerified ? "green" : "gold"}>{isVerified ? "Verified" : "Pending"}</Tag>
+                </div>
+                <div className="flex justify-between">
+                  <Text type="secondary">Last Updated:</Text>
+                  <Text strong>{formatDate(pcfSummary.last_updated)}</Text>
+                </div>
+                <div className="flex justify-between">
+                  <Text type="secondary">Created By:</Text>
+                  <Text strong>{componentData?.createdby?.user_name || "N/A"}</Text>
+                </div>
+              </div>
+            </Card>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select placeholder="User" className="w-full" defaultValue="all">
-              <Option value="all">All Users</Option>
-              <Option value="admin">Admin User</Option>
-              <Option value="qa">QA Manager</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Input
-              placeholder="Search by keyword..."
-              prefix={<Search size={16} />}
-            />
+
+          {/* Quick Actions */}
+          <Col xs={24} md={8}>
+            <Card className="h-full border border-gray-200">
+              <span className="font-semibold text-gray-900 block mb-4">Quick Actions</span>
+              <Space direction="vertical" className="w-full">
+                <Button type="primary" icon={<Download size={16} />} block className="shadow-lg shadow-green-600/20">
+                  Export PCF Report
+                </Button>
+                <Button icon={<Plus size={16} />} block onClick={() => navigate("/components-master/new")}>
+                  Request Component PCF
+                </Button>
+                <Button icon={<Eye size={16} />} block>
+                  View Full PCF Details
+                </Button>
+              </Space>
+            </Card>
           </Col>
         </Row>
 
-        {/* Timeline */}
-        <Timeline
-          items={mockHistory.map((entry) => ({
-            dot: (
-              <div style={getTimelineDotStyle(entry.color)}>
-                {getActionIcon(entry.icon, entry.color)}
-              </div>
-            ),
-            children: (
-              <div className="pb-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Text strong>{entry.user}</Text>
-                      <Tag color={entry.color}>{entry.action}</Tag>
-                    </div>
-                    <Text type="secondary">{entry.description}</Text>
-                  </div>
-                  <Text type="secondary" className="text-sm">
-                    {entry.date}
-                  </Text>
-                </div>
-              </div>
-            ),
-          }))}
-        />
+        {/* BOM Items Emission Breakdown */}
+        <Card className="border border-gray-200">
+          <Title level={4} className="mb-4">Component Emission Breakdown</Title>
+          <div className="overflow-x-auto">
+            {(() => {
+              // Prepare BOM data
+              const bomItems = componentData?.bom_details?.map((bom: any, idx: number) => {
+                const pcfTotal = bom.pcf_total_emission_calculation || {};
+                return {
+                  id: bom.id || idx,
+                  componentName: bom.component_name || "N/A",
+                  materialNumber: bom.material_number || "N/A",
+                  materialEmission: pcfTotal.material_value || 0,
+                  productionEmission: pcfTotal.production_value || 0,
+                  logisticEmission: pcfTotal.logistic_value || 0,
+                  packagingEmission: pcfTotal.packaging_value || 0,
+                  wasteEmission: pcfTotal.waste_value || 0,
+                  totalPcf: pcfTotal.total_pcf_value || 0,
+                };
+              }) || [];
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between mt-6">
-          <Text type="secondary">Showing 1 to 7 of 24 entries</Text>
-          <Space>
-            <Button icon={<ArrowLeft size={16} />} />
-            <Button type="primary" className="bg-green-500">
-              1
-            </Button>
-            <Button>2</Button>
-            <Button>3</Button>
-            <Button icon={<ChevronRight size={16} />} />
-          </Space>
+              // Calculate totals
+              const totalMaterial = bomItems.reduce((sum, item) => sum + item.materialEmission, 0);
+              const totalProduction = bomItems.reduce((sum, item) => sum + item.productionEmission, 0);
+              const totalLogistic = bomItems.reduce((sum, item) => sum + item.logisticEmission, 0);
+              const totalPackaging = bomItems.reduce((sum, item) => sum + item.packagingEmission, 0);
+              const totalWaste = bomItems.reduce((sum, item) => sum + item.wasteEmission, 0);
+              const grandTotal = bomItems.reduce((sum, item) => sum + item.totalPcf, 0);
+
+              // Build columns dynamically
+              const columns: any[] = [
+                {
+                  title: "Emission Category",
+                  dataIndex: "category",
+                  key: "category",
+                  width: 200,
+                  fixed: "left",
+                  render: (text: string) => <span className="font-medium">{text}</span>,
+                },
+              ];
+
+              // Add a column for each BOM item
+              bomItems.forEach((bom) => {
+                columns.push({
+                  title: (
+                    <div>
+                      <div className="font-semibold">{bom.componentName}</div>
+                      <div className="text-xs font-normal text-gray-400">{bom.materialNumber}</div>
+                    </div>
+                  ),
+                  dataIndex: bom.id,
+                  key: bom.id,
+                  width: 150,
+                  align: "right" as const,
+                  render: (val: number) => val.toFixed(6),
+                });
+              });
+
+              // Add total column
+              columns.push({
+                title: "Total",
+                dataIndex: "total",
+                key: "total",
+                width: 150,
+                align: "right" as const,
+                fixed: "right",
+                render: (val: number) => <span className="font-semibold text-green-600">{val.toFixed(6)}</span>,
+              });
+
+              // Build rows (transposed)
+              const dataSource = [
+                {
+                  key: "material",
+                  category: "Material Emission (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.materialEmission])),
+                  total: totalMaterial,
+                },
+                {
+                  key: "production",
+                  category: "Production Emission (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.productionEmission])),
+                  total: totalProduction,
+                },
+                {
+                  key: "logistics",
+                  category: "Logistics Emission (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.logisticEmission])),
+                  total: totalLogistic,
+                },
+                {
+                  key: "packaging",
+                  category: "Packaging Emission (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.packagingEmission])),
+                  total: totalPackaging,
+                },
+                {
+                  key: "waste",
+                  category: "Waste Emission (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.wasteEmission])),
+                  total: totalWaste,
+                },
+                {
+                  key: "total",
+                  category: "Total PCF (kgCO₂e)",
+                  ...Object.fromEntries(bomItems.map(bom => [bom.id, bom.totalPcf])),
+                  total: grandTotal,
+                },
+              ];
+
+              return (
+                <Table
+                  columns={columns}
+                  dataSource={dataSource}
+                  pagination={false}
+                  scroll={{ x: Math.max(600, 350 + bomItems.length * 150) }}
+                  rowClassName={(record) => record.key === "total" ? "bg-green-50 font-semibold" : ""}
+                />
+              );
+            })()}
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  // Certificates Tab
+  const renderCertificatesTab = () => {
+    if (loadingDocuments) {
+      return (
+        <div className="py-12 text-center">
+          <div className="text-gray-500">Loading documents...</div>
         </div>
-      </Card>
-    </div>
-  );
+      );
+    }
+
+    const hasDocuments = documentUrls.length > 0 || imageUrls.length > 0;
+
+    if (!hasDocuments) {
+      return (
+        <div className="py-12">
+          <Empty
+            image={<FileText size={48} className="text-gray-300 mx-auto" />}
+            description={
+              <div className="text-center">
+                <p className="text-gray-500 mb-2">No documents available</p>
+                <p className="text-gray-400 text-sm">Documents will appear here once uploaded</p>
+              </div>
+            }
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {/* Technical Specification Files */}
+        {documentUrls.length > 0 && (
+          <Card className="mb-6 border border-gray-200">
+            <Title level={4} className="mb-4">Technical Specification Files</Title>
+            <Table
+              columns={[
+                {
+                  title: "File Name",
+                  dataIndex: "name",
+                  key: "name",
+                  render: (text: string) => (
+                    <Space>
+                      <FileText size={16} className="text-blue-500" />
+                      <Text>{text}</Text>
+                    </Space>
+                  )
+                },
+                {
+                  title: "Actions",
+                  key: "actions",
+                  width: 200,
+                  render: (_: any, record: { key: string; url: string; name: string }) => (
+                    <Space>
+                      <Button
+                        type="link"
+                        icon={<Eye size={16} />}
+                        onClick={() => window.open(record.url, '_blank')}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        type="link"
+                        icon={<Download size={16} />}
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = record.url;
+                          link.download = record.name;
+                          link.click();
+                        }}
+                      >
+                        Download
+                      </Button>
+                    </Space>
+                  )
+                },
+              ]}
+              dataSource={documentUrls}
+              rowKey="key"
+              pagination={false}
+            />
+          </Card>
+        )}
+
+        {/* Product Images */}
+        {imageUrls.length > 0 && (
+          <Card className="border border-gray-200">
+            <Title level={4} className="mb-4">Product Images</Title>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {imageUrls.map((img) => (
+                <div key={img.key} className="border border-gray-200 rounded-lg p-2 hover:shadow-md transition-shadow">
+                  <Image
+                    src={img.url}
+                    alt={img.name}
+                    className="w-full h-48 object-cover rounded"
+                    preview={{
+                      mask: <Eye size={20} />,
+                    }}
+                  />
+                  <div className="mt-2 text-sm text-gray-600 truncate" title={img.name}>
+                    {img.name}
+                  </div>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<Download size={14} />}
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = img.url;
+                      link.download = img.name;
+                      link.click();
+                    }}
+                    className="p-0 mt-1"
+                  >
+                    Download
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
 
   if (loading || !componentData) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">Loading...</div>
+      <div className="flex justify-center items-center h-screen">
+        <Spin size="large" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button
-            type="text"
-            icon={<ArrowLeft size={16} />}
-            onClick={() => navigate("/components-master")}
-          />
-          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-            <Puzzle className="w-6 h-6 text-white" />
+    <div className="p-6 mx-auto bg-gray-50 min-h-screen">
+      {/* Back Button */}
+      <Button
+        type="text"
+        icon={<ChevronLeft size={16} />}
+        onClick={() => navigate("/components-master")}
+        className="mb-4 hover:bg-gray-200"
+      >
+        Back to Components
+      </Button>
+
+      {/* Header Card */}
+      <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Puzzle size={32} className="text-green-600" />
+            </div>
+            <div>
+              <Title level={3} className="m-0 text-gray-800">
+                {componentData.componentName}
+              </Title>
+              <Text type="secondary" className="text-gray-500">
+                {componentData.componentCode}
+              </Text>
+            </div>
           </div>
-          <div>
-            <Title level={2} className="!mb-0">
-              Components Master
-            </Title>
-            <Text type="secondary">
-              Streamlined tracking and administration for all component details
-            </Text>
+
+          <div className="flex flex-wrap gap-3">
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-green-100">
+              <span className="bg-green-50 p-2 rounded-md text-green-600 w-10 h-10 flex items-center justify-center">
+                <CheckCircle size={16} className="text-green-600" />
+              </span>
+              <div>
+                <div className="text-xs text-gray-500 font-medium">Status</div>
+                <div className="text-sm font-bold text-gray-800">
+                  {componentData.status || "Draft"}
+                </div>
+              </div>
+            </div>
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-blue-100">
+              <span className="bg-blue-50 p-2 rounded-md text-blue-600 w-10 h-10 flex items-center justify-center">
+                <Layers size={16} className="text-blue-600" />
+              </span>
+              <div>
+                <div className="text-xs text-gray-500 font-medium">BOM Items</div>
+                <div className="text-sm font-bold text-gray-800">
+                  {componentData.bom_details?.length || 0}
+                </div>
+              </div>
+            </div>
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-orange-100">
+              <span className="bg-orange-50 p-2 rounded-md text-orange-600 w-10 h-10 flex items-center justify-center">
+                <AlertTriangle size={16} className="text-orange-600" />
+              </span>
+              <div>
+                <div className="text-xs text-gray-500 font-medium">Priority</div>
+                <div className="text-sm font-bold text-gray-800">
+                  {componentData.priority || "N/A"}
+                </div>
+              </div>
+            </div>
+            <div className="bg-white px-2 py-2 rounded-lg flex items-center gap-2 border border-purple-100">
+              <span className="bg-purple-50 p-2 rounded-md text-purple-600 w-10 h-10 flex items-center justify-center">
+                <User size={16} className="text-purple-600" />
+              </span>
+              <div>
+                <div className="text-xs text-gray-500 font-medium">Created By</div>
+                <div className="text-sm font-bold text-gray-800">
+                  {componentData.createdby?.user_name || "N/A"}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <Space>
-          <Button icon={<Edit size={16} />}>Edit</Button>
-          <Button danger icon={<Trash2 size={16} />}>
-            Delete
-          </Button>
-          <Button
-            type="primary"
-            icon={<Upload size={16} />}
-            className="bg-green-500 hover:bg-green-600"
-          >
-            Upload
-          </Button>
-        </Space>
-      </div>
 
-      {/* Tabs */}
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={[
-          {
-            key: "overview",
-            label: "Overview",
-            children: renderOverviewTab(),
-          },
-          {
-            key: "pcf-data",
-            label: "PCF Data",
-            children: renderPCFDataTab(),
-          },
-          {
-            key: "certificates",
-            label: "Certificates",
-            children: renderCertificatesTab(),
-          },
-          {
-            key: "history",
-            label: "History",
-            children: renderHistoryTab(),
-          },
-        ]}
-        className="components-master-tabs"
-        style={{
-          marginTop: "24px",
-        }}
-      />
+        <Divider className="my-6" />
+
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              PCF Code
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.componentCode}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Product Code
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.product_code || "N/A"}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Due Date
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.due_date ? formatDate(componentData.due_date) : "N/A"}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Request Organization
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.request_organization || "N/A"}
+            </Text>
+          </Col>
+        </Row>
+
+        <Divider className="my-6" />
+
+        <Row gutter={[24, 24]}>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Product Category
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.product_category?.name || "N/A"}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Component Category
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.component_category?.name || "N/A"}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Component Type
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.component_type?.name || "N/A"}
+            </Text>
+          </Col>
+          <Col xs={24} md={6}>
+            <Text type="secondary" className="block text-xs uppercase font-bold mb-1">
+              Created Date
+            </Text>
+            <Text className="text-gray-800 font-medium">
+              {componentData.created_date ? formatDate(componentData.created_date) : "N/A"}
+            </Text>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Tabs Card */}
+      <Card className="shadow-sm rounded-xl border-gray-200">
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { key: "overview", label: "Overview", children: renderOverviewTab() },
+            { key: "pcf-data", label: "PCF Data", children: renderPCFDataTab() },
+            { key: "certificates", label: "Certificates", children: renderCertificatesTab() },
+          ]}
+        />
+      </Card>
     </div>
   );
 };

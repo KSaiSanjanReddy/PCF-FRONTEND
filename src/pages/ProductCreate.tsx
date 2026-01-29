@@ -378,6 +378,19 @@ const ProductCreate: React.FC = () => {
                       />
                     </Form.Item>
                   </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Product Status (Optional)"
+                      name="product_status"
+                    >
+                      <Select size="large" placeholder="Select status" allowClear>
+                        <Select.Option value="">No Status</Select.Option>
+                        <Select.Option value="Active">Active</Select.Option>
+                        <Select.Option value="Inactive">Inactive</Select.Option>
+                        <Select.Option value="Draft">Draft</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
                 </Row>
 
               </div>

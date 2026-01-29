@@ -49,7 +49,9 @@ const DocumentMaster: React.FC = () => {
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<PCFDocumentItem | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<PCFDocumentItem | null>(
+    null,
+  );
   const [techSpecFiles, setTechSpecFiles] = useState<string[]>([]);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -61,7 +63,10 @@ const DocumentMaster: React.FC = () => {
   const fetchDocuments = async (page: number = 1, pageSize: number = 20) => {
     setLoading(true);
     try {
-      const result = await documentMasterService.getDocumentList(page, pageSize);
+      const result = await documentMasterService.getDocumentList(
+        page,
+        pageSize,
+      );
       if (result.status && result.data) {
         setDocuments(result.data.data);
         setPagination({
@@ -101,7 +106,7 @@ const DocumentMaster: React.FC = () => {
         } catch (error) {
           console.error(`Error fetching URL for ${file}:`, error);
         }
-      })
+      }),
     );
 
     setFileUrls(urls);
@@ -110,16 +115,16 @@ const DocumentMaster: React.FC = () => {
 
   const openDrawer = async (record: PCFDocumentItem) => {
     setSelectedRecord(record);
-    setTechSpecFiles([...record.technical_specification_file]);
-    setProductImages([...record.product_images]);
+    setTechSpecFiles([...(record.technical_specification_file || [])]);
+    setProductImages([...(record.product_images || [])]);
     setHasChanges(false);
     setFileUrls({});
     setDrawerOpen(true);
 
     // Fetch signed URLs for all files
     const allFiles = [
-      ...record.technical_specification_file,
-      ...record.product_images,
+      ...(record.technical_specification_file || []),
+      ...(record.product_images || []),
     ];
     if (allFiles.length > 0) {
       fetchFileUrls(allFiles);
@@ -128,7 +133,11 @@ const DocumentMaster: React.FC = () => {
 
   const closeDrawer = () => {
     if (hasChanges) {
-      if (!window.confirm("You have unsaved changes. Are you sure you want to close?")) {
+      if (
+        !window.confirm(
+          "You have unsaved changes. Are you sure you want to close?",
+        )
+      ) {
         return;
       }
     }
@@ -178,7 +187,10 @@ const DocumentMaster: React.FC = () => {
     setHasChanges(true);
   };
 
-  const handleUpload = async (file: File, type: "techSpec" | "productImage") => {
+  const handleUpload = async (
+    file: File,
+    type: "techSpec" | "productImage",
+  ) => {
     setUploading(true);
     try {
       const result = await pcfService.uploadBOMFile(file);
@@ -259,7 +271,9 @@ const DocumentMaster: React.FC = () => {
             <FileText size={20} className="text-green-600" />
           </div>
           <Space direction="vertical" size={0}>
-            <span className="font-medium text-gray-900">{record.request_title}</span>
+            <span className="font-medium text-gray-900">
+              {record.request_title}
+            </span>
             <span className="text-xs text-gray-500">{record.code}</span>
           </Space>
         </Space>
@@ -269,7 +283,9 @@ const DocumentMaster: React.FC = () => {
       title: "Product Code",
       dataIndex: "product_code",
       key: "product_code",
-      render: (text: string) => <span className="text-gray-700">{text || "-"}</span>,
+      render: (text: string) => (
+        <span className="text-gray-700">{text || "-"}</span>
+      ),
     },
     {
       title: "Status",
@@ -349,7 +365,9 @@ const DocumentMaster: React.FC = () => {
                   <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Document Master</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Document Master
+                  </h1>
                   <p className="text-gray-500">
                     Manage documents attached to PCF requests
                   </p>
@@ -366,8 +384,12 @@ const DocumentMaster: React.FC = () => {
                     <File className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">Total PCFs</div>
-                    <div className="text-xl font-bold text-blue-700">{stats.total}</div>
+                    <div className="text-xs text-blue-600 font-medium">
+                      Total PCFs
+                    </div>
+                    <div className="text-xl font-bold text-blue-700">
+                      {stats.total}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -379,8 +401,12 @@ const DocumentMaster: React.FC = () => {
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-green-600 font-medium">Approved</div>
-                    <div className="text-xl font-bold text-green-700">{stats.approved}</div>
+                    <div className="text-xs text-green-600 font-medium">
+                      Approved
+                    </div>
+                    <div className="text-xl font-bold text-green-700">
+                      {stats.approved}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -392,8 +418,12 @@ const DocumentMaster: React.FC = () => {
                     <Clock className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-amber-600 font-medium">Pending</div>
-                    <div className="text-xl font-bold text-amber-700">{stats.pending}</div>
+                    <div className="text-xs text-amber-600 font-medium">
+                      Pending
+                    </div>
+                    <div className="text-xl font-bold text-amber-700">
+                      {stats.pending}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -404,7 +434,9 @@ const DocumentMaster: React.FC = () => {
         {/* Documents Section */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <h2 className="text-lg font-semibold text-gray-900">PCF Documents</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              PCF Documents
+            </h2>
             <Space wrap>
               <Input
                 prefix={<Search size={16} className="text-gray-400" />}
@@ -445,29 +477,51 @@ const DocumentMaster: React.FC = () => {
             <div className="text-gray-500 text-sm">
               Showing{" "}
               <span className="font-medium text-gray-900">
-                {Math.min((pagination.current - 1) * pagination.pageSize + 1, pagination.total)}
+                {Math.min(
+                  (pagination.current - 1) * pagination.pageSize + 1,
+                  pagination.total,
+                )}
               </span>{" "}
               to{" "}
               <span className="font-medium text-gray-900">
-                {Math.min(pagination.current * pagination.pageSize, pagination.total)}
+                {Math.min(
+                  pagination.current * pagination.pageSize,
+                  pagination.total,
+                )}
               </span>{" "}
-              of <span className="font-medium text-gray-900">{pagination.total}</span> entries
+              of{" "}
+              <span className="font-medium text-gray-900">
+                {pagination.total}
+              </span>{" "}
+              entries
             </div>
             <div className="flex items-center gap-1">
               <button
                 disabled={pagination.current === 1}
-                onClick={() => handleTableChange({ ...pagination, current: pagination.current - 1 })}
+                onClick={() =>
+                  handleTableChange({
+                    ...pagination,
+                    current: pagination.current - 1,
+                  })
+                }
                 className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Previous
               </button>
               {Array.from(
-                { length: Math.min(Math.ceil(pagination.total / pagination.pageSize), 5) },
-                (_, i) => i + 1
+                {
+                  length: Math.min(
+                    Math.ceil(pagination.total / pagination.pageSize),
+                    5,
+                  ),
+                },
+                (_, i) => i + 1,
               ).map((pageNum) => (
                 <button
                   key={pageNum}
-                  onClick={() => handleTableChange({ ...pagination, current: pageNum })}
+                  onClick={() =>
+                    handleTableChange({ ...pagination, current: pageNum })
+                  }
                   className={`w-9 h-9 rounded-lg font-medium transition-all ${
                     pagination.current === pageNum
                       ? "bg-green-600 text-white shadow-lg shadow-green-600/20"
@@ -478,8 +532,16 @@ const DocumentMaster: React.FC = () => {
                 </button>
               ))}
               <button
-                disabled={pagination.current >= Math.ceil(pagination.total / pagination.pageSize)}
-                onClick={() => handleTableChange({ ...pagination, current: pagination.current + 1 })}
+                disabled={
+                  pagination.current >=
+                  Math.ceil(pagination.total / pagination.pageSize)
+                }
+                onClick={() =>
+                  handleTableChange({
+                    ...pagination,
+                    current: pagination.current + 1,
+                  })
+                }
                 className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-green-600/20"
               >
                 Next
@@ -497,8 +559,12 @@ const DocumentMaster: React.FC = () => {
               <FileText size={20} className="text-green-600" />
             </div>
             <div>
-              <div className="font-semibold text-gray-900">{selectedRecord?.code}</div>
-              <div className="text-sm text-gray-500">{selectedRecord?.request_title}</div>
+              <div className="font-semibold text-gray-900">
+                {selectedRecord?.code}
+              </div>
+              <div className="text-sm text-gray-500">
+                {selectedRecord?.request_title}
+              </div>
             </div>
           </div>
         }
@@ -514,7 +580,7 @@ const DocumentMaster: React.FC = () => {
               onClick={handleSaveDocuments}
               loading={saving}
               disabled={!hasChanges}
-              className="shadow-lg shadow-green-600/20"
+              className="shadow-lg shadow-green-600/20 !text-white"
             >
               Save Changes
             </Button>
@@ -539,8 +605,13 @@ const DocumentMaster: React.FC = () => {
               <div className="space-y-2">
                 {techSpecFiles.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                    <FileType size={32} className="mx-auto text-gray-400 mb-2" />
-                    <p className="text-gray-500 text-sm">No technical specification files</p>
+                    <FileType
+                      size={32}
+                      className="mx-auto text-gray-400 mb-2"
+                    />
+                    <p className="text-gray-500 text-sm">
+                      No technical specification files
+                    </p>
                   </div>
                 ) : (
                   techSpecFiles.map((file, index) => (
@@ -596,7 +667,10 @@ const DocumentMaster: React.FC = () => {
               <div className="space-y-2">
                 {productImages.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2" />
+                    <ImageIcon
+                      size={32}
+                      className="mx-auto text-gray-400 mb-2"
+                    />
                     <p className="text-gray-500 text-sm">No product images</p>
                   </div>
                 ) : (
