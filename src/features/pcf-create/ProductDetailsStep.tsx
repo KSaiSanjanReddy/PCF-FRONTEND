@@ -108,6 +108,12 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   }, [initialValues, form]);
 
   const handleSave = () => {
+    // Validate BOM data first
+    if (!bomData || bomData.length === 0) {
+      message.error("Please import a BOM file with at least one component before proceeding");
+      return;
+    }
+
     form.validateFields().then((values) => {
       onSave({ ...values, bomData });
     });
@@ -615,12 +621,14 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
             </div>
             <div className="w-px h-8 bg-gray-200"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <ClipboardList className="w-4 h-4 text-green-600" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bomData.length > 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                <ClipboardList className={`w-4 h-4 ${bomData.length > 0 ? 'text-green-600' : 'text-red-600'}`} />
               </div>
               <div>
                 <p className="text-xs text-gray-500">BOM Items</p>
-                <p className="text-sm font-semibold text-gray-900">{bomData.length} components</p>
+                <p className={`text-sm font-semibold ${bomData.length > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                  {bomData.length > 0 ? `${bomData.length} components` : 'Required *'}
+                </p>
               </div>
             </div>
           </div>
@@ -639,7 +647,11 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
               type="primary"
               size="large"
               onClick={handleSave}
-              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              disabled={bomData.length === 0}
+              className={bomData.length === 0
+                ? "!bg-gray-300 !border-gray-300 !text-gray-500 cursor-not-allowed"
+                : "!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              }
               icon={<ArrowRight className="w-4 h-4" />}
               iconPosition="end"
             >

@@ -1,18 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
-  Card,
   Button,
   Select,
-  Pagination,
   Space,
   Tag,
-  Divider,
   DatePicker,
   Spin,
   message,
+  Input,
 } from "antd";
-import { ConfigProvider } from "antd";
 import {
   ClipboardList,
   Clock,
@@ -24,11 +21,13 @@ import {
   Battery,
   Lightbulb,
   Microchip,
+  Search,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import pcfService from "../lib/pcfService";
 import type { PCFBOMItem } from "../lib/pcfService";
+import dayjs from "dayjs";
 
 interface PCFRequestItem {
   id: string;
@@ -40,18 +39,28 @@ interface PCFRequestItem {
   submittedOn: string;
 }
 
+interface PCFFilters {
+  is_approved?: boolean;
+  is_rejected?: boolean;
+  is_draft?: boolean | null;
+  search?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
 const PCFRequest: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const [pageSize, setPageSize] = useState(10);
-  const [dateRange, setDateRange] = useState<
-    [string | null, string | null] | null
-  >(null);
   const [pcfRequests, setPcfRequests] = useState<PCFRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
 
   // Helper function to get product icon based on category
   const getProductIcon = (categoryName: string): React.ReactNode => {
@@ -88,11 +97,45 @@ const PCFRequest: React.FC = () => {
     return "draft";
   };
 
+  // Build filters object based on current state
+  const buildFilters = useCallback((): PCFFilters => {
+    const filters: PCFFilters = {};
+
+    // Status filter - map to API params
+    if (statusFilter === "completed") {
+      filters.is_approved = true;
+    } else if (statusFilter === "rejected") {
+      filters.is_rejected = true;
+    } else if (statusFilter === "draft") {
+      filters.is_draft = true;
+    } else if (statusFilter === "in-progress") {
+      // In-progress means not approved, not rejected, not draft (pending)
+      filters.is_approved = false;
+      filters.is_rejected = false;
+      filters.is_draft = false;
+    }
+    // "all" - no status filters
+
+    // Search filter
+    if (searchTerm.trim()) {
+      filters.search = searchTerm.trim();
+    }
+
+    // Date range filter
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      filters.from_date = dateRange[0].format("YYYY-MM-DD");
+      filters.to_date = dateRange[1].format("YYYY-MM-DD");
+    }
+
+    return filters;
+  }, [statusFilter, searchTerm, dateRange]);
+
   // Fetch PCF BOM list from API
   const fetchPCFList = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await pcfService.getPCFBOMList(currentPage, pageSize);
+      const filters = buildFilters();
+      const result = await pcfService.getPCFBOMList(currentPage, pageSize, filters);
 
       if (result.success && result.data && Array.isArray(result.data)) {
         // Helper function to format date
@@ -190,12 +233,32 @@ const PCFRequest: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, buildFilters]);
 
-  // Load data on component mount and when page changes
+  // Load data on component mount and when page/filters change
   useEffect(() => {
     fetchPCFList();
   }, [fetchPCFList]);
+
+  // Reset to page 1 when filters change
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchPCFList();
+  };
+
+  const handleDateRangeChange = (dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) => {
+    setDateRange(dates);
+    setCurrentPage(1);
+  };
 
   // Calculate status counts from current data
   const statusCounts = {
@@ -204,12 +267,6 @@ const PCFRequest: React.FC = () => {
     completed: pcfRequests.filter((item) => item.status === "completed").length,
     pending: pcfRequests.filter((item) => item.status === "draft").length,
   };
-
-  // Filter requests based on status filter
-  const filteredRequests =
-    statusFilter === "all"
-      ? pcfRequests
-      : pcfRequests.filter((item) => item.status === statusFilter);
 
   const getStatusTag = (status: string) => {
     const statusConfig = {
@@ -367,46 +424,36 @@ const PCFRequest: React.FC = () => {
               PCF Requests
             </h2>
             <Space wrap>
+              <Input
+                placeholder="Search code, title, category..."
+                prefix={<Search size={16} className="text-gray-400" />}
+                size="large"
+                className="w-[250px]"
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onPressEnter={handleSearch}
+                allowClear
+              />
               <DatePicker.RangePicker
                 size="large"
                 format="DD MMM YYYY"
                 placeholder={["Start Date", "End Date"]}
-                onChange={(dates) => {
-                  if (dates) {
-                    setDateRange([
-                      dates[0]?.format("YYYY-MM-DD") || null,
-                      dates[1]?.format("YYYY-MM-DD") || null,
-                    ]);
-                  } else {
-                    setDateRange(null);
-                  }
-                }}
-                className="w-[240px]"
+                value={dateRange}
+                onChange={handleDateRangeChange}
+                className="w-[260px]"
                 allowClear
               />
               <Select
-                defaultValue="All Status"
                 className="w-[150px]"
                 size="large"
                 value={statusFilter}
-                onChange={(value) => setStatusFilter(value)}
+                onChange={handleStatusFilterChange}
                 options={[
                   { label: "All Status", value: "all" },
                   { label: "In Progress", value: "in-progress" },
                   { label: "Completed", value: "completed" },
                   { label: "Draft", value: "draft" },
                   { label: "Rejected", value: "rejected" },
-                ]}
-              />
-              <Select
-                defaultValue="All Categories"
-                className="w-[160px]"
-                size="large"
-                options={[
-                  { label: "All Categories", value: "all" },
-                  { label: "Electronics", value: "electronics" },
-                  { label: "Mechanical", value: "mechanical" },
-                  { label: "Power Systems", value: "power" },
                 ]}
               />
               <Button
@@ -424,7 +471,7 @@ const PCFRequest: React.FC = () => {
           <Spin spinning={isLoading}>
             <Table
               columns={columns}
-              dataSource={filteredRequests}
+              dataSource={pcfRequests}
               pagination={false}
               scroll={{ x: 1200 }}
               rowKey="id"
