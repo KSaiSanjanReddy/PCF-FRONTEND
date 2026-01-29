@@ -158,3 +158,37 @@ export async function deleteSetup(
   const data = await res.json();
   return !!(data?.success ?? data?.status);
 }
+
+export async function bulkAddSetup(
+  entity: SetupEntity,
+  items: SetupItem[]
+): Promise<{ success: boolean; message: string; addedCount?: number }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/data-setup/${entity}/bulk/add`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(items.map(item => ({
+        code: item.code,
+        name: item.name,
+        description: item.description ?? "",
+      }))),
+    });
+    const data = await res.json();
+    if (data?.success || data?.status) {
+      return {
+        success: true,
+        message: data?.message || "Bulk import successful",
+        addedCount: data?.data?.addedCount || items.length,
+      };
+    }
+    return {
+      success: false,
+      message: data?.message || "Bulk import failed",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "An error occurred during bulk import",
+    };
+  }
+}
