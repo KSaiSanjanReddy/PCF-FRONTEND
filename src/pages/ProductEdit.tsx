@@ -373,25 +373,24 @@ const ProductEdit: React.FC = () => {
                             {/* Status & Settings */}
                             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Status & Settings</h3>
-                                <Form.Item label="Product Status" className="mb-4">
-                                    <Select defaultValue="Active" size="large">
+                                <Form.Item label="Product Status" name="product_status" className="mb-4">
+                                    <Select size="large" placeholder="Select status">
+                                        <Select.Option value="">No Status</Select.Option>
                                         <Select.Option value="Active">Active</Select.Option>
                                         <Select.Option value="Inactive">Inactive</Select.Option>
                                         <Select.Option value="Draft">Draft</Select.Option>
                                     </Select>
                                 </Form.Item>
-                                <Form.Item label="Emission Status" className="mb-4">
-                                    <Select defaultValue="Approved" size="large">
+                                <Form.Item label="Own Emission ID" name="own_emission_id" className="mb-4">
+                                    <Input size="large" placeholder="Optional" />
+                                </Form.Item>
+                                <Form.Item label="Own Emission Status" name="own_emission_status" className="mb-0">
+                                    <Select size="large" placeholder="Select status" allowClear>
+                                        <Select.Option value="">No Status</Select.Option>
                                         <Select.Option value="Approved">Approved</Select.Option>
                                         <Select.Option value="Pending">Pending</Select.Option>
                                         <Select.Option value="Rejected">Rejected</Select.Option>
                                     </Select>
-                                </Form.Item>
-                                <Form.Item label="Version" className="mb-0">
-                                    <div className="flex gap-2">
-                                        <Input defaultValue="v2.3" size="large" />
-                                        <Button icon={<ReloadOutlined />} size="large" />
-                                    </div>
                                 </Form.Item>
                             </div>
 
@@ -417,11 +416,15 @@ const ProductEdit: React.FC = () => {
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Created By:</span>
-                                        <span className="font-medium">{product?.created_by || "System"}</span>
+                                        <span className="font-medium">{product?.created_by_name || "System"}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Created Date:</span>
                                         <span className="font-medium">{product?.created_date ? dayjs(product.created_date).format("DD MMM YYYY") : "-"}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Last Modified By:</span>
+                                        <span className="font-medium">{product?.updated_by_name || "-"}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-500">Last Modified:</span>

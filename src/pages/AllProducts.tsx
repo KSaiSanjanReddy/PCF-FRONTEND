@@ -239,6 +239,20 @@ const AllProducts: React.FC = () => {
       render: (date) => formatDate(date),
     },
     {
+      title: "Updated BY",
+      dataIndex: "updated_by_name",
+      key: "updated_by_name",
+      width: 130,
+      render: (text) => text || "-",
+    },
+    {
+      title: "Updated Date",
+      dataIndex: "update_date",
+      key: "update_date",
+      width: 120,
+      render: (date) => formatDate(date),
+    },
+    {
       title: "Actions",
       key: "actions",
       width: 120,
@@ -389,7 +403,7 @@ const AllProducts: React.FC = () => {
               columns={columns}
               dataSource={products}
               pagination={false}
-              scroll={{ x: 1300 }}
+              scroll={{ x: 1550 }}
               rowKey="id"
               loading={loading}
               className="rounded-xl overflow-hidden"
