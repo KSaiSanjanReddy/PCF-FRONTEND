@@ -168,20 +168,6 @@ const ProductCreate: React.FC = () => {
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item
-                      label="Product Code"
-                      name="product_code"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter product code",
-                        },
-                      ]}
-                    >
-                      <Input placeholder="e.g. PRD-001" size="large" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
                       label="Category"
                       name="product_category_id"
                       rules={[
