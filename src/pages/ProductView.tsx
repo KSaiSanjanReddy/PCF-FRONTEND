@@ -69,9 +69,16 @@ const ProductView: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
-  const [dataEntryMethod, setDataEntryMethod] = useState<"manual" | "contact">(
-    "manual",
-  );
+  const [dataEntryMethod, setDataEntryMethod] = useState<
+    "questionnaire" | "contact"
+  >("questionnaire");
+
+  // Own Emission Questionnaire state
+  const [ownEmissionPcfId, setOwnEmissionPcfId] = useState<string | null>(null);
+  const [questionnaireLink, setQuestionnaireLink] = useState<string>("");
+  const [ownEmissionClientId, setOwnEmissionClientId] = useState<string>("");
+  const [ownEmissionClientName, setOwnEmissionClientName] = useState<string>("");
+  const [ownEmissionLinkLoading, setOwnEmissionLinkLoading] = useState(false);
 
   // Own Emissions state
   const [ownEmissionLoading, setOwnEmissionLoading] = useState(false);
@@ -1093,28 +1100,28 @@ const ProductView: React.FC = () => {
                   <Col span={12}>
                     <div
                       className={`border-2 p-4 rounded-lg cursor-pointer transition-all ${
-                        dataEntryMethod === "manual"
+                        dataEntryMethod === "questionnaire"
                           ? "border-green-500 bg-green-50"
                           : "border-gray-200 bg-white hover:border-gray-300"
                       }`}
-                      onClick={() => setDataEntryMethod("manual")}
+                      onClick={() => setDataEntryMethod("questionnaire")}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            dataEntryMethod === "manual"
+                            dataEntryMethod === "questionnaire"
                               ? "border-green-500"
                               : "border-gray-300"
                           }`}
                         >
-                          {dataEntryMethod === "manual" && (
+                          {dataEntryMethod === "questionnaire" && (
                             <div className="w-3 h-3 rounded-full bg-green-500"></div>
                           )}
                         </div>
-                        <Text strong>Enter data Manually</Text>
+                        <Text strong>Client Questionnaire</Text>
                       </div>
                       <Text type="secondary" className="text-sm">
-                        Input emission data directly using the form below
+                        Fill the questionnaire to calculate product emissions
                       </Text>
                     </div>
                   </Col>
@@ -1151,328 +1158,168 @@ const ProductView: React.FC = () => {
 
               <Divider />
 
-              {dataEntryMethod === "manual" ? (
+              {dataEntryMethod === "questionnaire" ? (
                 <>
-                  {/* Reporting Period and Calculation Method */}
-                  <Row gutter={24} className="mb-6">
-                    <Col span={8}>
-                      <div>
-                        <Text strong className="block mb-2">
-                          Reporting Period
-                        </Text>
-                        <Text type="secondary" className="block mb-2 text-sm">
-                          From
-                        </Text>
-                        <DatePicker
-                          value={reportingPeriodFrom}
-                          onChange={setReportingPeriodFrom}
-                          placeholder="mm/dd/yyyy"
-                          size="large"
-                          className="w-full"
-                          format="MM/DD/YYYY"
-                        />
-                      </div>
-                    </Col>
-                    <Col span={8}>
-                      <div>
-                        <Text strong className="block mb-2">
-                          &nbsp;
-                        </Text>
-                        <Text type="secondary" className="block mb-2 text-sm">
-                          To
-                        </Text>
-                        <DatePicker
-                          value={reportingPeriodTo}
-                          onChange={setReportingPeriodTo}
-                          placeholder="mm/dd/yyyy"
-                          size="large"
-                          className="w-full"
-                          format="MM/DD/YYYY"
-                        />
-                      </div>
-                    </Col>
-                    <Col span={8}>
-                      <div>
-                        <Text strong className="block mb-2">
-                          Calculation Method
-                        </Text>
-                        <Text type="secondary" className="block mb-2 text-sm">
-                          &nbsp;
-                        </Text>
-                        <Select
-                          placeholder="GHG Protocol"
-                          size="large"
-                          className="w-full"
-                        />
-                      </div>
-                    </Col>
-                  </Row>
-
-                  {/* Scope 1 Emissions (Direct) */}
+                  {/* Client Questionnaire Link Generator */}
                   <div className="mb-6">
-                    <Title level={5}>Scope 1 Emissions (Direct)</Title>
-                    <Row gutter={24}>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Fuel Combustion
-                          </Text>
-                          <InputNumber
-                            value={fuelCombustionValue}
-                            onChange={(value) =>
-                              setFuelCombustionValue(value?.toString() || "")
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Process Emissions
-                          </Text>
-                          <InputNumber
-                            value={processEmissionValue}
-                            onChange={(value) =>
-                              setProcessEmissionValue(value?.toString() || "")
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Fugitive Emissions
-                          </Text>
-                          <InputNumber
-                            value={fugitiveEmissionValue}
-                            onChange={(value) =>
-                              setFugitiveEmissionValue(value?.toString() || "")
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
+                    <Title level={5}>Generate Client Questionnaire Link</Title>
+                    <Text type="secondary" className="block mb-4">
+                      Select a PCF to generate a questionnaire link for calculating product emissions.
+                    </Text>
 
-                  {/* Scope 2 Emissions (Indirect) */}
-                  <div className="mb-6">
-                    <Title level={5}>Scope 2 Emissions (Indirect)</Title>
-                    <Row gutter={24}>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Electricity (Location-based)
-                          </Text>
-                          <InputNumber
-                            value={electricityLocationValue}
-                            onChange={(value) =>
-                              setElectricityLocationValue(
-                                value?.toString() || "",
-                              )
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Electricity (Market-based)
-                          </Text>
-                          <InputNumber
-                            value={electricityMarketValue}
-                            onChange={(value) =>
-                              setElectricityMarketValue(value?.toString() || "")
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                      <Col span={8}>
-                        <div className="mb-4">
-                          <Text strong className="block mb-2">
-                            Steam/Heat/Cooling
-                          </Text>
-                          <InputNumber
-                            value={steamHeatCoolingValue}
-                            onChange={(value) =>
-                              setSteamHeatCoolingValue(value?.toString() || "")
-                            }
-                            placeholder="0.00"
-                            size="large"
-                            className="w-full"
-                            addonAfter={
-                              <Select defaultValue="tCO2e" className="w-24">
-                                <Select.Option value="tCO2e">
-                                  t CO₂e
-                                </Select.Option>
-                              </Select>
-                            }
-                          />
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
+                    {/* PCF Selection */}
+                    <div className="mb-6">
+                      <Text strong className="block mb-2">
+                        Select PCF <span className="text-red-500">*</span>
+                      </Text>
+                      <Select
+                        placeholder="Select a PCF"
+                        size="large"
+                        className="w-full"
+                        value={ownEmissionPcfId}
+                        onChange={async (value) => {
+                          setOwnEmissionPcfId(value);
+                          setQuestionnaireLink("");
+                          setOwnEmissionClientId("");
+                          setOwnEmissionClientName("");
 
-                  {/* Supporting Documentation */}
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <Title level={5} style={{ margin: 0 }}>
-                        Supporting Documentation
-                      </Title>
-                      {/* Original: <Button type="link" className="text-green-600">+ Add Document</Button> */}
-                      <Button type="link" className="text-green-600">
-                        + Add Document
-                      </Button>
+                          if (value && id) {
+                            try {
+                              setOwnEmissionLinkLoading(true);
+                              // Fetch PCF details to get submittedBy.user_id
+                              const pcfResponse = await productService.getBomPcfDetailsById(value);
+                              if (pcfResponse.status && pcfResponse.data?.[0]) {
+                                const pcfData = pcfResponse.data[0];
+                                const clientId = pcfData.pcf_request_stages?.pcf_request_created_by?.user_id || "";
+                                const clientName = pcfData.pcf_request_stages?.pcf_request_created_by?.user_name || "";
+
+                                setOwnEmissionClientId(clientId);
+                                setOwnEmissionClientName(clientName);
+
+                                if (clientId) {
+                                  const baseUrl = window.location.origin;
+                                  const link = `${baseUrl}/supplier-questionnaire?is_client=true&client_id=${clientId}&product_id=${id}&bom_pcf_id=${value}`;
+                                  setQuestionnaireLink(link);
+                                } else {
+                                  message.warning("No client found for this PCF");
+                                }
+                              }
+                            } catch (error) {
+                              console.error("Error fetching PCF details:", error);
+                              message.error("Failed to fetch PCF details");
+                            } finally {
+                              setOwnEmissionLinkLoading(false);
+                            }
+                          }
+                        }}
+                        loading={bomLoading || ownEmissionLinkLoading}
+                        allowClear
+                        showSearch
+                        filterOption={(input, option) =>
+                          (option?.children as unknown as string)
+                            ?.toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                      >
+                        {bomPcfDropdown.map((pcf) => (
+                          <Select.Option key={pcf.id} value={pcf.id}>
+                            {pcf.code} - {pcf.request_title}
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </div>
-                    <div className="space-y-2">
-                      {supportingDocs && supportingDocs.length > 0 ? (
-                        supportingDocs.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
-                          >
-                            <div className="flex items-center gap-3">
-                              <FileText className="w-5 h-5 text-green-500" />
-                              <div>
-                                <Text strong>{doc.document}</Text>
-                                <Text
-                                  type="secondary"
-                                  className="block text-xs"
-                                >
-                                  Uploaded on{" "}
-                                  {doc.created_date
-                                    ? dayjs(doc.created_date).format(
-                                        "DD MMM YYYY",
-                                      )
-                                    : "-"}
-                                </Text>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {/* Original: Button type="text" icon={<EyeOutlined />} without API backed view */}
-                              <Button
-                                type="text"
-                                icon={<EyeOutlined />}
-                                onClick={() =>
-                                  message.info(
-                                    "View for supporting documents is not implemented yet",
-                                  )
-                                }
-                              />
-                              {/* Original: Button type="text" icon={<DownloadOutlined />} without API backed download */}
-                              <Button
-                                type="text"
-                                icon={<DownloadOutlined />}
-                                onClick={() =>
-                                  message.info(
-                                    "Download for supporting documents is not implemented yet",
-                                  )
-                                }
-                              />
-                              {/* Original: Button type="text" danger icon={<DeleteOutlined />} without API call */}
-                              <Button
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() =>
-                                  handleDeleteSupportingDocument(doc.id)
-                                }
-                                loading={ownEmissionLoading}
-                              />
-                            </div>
+
+                    {/* Generated Link Display */}
+                    {questionnaireLink && (
+                      <div className="mb-6">
+                        <Text strong className="block mb-2">
+                          Questionnaire Link
+                        </Text>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <LinkOutlined className="text-green-600" />
+                            <Text className="text-sm text-gray-600 break-all">
+                              {questionnaireLink}
+                            </Text>
                           </div>
-                        ))
-                      ) : (
-                        <div className="bg-gray-50 p-3 rounded-lg text-center">
-                          <Text type="secondary">
-                            No supporting documents available for this emission
-                            record.
+                          <div className="flex gap-2">
+                            <Button
+                              type="primary"
+                              icon={<LinkOutlined />}
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => {
+                                navigator.clipboard.writeText(questionnaireLink);
+                                message.success("Link copied to clipboard!");
+                              }}
+                            >
+                              Copy Link
+                            </Button>
+                            <Button
+                              icon={<ShareAltOutlined />}
+                              onClick={() => window.open(questionnaireLink, "_blank")}
+                            >
+                              Open Questionnaire
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Info Box */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <InfoCircleOutlined className="text-blue-500 text-lg mt-0.5" />
+                        <div>
+                          <Text strong className="block mb-1">
+                            How it works
+                          </Text>
+                          <Text type="secondary" className="text-sm">
+                            1. Select a PCF from the dropdown above
+                            <br />
+                            2. A unique questionnaire link will be generated
+                            <br />
+                            3. Use the link to fill the questionnaire with product emission data
+                            <br />
+                            4. The questionnaire data will be associated with this product
                           </Text>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Additional Notes */}
-                  <div className="mb-6">
-                    <Title level={5}>Additional Notes</Title>
-                    <TextArea
-                      value={additionalNotes}
-                      onChange={(e) => setAdditionalNotes(e.target.value)}
-                      rows={3}
-                      placeholder="Add any relevant information about the emission calculations..."
-                    />
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end gap-4">
-                    <Button
-                      size="large"
-                      icon={<ReloadOutlined />}
-                      onClick={handleResetForm}
-                      disabled={ownEmissionLoading}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<SaveOutlined />}
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={handleSaveOwnEmission}
-                      loading={ownEmissionLoading}
-                    >
-                      Save
-                    </Button>
+                  {/* Product Info Summary */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <Title level={5} style={{ margin: 0, marginBottom: 12 }}>
+                      Product Details
+                    </Title>
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Text type="secondary" className="block text-xs">
+                          Product Code:
+                        </Text>
+                        <Text strong>{product?.product_code || "-"}</Text>
+                      </Col>
+                      <Col span={6}>
+                        <Text type="secondary" className="block text-xs">
+                          Product Name:
+                        </Text>
+                        <Text strong>{product?.product_name || "-"}</Text>
+                      </Col>
+                      <Col span={6}>
+                        <Text type="secondary" className="block text-xs">
+                          Category:
+                        </Text>
+                        <Text strong>{product?.category_name || "-"}</Text>
+                      </Col>
+                      <Col span={6}>
+                        <Text type="secondary" className="block text-xs">
+                          Client:
+                        </Text>
+                        <Text strong className="text-xs">
+                          {ownEmissionClientName || ownEmissionClientId || "-"}
+                        </Text>
+                      </Col>
+                    </Row>
                   </div>
                 </>
               ) : (

@@ -2111,6 +2111,231 @@ class SupplierQuestionnaireService {
       };
     }
   }
+  /**
+   * Create a new client sustainability questionnaire
+   * Uses product_id instead of bom_id, product_name/product_code instead of component_name/mpn
+   */
+  async createClientQuestionnaire(
+    data: SupplierQuestionnaireData,
+    client_id: string,
+    product_id: string,
+    bom_pcf_id: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const payload = this.mapToClientApiPayload(data, client_id, product_id, bom_pcf_id);
+      const response = await fetch(
+        `${API_BASE_URL}/api/product/add-client-sustainability-data`,
+        {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "Client questionnaire created successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to create client questionnaire",
+        };
+      }
+    } catch (error) {
+      console.error("Create client questionnaire error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  // Helper to map UI data to Client API payload (uses product_id instead of bom_id)
+  private mapToClientApiPayload(
+    data: SupplierQuestionnaireData,
+    client_id: string,
+    product_id: string,
+    bom_pcf_id: string
+  ): any {
+    // Get the base payload from supplier mapping (without sup_id/bom_pcf_id)
+    const basePayload = this.mapToApiPayload(data);
+
+    // Transform the payload for client use:
+    // 1. Add client_id at root level
+    // 2. Add client_id and bom_pcf_id in supplier_general_info_questions
+    // 3. Replace bom_id with product_id in all arrays
+    // 4. Keep component_name as is (backend expects component_name for some fields)
+
+    const clientPayload = {
+      ...basePayload,
+      client_id,
+      supplier_general_info_questions: {
+        ...basePayload.supplier_general_info_questions,
+        bom_pcf_id,
+        client_id,
+      },
+      supplier_product_questions: {
+        ...basePayload.supplier_product_questions,
+        // Replace bom_id with product_id in production_site_details_questions
+        production_site_details_questions: this.ensureArray(basePayload.supplier_product_questions?.production_site_details_questions)
+          .map((item: any) => {
+            const { bom_id, mpn, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in product_component_manufactured_questions
+        product_component_manufactured_questions: this.ensureArray(basePayload.supplier_product_questions?.product_component_manufactured_questions)
+          .map((item: any) => {
+            const { bom_id, mpn, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in co_product_component_economic_value_questions
+        co_product_component_economic_value_questions: this.ensureArray(basePayload.supplier_product_questions?.co_product_component_economic_value_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+      },
+      scope_two_indirect_emissions_questions: {
+        ...basePayload.scope_two_indirect_emissions_questions,
+        // Replace bom_id with product_id in energy_intensity questions
+        energy_intensity_of_production_estimated_kwhor_mj_questions: this.ensureArray(basePayload.scope_two_indirect_emissions_questions?.energy_intensity_of_production_estimated_kwhor_mj_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in weight_of_samples_destroyed_questions
+        weight_of_samples_destroyed_questions: this.ensureArray(basePayload.scope_two_indirect_emissions_questions?.weight_of_samples_destroyed_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in defect_or_rejection_rate questions
+        defect_or_rejection_rate_identified_by_quality_control_questions: this.ensureArray(basePayload.scope_two_indirect_emissions_questions?.defect_or_rejection_rate_identified_by_quality_control_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in rework_rate questions
+        rework_rate_due_to_quality_control_questions: this.ensureArray(basePayload.scope_two_indirect_emissions_questions?.rework_rate_due_to_quality_control_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in waste_generated questions
+        weight_of_quality_control_waste_generated_questions: this.ensureArray(basePayload.scope_two_indirect_emissions_questions?.weight_of_quality_control_waste_generated_questions)
+          .map((item: any) => {
+            const { bom_id, mpn, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+      },
+      scope_three_other_indirect_emissions_questions: {
+        ...basePayload.scope_three_other_indirect_emissions_questions,
+        // Replace bom_id with product_id in raw_materials questions
+        raw_materials_used_in_component_manufacturing_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.raw_materials_used_in_component_manufacturing_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in recycled_materials questions
+        recycled_materials_with_percentage_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.recycled_materials_with_percentage_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in packaging materials questions
+        type_of_pack_mat_used_for_delivering_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.type_of_pack_mat_used_for_delivering_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in weight_of_packaging questions
+        weight_of_packaging_per_unit_product_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.weight_of_packaging_per_unit_product_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in packaging waste questions
+        weight_of_pro_packaging_waste_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.weight_of_pro_packaging_waste_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in by_product questions
+        type_of_by_product_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.type_of_by_product_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in co2 emission questions
+        co_two_emission_of_raw_material_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.co_two_emission_of_raw_material_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+        // Replace bom_id with product_id in transport questions
+        mode_of_transport_used_for_transportation_questions: this.ensureArray(basePayload.scope_three_other_indirect_emissions_questions?.mode_of_transport_used_for_transportation_questions)
+          .map((item: any) => {
+            const { bom_id, ...rest } = item;
+            return {
+              product_id,
+              ...rest,
+            };
+          }),
+      },
+    };
+
+    return clientPayload;
+  }
 }
 
 export const supplierQuestionnaireService = new SupplierQuestionnaireService();
