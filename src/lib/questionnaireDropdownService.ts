@@ -207,6 +207,19 @@ export async function getProcessSpecificEnergyDropdown(): Promise<DropdownItem[]
 }
 
 /**
+ * Q28 - Energy Type Dropdown (all energy types)
+ * GET /api/master-data-setup/energy-type/drop-down-list
+ */
+export async function getEnergyTypeDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<EnergyTypeApiItem>("/api/master-data-setup/energy-type/drop-down-list");
+  return data.map(item => ({
+    ...item,
+    id: item.et_id || item.energy_type_id || item.id || '',
+    name: item.name || '',
+  }));
+}
+
+/**
  * Q40, Q68 - Waste Material Type Dropdown
  * GET /api/ecoinvent-emission-factor-data-setup/waste-material-type-emission-factor/drop-down-list
  */
@@ -241,6 +254,7 @@ const questionnaireDropdownService = {
   getEnergySourceDropdown,
   getEnergyTypeBySourceDropdown,
   getProcessSpecificEnergyDropdown,
+  getEnergyTypeDropdown,
   getWasteTypeDropdown,
   getWasteTreatmentTypeDropdown,
 };
