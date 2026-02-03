@@ -778,10 +778,18 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             placeholder: "Select type",
           },
           {
+            name: "energy_source",
+            label: "Energy Source",
+            type: "select",
+            apiDropdown: "energySource",
+            placeholder: "Select energy source",
+          },
+          {
             name: "energy_type",
             label: "Energy Type",
             type: "select",
-            apiDropdown: "energyType",
+            apiDropdown: "energyTypeBySource",
+            dependsOnField: "energy_source",
             placeholder: "Select energy type",
           },
           {

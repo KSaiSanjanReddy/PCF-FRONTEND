@@ -658,6 +658,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           // Clear invalid value asynchronously to avoid render issues
                           setTimeout(() => {
                             form.setFieldValue([...fieldPath, fieldRecord.name, col.name], null);
+                            form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
                           }, 0);
                         }
 
@@ -685,6 +686,15 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               filterOption={(input, option) =>
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
+                              onChange={(value) => {
+                                // Store the display name for combining in payload
+                                const selectedOption = dependentOptions.find((opt: DropdownItem) => opt.id === value);
+                                if (selectedOption) {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                } else {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                }
+                              }}
                             >
                               {dependentOptions.map((opt: DropdownItem) => (
                                 <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
@@ -725,10 +735,19 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
+                                // Store the display name for combining in payload
+                                const selectedOption = apiOptions.find((opt: DropdownItem) => opt.id === value);
+                                if (selectedOption) {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                } else {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                }
+
                                 // Clear dependent column value when parent changes
                                 if (dependentCol) {
                                   const dependentFieldPath = [...fieldPath, fieldRecord.name, dependentCol.name];
                                   form.setFieldValue(dependentFieldPath, null);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${dependentCol.name}_name`], null);
                                   // Force form to recognize the change
                                   form.setFields([{ name: dependentFieldPath, value: null, errors: [] }]);
                                 }

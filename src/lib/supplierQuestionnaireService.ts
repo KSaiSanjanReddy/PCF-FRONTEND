@@ -142,7 +142,10 @@ export interface SupplierQuestionnaireData {
         bom_id?: string;
         material_number?: string;
         process_type: string;
+        energy_source?: string;
+        energy_source_name?: string; // Store display name for combining
         energy_type?: string;
+        energy_type_name?: string; // Store display name for combining
         quantity: number;
         unit: string;
         support_from_enviguide?: boolean;
@@ -889,15 +892,22 @@ class SupplierQuestionnaireService {
               process_specific_energy_usage: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage_enabled || false),
               process_specific_energy_usage_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage)
                   .filter(item => item.process_type && item.quantity)
-                  .map(item => ({
-                      ...(item.bom_id && { bom_id: item.bom_id }),
-                      ...(item.material_number && { material_number: item.material_number }),
-                      process_specific_energy_type: item.process_type,
-                      ...(item.energy_type && { energy_type: item.energy_type }),
-                      quantity_consumed: item.quantity,
-                      unit: item.unit,
-                      support_from_enviguide: this.convertToBoolean(item.support_from_enviguide || false)
-                  })),
+                  .map(item => {
+                      // Combine energy_source_name and energy_type_name into single energy_type field
+                      const combinedEnergyType = item.energy_source_name && item.energy_type_name
+                          ? `${item.energy_source_name} - ${item.energy_type_name}`
+                          : item.energy_type_name || item.energy_source_name || '';
+
+                      return {
+                          ...(item.bom_id && { bom_id: item.bom_id }),
+                          ...(item.material_number && { material_number: item.material_number }),
+                          process_specific_energy_type: item.process_type,
+                          ...(combinedEnergyType && { energy_type: combinedEnergyType }),
+                          quantity_consumed: item.quantity,
+                          unit: item.unit,
+                          support_from_enviguide: this.convertToBoolean(item.support_from_enviguide || false)
+                      };
+                  }),
               do_you_use_any_abatement_systems: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.abatement_systems || false),
               abatement_systems_used_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.abatement_consumption)
                   .filter(item => item.source && item.quantity)
