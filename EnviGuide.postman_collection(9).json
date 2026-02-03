@@ -2000,7 +2000,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"user_name\": \"sivaprasad\",\r\n    \"user_role\": \"admin\",\r\n    \"user_email\": \"sivaprasad@enviguide.com\",\r\n    \"user_store_id\": \"ST2345\",\r\n    \"user_phone_number\": \"9898989856\",\r\n    \"user_department\": \"admin\",\r\n    \"change_password_next_login\": true,\r\n    \"password_never_expires\": false,\r\n    \"user_password\": \"Zota@12!\"\r\n}",
+              "raw": "{\r\n    \"user_name\": \"abcs\",\r\n    \"user_role\": \"admin\",\r\n    \"user_email\": \"abc@enviguide.com\",\r\n    \"user_store_id\": \"ST2345\",\r\n    \"user_phone_number\": \"6535352564\",\r\n    \"user_department\": \"admin\",\r\n    \"change_password_next_login\": true,\r\n    \"password_never_expires\": false,\r\n    \"user_password\": \"Zota@12!\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4134,6 +4134,117 @@
               ],
               "cookie": [],
               "body": "{\n    \"status\": true,\n    \"message\": \"user fetched succesfully \",\n    \"code\": 200,\n    \"data\": [\n        {\n            \"user_id\": \"01K2CA1S64VFXGT3NFHGWDW5KV\",\n            \"user_name\": \"Chethan\",\n            \"user_role_id\": null,\n            \"user_role\": \"admin\",\n            \"user_email\": \"chethan@zotanextech.com\",\n            \"user_password\": \"$2b$10$rPSWaYWEmYxoU.Zp2gH86.8GYdQkBkxbgwpzRctMnRb/7nyHVqvsK\",\n            \"user_store_id\": null,\n            \"user_phone_number\": \"1234567\",\n            \"user_department\": \"admin\",\n            \"change_password_next_login\": true,\n            \"password_never_expires\": false,\n            \"password_expiry_date\": null,\n            \"pos_id\": null,\n            \"update_date\": \"2025-08-11T10:15:38.428Z\",\n            \"created_date\": \"2025-08-11T10:15:38.428Z\"\n        }\n    ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "DeleteUser",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{access-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\":\"01KG6NS55GM5PH4TE3188BF0QH\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/delete/user",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "delete",
+                "user"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{access-token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"user_id\":\"01KG6NS55GM5PH4TE3188BF0QH\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/delete/user",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "delete",
+                    "user"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "53"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"35-Lch//JEdeh3rQke/0geafI+77NA\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:25:25 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"User deleted successfully\"\n}"
             }
           ]
         }
@@ -26377,7 +26488,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"product_code\": \"PRD-ST4502\",\r\n    \"product_name\": \"Stainless Steel Support Bracket\",\r\n    \"product_category_id\": \"01K5BCR7HENFM96RDRY02BG3YV\",\r\n    \"product_sub_category_id\": \"01K5BCYA8PGXAZJZ24A407DKHP\",\r\n    \"description\": \"Corrosion-resistant stainless steel bracket used in heavy-duty structural assemblies.\",\r\n    \"ts_weight_kg\": 1.25,\r\n    \"ts_dimensions\": \"200mm x 80mm x 40mm\",\r\n    \"ts_material\": \"Stainless Steel 304\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NR0MBPT1NSB6QH69SP\",\r\n    \"ts_supplier\": \"Prime Steel Industries\",\r\n    \"ts_part_number\": \"PSI-SSB-304-4502\",\r\n    \"ed_estimated_pcf\": 8.4,\r\n    \"ed_recyclability\": 10.25,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E16D80VZJNC8FASSDR\",\r\n    \"ed_renewable_energy\": 9.0,\r\n    \"product_status\": \"\"\r\n}",
+              "raw": "{\r\n    \"product_name\": \"Stainless Steel Support Bracket\",\r\n    \"product_category_id\": \"01K5BCR7HENFM96RDRY02BG3YV\",\r\n    \"product_sub_category_id\": \"01K5BCYA8PGXAZJZ24A407DKHP\",\r\n    \"description\": \"Corrosion-resistant stainless steel bracket used in heavy-duty structural assemblies.\",\r\n    \"ts_weight_kg\": 1.25,\r\n    \"ts_dimensions\": \"200mm x 80mm x 40mm\",\r\n    \"ts_material\": \"Stainless Steel 304\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NR0MBPT1NSB6QH69SP\",\r\n    \"ts_supplier\": \"Prime Steel Industries\",\r\n    \"ts_part_number\": \"PSI-SSB-304-4502\",\r\n    \"ed_estimated_pcf\": 8.4,\r\n    \"ed_recyclability\": 10.25,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E16D80VZJNC8FASSDR\",\r\n    \"ed_renewable_energy\": 9.0,\r\n    \"product_status\": \"\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -26410,7 +26521,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n    \"product_code\": \"PRD-AX1001\",\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 40.0,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 45.3,\r\n    \"product_status\": \"\"\r\n}",
+                  "raw": "{\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 40.0,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 45.3,\r\n    \"product_status\": \"\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -26488,7 +26599,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"id\": \"01KADDWGD98BFDTMVE0C8BTYP4\",\r\n    \"product_code\": \"PRD-AX1001\",\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 2.09,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 5.3,\r\n    \"product_status\": \"\",\r\n    \"own_emission_id\": \"\",\r\n    \"own_emission_status\": \"\"\r\n}",
+              "raw": "{\r\n    \"id\": \"01KADDWGD98BFDTMVE0C8BTYP4\",\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 2.09,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 5.3,\r\n    \"product_status\": \"\",\r\n    \"own_emission_id\": \"\",\r\n    \"own_emission_status\": \"\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -26521,7 +26632,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\r\n    \"id\": \"01KADDWGD98BFDTMVE0C8BTYP4\",\r\n    \"product_code\": \"PRD-AX1001\",\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 2.09,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 5.3,\r\n    \"product_status\": \"\",\r\n    \"own_emission_id\": \"\",\r\n    \"own_emission_status\": \"\"\r\n}",
+                  "raw": "{\r\n    \"id\": \"01KADDWGD98BFDTMVE0C8BTYP4\",\r\n    \"product_name\": \"Aluminium Gear Housing\",\r\n    \"product_category_id\": \"01K5BCSQR971DQRT53GQDKF4TV\",\r\n    \"product_sub_category_id\": \"01K5BCZA9VC50XQTBCH595ANMW\",\r\n    \"description\": \"High-precision aluminium gear housing used in industrial machinery.\",\r\n    \"ts_weight_kg\": 3.75,\r\n    \"ts_dimensions\": \"150mm x 120mm x 90mm\",\r\n    \"ts_material\": \"Aluminium Alloy 6061\",\r\n    \"ts_manufacturing_process_id\": \"01KADCT4NRY2KRHR06FYK23GRX\",\r\n    \"ts_supplier\": \"Global Alloy Components Pvt Ltd\",\r\n    \"ts_part_number\": \"GAH-6061-AX1001\",\r\n    \"ed_estimated_pcf\": 12.8,\r\n    \"ed_recyclability\": 2.09,\r\n    \"ed_life_cycle_stage_id\": \"01KADCW9E1R8MASZ393HQ66VTG\",\r\n    \"ed_renewable_energy\": 5.3,\r\n    \"product_status\": \"\",\r\n    \"own_emission_id\": \"\",\r\n    \"own_emission_status\": \"\"\r\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -27556,7 +27667,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n    \"status\": true,\n    \"message\": \"Dropdown fetched successfully\",\n    \"code\": 200,\n    \"data\": [\n        {\n            \"id\": \"01KFFS3EN1PR2J70Q3Q0NYC1G0\",\n            \"code\": \"PCF00017\",\n            \"request_title\": \"Checking PCF Calculation\"\n        },\n        {\n            \"id\": \"01KF2QYQS0S630NVFA1GAMEVH6\",\n            \"code\": \"PCF00008\",\n            \"request_title\": \"Checking  PCF Creation\"\n        }\n    ]\n}"
+              "body": "{\n    \"status\": true,\n    \"message\": \"Dropdown fetched successfully\",\n    \"code\": 200,\n    \"data\": [\n        {\n            \"id\": \"01KFN0GZF14SJGCHM4MRA0WV8D\",\n            \"code\": \"PCF00028\",\n            \"request_title\": \"chetan 2\",\n            \"is_own_emission_calculated\": true\n        },\n        {\n            \"id\": \"01KF2QYQS0S630NVFA1GAMEVH6\",\n            \"code\": \"PCF00008\",\n            \"request_title\": \"Checking  PCF Creation\",\n            \"is_own_emission_calculated\": false\n        },\n        {\n            \"id\": \"01KF2QYQS0S630NVFA1GAMEVH6\",\n            \"code\": \"PCF00008\",\n            \"request_title\": \"Checking  PCF Creation\",\n            \"is_own_emission_calculated\": false\n        }\n    ]\n}"
             }
           ]
         },
@@ -54832,7 +54943,8 @@
                 },
                 {
                   "key": "bom_pcf_id",
-                  "value": "01KF8XNKTMHV2QHSWTM2VJKXMM"
+                  "value": "01KF8XNKTMHV2QHSWTM2VJKXMM",
+                  "description": "01KFN0GZF14SJGCHM4MRA0WV8D"
                 }
               ]
             }
@@ -55733,7 +55845,7 @@
               }
             ],
             "url": {
-              "raw": "{{local-url}}/api/pcf-bom/get-by-id?bom_pcf_id=01KFFS3EN1PR2J70Q3Q0NYC1G0",
+              "raw": "{{local-url}}/api/pcf-bom/get-by-id?bom_pcf_id=01KFN0GZF14SJGCHM4MRA0WV8D",
               "host": [
                 "{{local-url}}"
               ],
@@ -55745,7 +55857,7 @@
               "query": [
                 {
                   "key": "bom_pcf_id",
-                  "value": "01KFFS3EN1PR2J70Q3Q0NYC1G0"
+                  "value": "01KFN0GZF14SJGCHM4MRA0WV8D"
                 }
               ]
             }
@@ -65093,6 +65205,1414 @@
           ]
         }
       ]
+    },
+    {
+      "name": "OnBoardingForm",
+      "item": [
+        {
+          "name": "ManufacturerOnboarding",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"ABC Manufacturing Pvt Ltd\",\r\n    \"email\": \"contact@abcds.com\",\r\n    \"phone_number\": \"+919876543210\",\r\n    \"alternate_phone_number\": \"+919811112222\",\r\n    \"gender\": \"Company\",\r\n    \"date_of_birth\": \"2005-04-01\",\r\n    \"image\": \"\",\r\n    \"company_logo\": \"\",\r\n    \"address\": \"Plot 45, Industrial Area Phase 2\",\r\n    \"lat\": 12.9716,\r\n    \"long\": 77.5946,\r\n    \"company_website\": \"https://abcmfg.com\",\r\n    \"factory_or_plant_name\": \"ABC Main Plant\",\r\n    \"factory_address\": \"Peenya Industrial Area, Bangalore\",\r\n    \"city\": \"Bangalore\",\r\n    \"state\": \"Karnataka\",\r\n    \"country\": \"India\",\r\n    \"manufacturing_capabilities\": [\r\n        \"CNC Machining\",\r\n        \"Die Casting\",\r\n        \"Assembly\"\r\n    ],\r\n    \"installed_capacity_or_month\": \"50000 Units\",\r\n    \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\r\n    \"years_of_operation\": \"18\",\r\n    \"number_of_employees\": \"350\",\r\n    \"key_oem_clients\": [\r\n        \"Tata Motors\",\r\n        \"Bosch\",\r\n        \"Mahindra\"\r\n    ],\r\n    \"iso_9001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iso_14001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iatf_16949\": [\r\n        \"Certified\"\r\n    ],\r\n    \"ohsas_18001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"other_certifications\": [\r\n        \"Certified\"\r\n    ],\r\n    \"reach_compliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"rohs_ompliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"environmental_safety_policy\": [\r\n        \"Available\"\r\n    ],\r\n    \"qa_or_qc_lab_availability\": [\r\n        \"In-house Lab\"\r\n    ],\r\n    \"testing_certifications\": [\r\n        \"NABL\"\r\n    ],\r\n    \"conflict_minerals_declaration\": [\r\n        \"Available\"\r\n    ],\r\n    \"factory_layout_pdf\": \"po.pdf\",\r\n    \"factory_profile_or_capability_deck\": \"Nothigng\",\r\n    \"contact_person_name\": \"Ravi Kumar\",\r\n    \"contact_person_designation\": \"Plant Head\",\r\n    \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\r\n    \"contact_person_phone\": \"+919900001111\"\r\n}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/manufacturer/onboarding/create",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "manufacturer",
+                "onboarding",
+                "create"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{access-token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"ABC Manufacturing Pvt Ltd\",\r\n    \"email\": \"contact@abcds.com\",\r\n    \"phone_number\": \"+919876543210\",\r\n    \"alternate_phone_number\": \"+919811112222\",\r\n    \"gender\": \"Company\",\r\n    \"date_of_birth\": \"2005-04-01\",\r\n    \"image\": \"\",\r\n    \"company_logo\": \"\",\r\n    \"address\": \"Plot 45, Industrial Area Phase 2\",\r\n    \"lat\": 12.9716,\r\n    \"long\": 77.5946,\r\n    \"company_website\": \"https://abcmfg.com\",\r\n    \"factory_or_plant_name\": \"ABC Main Plant\",\r\n    \"factory_address\": \"Peenya Industrial Area, Bangalore\",\r\n    \"city\": \"Bangalore\",\r\n    \"state\": \"Karnataka\",\r\n    \"country\": \"India\",\r\n    \"manufacturing_capabilities\": [\r\n        \"CNC Machining\",\r\n        \"Die Casting\",\r\n        \"Assembly\"\r\n    ],\r\n    \"installed_capacity_or_month\": \"50000 Units\",\r\n    \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\r\n    \"years_of_operation\": \"18\",\r\n    \"number_of_employees\": \"350\",\r\n    \"key_oem_clients\": [\r\n        \"Tata Motors\",\r\n        \"Bosch\",\r\n        \"Mahindra\"\r\n    ],\r\n    \"iso_9001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iso_14001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iatf_16949\": [\r\n        \"Certified\"\r\n    ],\r\n    \"ohsas_18001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"other_certifications\": [\r\n        \"Certified\"\r\n    ],\r\n    \"reach_compliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"rohs_ompliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"environmental_safety_policy\": [\r\n        \"Available\"\r\n    ],\r\n    \"qa_or_qc_lab_availability\": [\r\n        \"In-house Lab\"\r\n    ],\r\n    \"testing_certifications\": [\r\n        \"NABL\"\r\n    ],\r\n    \"conflict_minerals_declaration\": [\r\n        \"Available\"\r\n    ],\r\n    \"factory_layout_pdf\": \"po.pdf\",\r\n    \"factory_profile_or_capability_deck\": \"Nothigng\",\r\n    \"contact_person_name\": \"Ravi Kumar\",\r\n    \"contact_person_designation\": \"Plant Head\",\r\n    \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\r\n    \"contact_person_phone\": \"+919900001111\"\r\n}\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/manufacturer/onboarding/create",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "manufacturer",
+                    "onboarding",
+                    "create"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1604"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"644-EMFHQZ3//PSksRYkLOWdnltnmho\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 04:45:04 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Manufacturer created\",\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\n        \"code\": \"MANF0001\",\n        \"name\": \"ABC Manufacturing Pvt Ltd\",\n        \"address\": \"Plot 45, Industrial Area Phase 2\",\n        \"lat\": 12.9716,\n        \"long\": 77.5946,\n        \"created_by\": null,\n        \"updated_by\": null,\n        \"update_date\": \"2026-01-30T04:45:04.002Z\",\n        \"created_date\": \"2026-01-30T04:45:04.002Z\",\n        \"email\": \"contact@abcmfg.com\",\n        \"phone_number\": \"+919876543210\",\n        \"alternate_phone_number\": \"+919811112222\",\n        \"gender\": \"Company\",\n        \"date_of_birth\": \"2005-03-31T18:30:00.000Z\",\n        \"image\": null,\n        \"company_logo\": null,\n        \"company_website\": \"https://abcmfg.com\",\n        \"factory_or_plant_name\": \"ABC Main Plant\",\n        \"factory_address\": \"Peenya Industrial Area, Bangalore\",\n        \"city\": \"Bangalore\",\n        \"state\": \"Karnataka\",\n        \"country\": \"India\",\n        \"manufacturing_capabilities\": [\n            \"CNC Machining\",\n            \"Die Casting\",\n            \"Assembly\"\n        ],\n        \"installed_capacity_or_month\": \"50000 Units\",\n        \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\n        \"years_of_operation\": \"18\",\n        \"number_of_employees\": \"350\",\n        \"key_oem_clients\": [\n            \"Tata Motors\",\n            \"Bosch\",\n            \"Mahindra\"\n        ],\n        \"iso_9001\": [\n            \"Certified\"\n        ],\n        \"iso_14001\": [\n            \"Certified\"\n        ],\n        \"ohsas_18001\": null,\n        \"iatf_16949\": [\n            \"Certified\"\n        ],\n        \"other_certifications\": null,\n        \"reach_compliance\": [\n            \"Compliant\"\n        ],\n        \"rohs_ompliance\": [\n            \"Compliant\"\n        ],\n        \"conflict_minerals_declaration\": null,\n        \"environmental_safety_policy\": [\n            \"Available\"\n        ],\n        \"factory_layout_pdf\": null,\n        \"factory_profile_or_capability_deck\": null,\n        \"qa_or_qc_lab_availability\": [\n            \"In-house Lab\"\n        ],\n        \"testing_certifications\": [\n            \"NABL\"\n        ],\n        \"contact_person_name\": \"Ravi Kumar\",\n        \"contact_person_designation\": \"Plant Head\",\n        \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\n        \"contact_person_phone\": \"+919900001111\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "ManufacturerUpdate(Only For Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\r\n    \"name\": \"ABC Manufacturing Pvt Ltd\",\r\n    \"email\": \"contact@abcds.com\",\r\n    \"phone_number\": \"+919876543210\",\r\n    \"alternate_phone_number\": \"+919811112222\",\r\n    \"gender\": \"Company\",\r\n    \"date_of_birth\": \"2005-04-01\",\r\n    \"image\": \"\",\r\n    \"company_logo\": \"\",\r\n    \"address\": \"Plot 45, Industrial Area Phase 2\",\r\n    \"lat\": 12.9716,\r\n    \"long\": 77.5946,\r\n    \"company_website\": \"https://abcmfg.com\",\r\n    \"factory_or_plant_name\": \"ABC Main Plant\",\r\n    \"factory_address\": \"Peenya Industrial Area, Bangalore\",\r\n    \"city\": \"Bangalore\",\r\n    \"state\": \"Karnataka\",\r\n    \"country\": \"India\",\r\n    \"manufacturing_capabilities\": [\r\n        \"CNC Machining\",\r\n        \"Die Casting\",\r\n        \"Assembly\"\r\n    ],\r\n    \"installed_capacity_or_month\": \"50000 Units\",\r\n    \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\r\n    \"years_of_operation\": \"18\",\r\n    \"number_of_employees\": \"350\",\r\n    \"key_oem_clients\": [\r\n        \"Tata Motors\",\r\n        \"Bosch\",\r\n        \"Mahindra\"\r\n    ],\r\n    \"iso_9001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iso_14001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iatf_16949\": [\r\n        \"Certified\"\r\n    ],\r\n    \"ohsas_18001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"other_certifications\": [\r\n        \"Certified\"\r\n    ],\r\n    \"reach_compliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"rohs_ompliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"environmental_safety_policy\": [\r\n        \"Available\"\r\n    ],\r\n    \"qa_or_qc_lab_availability\": [\r\n        \"In-house Lab\"\r\n    ],\r\n    \"testing_certifications\": [\r\n        \"NABL\"\r\n    ],\r\n    \"conflict_minerals_declaration\": [\r\n        \"Available\"\r\n    ],\r\n    \"factory_layout_pdf\": \"po.pdf\",\r\n    \"factory_profile_or_capability_deck\": \"Nothigng\",\r\n    \"contact_person_name\": \"Ravi Kumar\",\r\n    \"contact_person_designation\": \"Plant Head\",\r\n    \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\r\n    \"contact_person_phone\": \"+919900001111\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/manufacturer/onboarding/update",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "manufacturer",
+                "onboarding",
+                "update"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\r\n    \"name\": \"ABC Manufacturing Pvt Ltd\",\r\n    \"email\": \"contact@abcds.com\",\r\n    \"phone_number\": \"+919876543210\",\r\n    \"alternate_phone_number\": \"+919811112222\",\r\n    \"gender\": \"Company\",\r\n    \"date_of_birth\": \"2005-04-01\",\r\n    \"image\": \"\",\r\n    \"company_logo\": \"\",\r\n    \"address\": \"Plot 45, Industrial Area Phase 2\",\r\n    \"lat\": 12.9716,\r\n    \"long\": 77.5946,\r\n    \"company_website\": \"https://abcmfg.com\",\r\n    \"factory_or_plant_name\": \"ABC Main Plant\",\r\n    \"factory_address\": \"Peenya Industrial Area, Bangalore\",\r\n    \"city\": \"Bangalore\",\r\n    \"state\": \"Karnataka\",\r\n    \"country\": \"India\",\r\n    \"manufacturing_capabilities\": [\r\n        \"CNC Machining\",\r\n        \"Die Casting\",\r\n        \"Assembly\"\r\n    ],\r\n    \"installed_capacity_or_month\": \"50000 Units\",\r\n    \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\r\n    \"years_of_operation\": \"18\",\r\n    \"number_of_employees\": \"350\",\r\n    \"key_oem_clients\": [\r\n        \"Tata Motors\",\r\n        \"Bosch\",\r\n        \"Mahindra\"\r\n    ],\r\n    \"iso_9001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iso_14001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"iatf_16949\": [\r\n        \"Certified\"\r\n    ],\r\n    \"ohsas_18001\": [\r\n        \"Certified\"\r\n    ],\r\n    \"other_certifications\": [\r\n        \"Certified\"\r\n    ],\r\n    \"reach_compliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"rohs_ompliance\": [\r\n        \"Compliant\"\r\n    ],\r\n    \"environmental_safety_policy\": [\r\n        \"Available\"\r\n    ],\r\n    \"qa_or_qc_lab_availability\": [\r\n        \"In-house Lab\"\r\n    ],\r\n    \"testing_certifications\": [\r\n        \"NABL\"\r\n    ],\r\n    \"conflict_minerals_declaration\": [\r\n        \"Available\"\r\n    ],\r\n    \"factory_layout_pdf\": \"po.pdf\",\r\n    \"factory_profile_or_capability_deck\": \"Nothigng\",\r\n    \"contact_person_name\": \"Ravi Kumar\",\r\n    \"contact_person_designation\": \"Plant Head\",\r\n    \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\r\n    \"contact_person_phone\": \"+919900001111\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/manufacturer/onboarding/update",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "manufacturer",
+                    "onboarding",
+                    "update"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1636"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"664-Hop3WMwf+E1nOFA2G4E/Dj4SMko\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 04:55:07 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Manufacturer updated\",\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\n        \"code\": \"MANF0001\",\n        \"name\": \"ABC Manufacturing Pvt Ltd\",\n        \"address\": \"Plot 45, Industrial Area Phase 2\",\n        \"lat\": 12.9716,\n        \"long\": 77.5946,\n        \"created_by\": null,\n        \"updated_by\": null,\n        \"update_date\": \"2026-01-30T04:55:06.627Z\",\n        \"created_date\": \"2026-01-30T04:45:04.002Z\",\n        \"email\": \"contact@abcds.com\",\n        \"phone_number\": \"+919876543210\",\n        \"alternate_phone_number\": \"+919811112222\",\n        \"gender\": \"Company\",\n        \"date_of_birth\": \"2005-03-31T18:30:00.000Z\",\n        \"image\": \"\",\n        \"company_logo\": \"\",\n        \"company_website\": \"https://abcmfg.com\",\n        \"factory_or_plant_name\": \"ABC Main Plant\",\n        \"factory_address\": \"Peenya Industrial Area, Bangalore\",\n        \"city\": \"Bangalore\",\n        \"state\": \"Karnataka\",\n        \"country\": \"India\",\n        \"manufacturing_capabilities\": [\n            \"CNC Machining\",\n            \"Die Casting\",\n            \"Assembly\"\n        ],\n        \"installed_capacity_or_month\": \"50000 Units\",\n        \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\n        \"years_of_operation\": \"18\",\n        \"number_of_employees\": \"350\",\n        \"key_oem_clients\": [\n            \"Tata Motors\",\n            \"Bosch\",\n            \"Mahindra\"\n        ],\n        \"iso_9001\": [\n            \"Certified\"\n        ],\n        \"iso_14001\": [\n            \"Certified\"\n        ],\n        \"ohsas_18001\": [\n            \"Certified\"\n        ],\n        \"iatf_16949\": [\n            \"Certified\"\n        ],\n        \"other_certifications\": [\n            \"Certified\"\n        ],\n        \"reach_compliance\": [\n            \"Compliant\"\n        ],\n        \"rohs_ompliance\": [\n            \"Compliant\"\n        ],\n        \"conflict_minerals_declaration\": [\n            \"Available\"\n        ],\n        \"environmental_safety_policy\": [\n            \"Available\"\n        ],\n        \"factory_layout_pdf\": \"po.pdf\",\n        \"factory_profile_or_capability_deck\": \"Nothigng\",\n        \"qa_or_qc_lab_availability\": [\n            \"In-house Lab\"\n        ],\n        \"testing_certifications\": [\n            \"NABL\"\n        ],\n        \"contact_person_name\": \"Ravi Kumar\",\n        \"contact_person_designation\": \"Plant Head\",\n        \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\n        \"contact_person_phone\": \"+919900001111\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "ManufacturerList",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local-url}}/api/manufacturer/onboarding/list?pageNumber=1&pageSize=20",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "manufacturer",
+                "onboarding",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": null,
+                  "description": "code,name, email,phone_number,factory_or_plant_name,contact_person_name,",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "code",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "name",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "email",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "phone_number",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "factory_or_plant_name",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "contact_person_name",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{local-url}}/api/manufacturer/onboarding/list?pageNumber=1&pageSize=20",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "manufacturer",
+                    "onboarding",
+                    "list"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageNumber",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "search",
+                      "value": null,
+                      "description": "code,name, email,phone_number,factory_or_plant_name,contact_person_name,",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "code",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "name",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "email",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "phone_number",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "factory_or_plant_name",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contact_person_name",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "5155"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"1423-0JZxns3DdcqI+FAI7o+ekqQNs9o\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:45:42 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Success!\",\n    \"code\": 200,\n    \"data\": {\n        \"page\": 1,\n        \"pageSize\": 20,\n        \"totalCount\": 4,\n        \"data\": [\n            {\n                \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\n                \"code\": \"MANF0001\",\n                \"name\": \"ABC Manufacturing Pvt Ltd\",\n                \"address\": \"Plot 45, Industrial Area Phase 2\",\n                \"lat\": 12.9716,\n                \"long\": 77.5946,\n                \"created_by\": null,\n                \"updated_by\": null,\n                \"update_date\": \"2026-01-30T04:55:06.627Z\",\n                \"created_date\": \"2026-01-30T04:45:04.002Z\",\n                \"email\": \"contact@abcds.com\",\n                \"phone_number\": \"+919876543210\",\n                \"alternate_phone_number\": \"+919811112222\",\n                \"gender\": \"Company\",\n                \"date_of_birth\": \"2005-03-31T18:30:00.000Z\",\n                \"image\": \"\",\n                \"company_logo\": \"\",\n                \"company_website\": \"https://abcmfg.com\",\n                \"factory_or_plant_name\": \"ABC Main Plant\",\n                \"factory_address\": \"Peenya Industrial Area, Bangalore\",\n                \"city\": \"Bangalore\",\n                \"state\": \"Karnataka\",\n                \"country\": \"India\",\n                \"manufacturing_capabilities\": [\n                    \"CNC Machining\",\n                    \"Die Casting\",\n                    \"Assembly\"\n                ],\n                \"installed_capacity_or_month\": \"50000 Units\",\n                \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\n                \"years_of_operation\": \"18\",\n                \"number_of_employees\": \"350\",\n                \"key_oem_clients\": [\n                    \"Tata Motors\",\n                    \"Bosch\",\n                    \"Mahindra\"\n                ],\n                \"iso_9001\": [\n                    \"Certified\"\n                ],\n                \"iso_14001\": [\n                    \"Certified\"\n                ],\n                \"ohsas_18001\": [\n                    \"Certified\"\n                ],\n                \"iatf_16949\": [\n                    \"Certified\"\n                ],\n                \"other_certifications\": [\n                    \"Certified\"\n                ],\n                \"reach_compliance\": [\n                    \"Compliant\"\n                ],\n                \"rohs_ompliance\": [\n                    \"Compliant\"\n                ],\n                \"conflict_minerals_declaration\": [\n                    \"Available\"\n                ],\n                \"environmental_safety_policy\": [\n                    \"Available\"\n                ],\n                \"factory_layout_pdf\": \"po.pdf\",\n                \"factory_profile_or_capability_deck\": \"Nothigng\",\n                \"qa_or_qc_lab_availability\": [\n                    \"In-house Lab\"\n                ],\n                \"testing_certifications\": [\n                    \"NABL\"\n                ],\n                \"contact_person_name\": \"Ravi Kumar\",\n                \"contact_person_designation\": \"Plant Head\",\n                \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\n                \"contact_person_phone\": \"+919900001111\"\n            },\n            {\n                \"id\": \"01K9VVN10RY0W309XCWSB7A1JF\",\n                \"code\": \"MANU-1762945303576-824\",\n                \"name\": \"BMW GLC\",\n                \"address\": \"Bangalore Plant 2\",\n                \"lat\": null,\n                \"long\": null,\n                \"created_by\": null,\n                \"updated_by\": null,\n                \"update_date\": \"2025-11-12T11:01:41.349Z\",\n                \"created_date\": \"2025-11-12T11:01:41.349Z\",\n                \"email\": null,\n                \"phone_number\": null,\n                \"alternate_phone_number\": null,\n                \"gender\": null,\n                \"date_of_birth\": null,\n                \"image\": null,\n                \"company_logo\": null,\n                \"company_website\": null,\n                \"factory_or_plant_name\": null,\n                \"factory_address\": null,\n                \"city\": null,\n                \"state\": null,\n                \"country\": null,\n                \"manufacturing_capabilities\": null,\n                \"installed_capacity_or_month\": null,\n                \"machinery_list\": null,\n                \"years_of_operation\": null,\n                \"number_of_employees\": null,\n                \"key_oem_clients\": null,\n                \"iso_9001\": null,\n                \"iso_14001\": null,\n                \"ohsas_18001\": null,\n                \"iatf_16949\": null,\n                \"other_certifications\": null,\n                \"reach_compliance\": null,\n                \"rohs_ompliance\": null,\n                \"conflict_minerals_declaration\": null,\n                \"environmental_safety_policy\": null,\n                \"factory_layout_pdf\": null,\n                \"factory_profile_or_capability_deck\": null,\n                \"qa_or_qc_lab_availability\": null,\n                \"testing_certifications\": null,\n                \"contact_person_name\": null,\n                \"contact_person_designation\": null,\n                \"contact_person_email\": null,\n                \"contact_person_phone\": null\n            },\n            {\n                \"id\": \"01K6AREKK9QCXHXPP4XWBY5N9V\",\n                \"code\": \"HO321\",\n                \"name\": \"Honda Car\",\n                \"address\": \"Gautam Buddh Nagar U.P. 201 306 Honda Cars India Ltd\",\n                \"lat\": 12.347543,\n                \"long\": 76.582092,\n                \"created_by\": null,\n                \"updated_by\": null,\n                \"update_date\": \"2025-09-29T12:51:37.630Z\",\n                \"created_date\": \"2025-09-29T12:51:37.630Z\",\n                \"email\": null,\n                \"phone_number\": null,\n                \"alternate_phone_number\": null,\n                \"gender\": null,\n                \"date_of_birth\": null,\n                \"image\": null,\n                \"company_logo\": null,\n                \"company_website\": null,\n                \"factory_or_plant_name\": null,\n                \"factory_address\": null,\n                \"city\": null,\n                \"state\": null,\n                \"country\": null,\n                \"manufacturing_capabilities\": null,\n                \"installed_capacity_or_month\": null,\n                \"machinery_list\": null,\n                \"years_of_operation\": null,\n                \"number_of_employees\": null,\n                \"key_oem_clients\": null,\n                \"iso_9001\": null,\n                \"iso_14001\": null,\n                \"ohsas_18001\": null,\n                \"iatf_16949\": null,\n                \"other_certifications\": null,\n                \"reach_compliance\": null,\n                \"rohs_ompliance\": null,\n                \"conflict_minerals_declaration\": null,\n                \"environmental_safety_policy\": null,\n                \"factory_layout_pdf\": null,\n                \"factory_profile_or_capability_deck\": null,\n                \"qa_or_qc_lab_availability\": null,\n                \"testing_certifications\": null,\n                \"contact_person_name\": null,\n                \"contact_person_designation\": null,\n                \"contact_person_email\": null,\n                \"contact_person_phone\": null\n            },\n            {\n                \"id\": \"01K6ARD4KB9AHZR4RRR4P01K4Q\",\n                \"code\": \"TY002\",\n                \"name\": \"JK Tyre\",\n                \"address\": \"Shop No 34, 2nd Stage, Industrial Suburb Vishweshwar Nagar Mysore - 570008\",\n                \"lat\": 12.324466,\n                \"long\": 76.639169,\n                \"created_by\": null,\n                \"updated_by\": null,\n                \"update_date\": \"2025-09-29T12:51:24.268Z\",\n                \"created_date\": \"2025-09-29T12:50:49.789Z\",\n                \"email\": null,\n                \"phone_number\": null,\n                \"alternate_phone_number\": null,\n                \"gender\": null,\n                \"date_of_birth\": null,\n                \"image\": null,\n                \"company_logo\": null,\n                \"company_website\": null,\n                \"factory_or_plant_name\": null,\n                \"factory_address\": null,\n                \"city\": null,\n                \"state\": null,\n                \"country\": null,\n                \"manufacturing_capabilities\": null,\n                \"installed_capacity_or_month\": null,\n                \"machinery_list\": null,\n                \"years_of_operation\": null,\n                \"number_of_employees\": null,\n                \"key_oem_clients\": null,\n                \"iso_9001\": null,\n                \"iso_14001\": null,\n                \"ohsas_18001\": null,\n                \"iatf_16949\": null,\n                \"other_certifications\": null,\n                \"reach_compliance\": null,\n                \"rohs_ompliance\": null,\n                \"conflict_minerals_declaration\": null,\n                \"environmental_safety_policy\": null,\n                \"factory_layout_pdf\": null,\n                \"factory_profile_or_capability_deck\": null,\n                \"qa_or_qc_lab_availability\": null,\n                \"testing_certifications\": null,\n                \"contact_person_name\": null,\n                \"contact_person_designation\": null,\n                \"contact_person_email\": null,\n                \"contact_person_phone\": null\n            }\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "ManufacturerGetById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local-url}}/api/manufacturer/onboarding/get-by-id?id=01KG6KG4C8YD60NJ98AAHV8CDP",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "manufacturer",
+                "onboarding",
+                "get-by-id"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "01KG6KG4C8YD60NJ98AAHV8CDP"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{local-url}}/api/manufacturer/onboarding/get-by-id?id=01KG6KG4C8YD60NJ98AAHV8CDP",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "manufacturer",
+                    "onboarding",
+                    "get-by-id"
+                  ],
+                  "query": [
+                    {
+                      "key": "id",
+                      "value": "01KG6KG4C8YD60NJ98AAHV8CDP"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1649"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"671-l9tEGZnHhuKc2sKWNMYL2r53TFI\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:46:01 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Manufacturer fetched successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\",\n        \"code\": \"MANF0001\",\n        \"name\": \"ABC Manufacturing Pvt Ltd\",\n        \"address\": \"Plot 45, Industrial Area Phase 2\",\n        \"lat\": 12.9716,\n        \"long\": 77.5946,\n        \"created_by\": null,\n        \"updated_by\": null,\n        \"update_date\": \"2026-01-30T04:55:06.627Z\",\n        \"created_date\": \"2026-01-30T04:45:04.002Z\",\n        \"email\": \"contact@abcds.com\",\n        \"phone_number\": \"+919876543210\",\n        \"alternate_phone_number\": \"+919811112222\",\n        \"gender\": \"Company\",\n        \"date_of_birth\": \"2005-03-31T18:30:00.000Z\",\n        \"image\": \"\",\n        \"company_logo\": \"\",\n        \"company_website\": \"https://abcmfg.com\",\n        \"factory_or_plant_name\": \"ABC Main Plant\",\n        \"factory_address\": \"Peenya Industrial Area, Bangalore\",\n        \"city\": \"Bangalore\",\n        \"state\": \"Karnataka\",\n        \"country\": \"India\",\n        \"manufacturing_capabilities\": [\n            \"CNC Machining\",\n            \"Die Casting\",\n            \"Assembly\"\n        ],\n        \"installed_capacity_or_month\": \"50000 Units\",\n        \"machinery_list\": \"CNC Machines, Injection Molding, Assembly Line\",\n        \"years_of_operation\": \"18\",\n        \"number_of_employees\": \"350\",\n        \"key_oem_clients\": [\n            \"Tata Motors\",\n            \"Bosch\",\n            \"Mahindra\"\n        ],\n        \"iso_9001\": [\n            \"Certified\"\n        ],\n        \"iso_14001\": [\n            \"Certified\"\n        ],\n        \"ohsas_18001\": [\n            \"Certified\"\n        ],\n        \"iatf_16949\": [\n            \"Certified\"\n        ],\n        \"other_certifications\": [\n            \"Certified\"\n        ],\n        \"reach_compliance\": [\n            \"Compliant\"\n        ],\n        \"rohs_ompliance\": [\n            \"Compliant\"\n        ],\n        \"conflict_minerals_declaration\": [\n            \"Available\"\n        ],\n        \"environmental_safety_policy\": [\n            \"Available\"\n        ],\n        \"factory_layout_pdf\": \"po.pdf\",\n        \"factory_profile_or_capability_deck\": \"Nothigng\",\n        \"qa_or_qc_lab_availability\": [\n            \"In-house Lab\"\n        ],\n        \"testing_certifications\": [\n            \"NABL\"\n        ],\n        \"contact_person_name\": \"Ravi Kumar\",\n        \"contact_person_designation\": \"Plant Head\",\n        \"contact_person_email\": \"ravi.kumar@abcmfg.com\",\n        \"contact_person_phone\": \"+919900001111\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "DeleteManufacturer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{access-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/manufacturer/onboarding/delete",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "manufacturer",
+                "onboarding",
+                "delete"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{access-token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"id\": \"01KG6KG4C8YD60NJ98AAHV8CDP\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/manufacturer/onboarding/delete",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "manufacturer",
+                    "onboarding",
+                    "delete"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "84"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"54-Ab51OWQ0EHl18CGua38cNQp4934\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:47:23 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Manufacturer deleted successfully\",\n    \"code\": 200,\n    \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "SupplierOnboardingCreate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"supplier_name\": \"XYZ Components Supplier\",\r\n    \"supplier_email\": \"sales@xyzsupplier.com\",\r\n    \"supplier_phone_number\": \"+918888887777\",\r\n    \"supplier_alternate_phone_number\": \"+918888886666\",\r\n    \"supplier_gender\": \"Company\",\r\n    \"supplier_date_of_birth\": \"2010-06-15\",\r\n    \"supplier_image\":\"profile url here\",\r\n    \"supplier_company_logo\": \"logo_url_here\",\r\n    \"supplier_company_website\": \"https://xyzsupplier.com\",\r\n    \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\r\n    \"supplier_business_type\": \"Tier-2 Supplier\",\r\n    \"supplier_supplied_categories\": [\r\n        \"Fasteners\",\r\n        \"Plastic Components\"\r\n    ],\r\n    \"supplier_years_in_business\": \"12\",\r\n    \"supplier_city\": \"Chennai\",\r\n    \"supplier_state\": \"Tamil Nadu\",\r\n    \"supplier_country\": \"India\",\r\n    \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\r\n    \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\r\n    \"supplier_pan_number\": \"ABCDE1234F\",\r\n    \"supplier_bank_account_number\": \"123456789012\",\r\n    \"supplier_ifsc_code\": \"HDFC0001234\",\r\n    \"supplier_bank_name\": \"HDFC Bank\",\r\n    \"supplier_bank_branch\": \"Chennai Industrial Branch\",\r\n    \"supplier_key_automotive_clients\": [\r\n        \"Ashok Leyland\",\r\n        \"TVS Motors\"\r\n    ],\r\n    \"supplier_business_registration_certificate\": [\r\n        \"doc_url_1\"\r\n    ],\r\n    \"supplier_tax_registration_proof\": [\r\n        \"doc_url_2\"\r\n    ],\r\n    \"supplier_product_catalogue\": [\r\n        \"catalog_url\"\r\n    ],\r\n    \"supplier_additional_supporting_documents\": [\r\n        \"extra_doc_url\"\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/supplier/onboarding/create",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "onboarding",
+                "create"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"supplier_name\": \"XYZ Components Supplier\",\r\n    \"supplier_email\": \"sales@xyzsupplier.com\",\r\n    \"supplier_phone_number\": \"+918888887777\",\r\n    \"supplier_alternate_phone_number\": \"+918888886666\",\r\n    \"supplier_gender\": \"Company\",\r\n    \"supplier_date_of_birth\": \"2010-06-15\",\r\n    \"supplier_image\":\"profile url here\",\r\n    \"supplier_company_logo\": \"logo_url_here\",\r\n    \"supplier_company_website\": \"https://xyzsupplier.com\",\r\n    \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\r\n    \"supplier_business_type\": \"Tier-2 Supplier\",\r\n    \"supplier_supplied_categories\": [\r\n        \"Fasteners\",\r\n        \"Plastic Components\"\r\n    ],\r\n    \"supplier_years_in_business\": \"12\",\r\n    \"supplier_city\": \"Chennai\",\r\n    \"supplier_state\": \"Tamil Nadu\",\r\n    \"supplier_country\": \"India\",\r\n    \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\r\n    \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\r\n    \"supplier_pan_number\": \"ABCDE1234F\",\r\n    \"supplier_bank_account_number\": \"123456789012\",\r\n    \"supplier_ifsc_code\": \"HDFC0001234\",\r\n    \"supplier_bank_name\": \"HDFC Bank\",\r\n    \"supplier_bank_branch\": \"Chennai Industrial Branch\",\r\n    \"supplier_key_automotive_clients\": [\r\n        \"Ashok Leyland\",\r\n        \"TVS Motors\"\r\n    ],\r\n    \"supplier_business_registration_certificate\": [\r\n        \"doc_url_1\"\r\n    ],\r\n    \"supplier_tax_registration_proof\": [\r\n        \"doc_url_2\"\r\n    ],\r\n    \"supplier_product_catalogue\": [\r\n        \"catalog_url\"\r\n    ],\r\n    \"supplier_additional_supporting_documents\": [\r\n        \"extra_doc_url\"\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/supplier/onboarding/create",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supplier",
+                    "onboarding",
+                    "create"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1441"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5a1-cTMaZU38VgZYf317HJzFpnTDl5Y\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 04:57:25 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Supplier created\",\n    \"code\": 200,\n    \"data\": {\n        \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\n        \"code\": \"SUP01654\",\n        \"supplier_name\": \"XYZ Components Supplier\",\n        \"supplier_email\": \"sales@xyzsupplier.com\",\n        \"supplier_phone_number\": \"+918888887777\",\n        \"update_date\": \"2026-01-30T04:57:24.992Z\",\n        \"created_date\": \"2026-01-30T04:57:24.992Z\",\n        \"supplier_alternate_phone_number\": \"+918888886666\",\n        \"supplier_gender\": \"Company\",\n        \"supplier_date_of_birth\": \"2010-06-14T18:30:00.000Z\",\n        \"supplier_image\": \"profile url here\",\n        \"supplier_company_logo\": \"logo_url_here\",\n        \"supplier_company_website\": \"https://xyzsupplier.com\",\n        \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\n        \"supplier_business_type\": \"Tier-2 Supplier\",\n        \"supplier_supplied_categories\": [\n            \"Fasteners\",\n            \"Plastic Components\"\n        ],\n        \"supplier_years_in_business\": \"12\",\n        \"supplier_city\": \"Chennai\",\n        \"supplier_state\": \"Tamil Nadu\",\n        \"supplier_country\": \"India\",\n        \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\n        \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\n        \"supplier_pan_number\": \"ABCDE1234F\",\n        \"supplier_bank_account_number\": \"123456789012\",\n        \"supplier_ifsc_code\": \"HDFC0001234\",\n        \"supplier_bank_name\": \"HDFC Bank\",\n        \"supplier_bank_branch\": \"Chennai Industrial Branch\",\n        \"supplier_key_automotive_clients\": [\n            \"Ashok Leyland\",\n            \"TVS Motors\"\n        ],\n        \"supplier_business_registration_certificate\": [\n            \"doc_url_1\"\n        ],\n        \"supplier_tax_registration_proof\": [\n            \"doc_url_2\"\n        ],\n        \"supplier_product_catalogue\": [\n            \"catalog_url\"\n        ],\n        \"supplier_additional_supporting_documents\": [\n            \"extra_doc_url\"\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "SupplierOnboardingUpdate(Only For Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\r\n    \"supplier_name\": \"XYZ Components Supplier\",\r\n    \"supplier_email\": \"sales@abcsupplier.com\",\r\n    \"supplier_phone_number\": \"+918888887777\",\r\n    \"supplier_alternate_phone_number\": \"+918888886666\",\r\n    \"supplier_gender\": \"Company\",\r\n    \"supplier_date_of_birth\": \"2010-06-15\",\r\n    \"supplier_image\": \"profile url here\",\r\n    \"supplier_company_logo\": \"logo_url_here\",\r\n    \"supplier_company_website\": \"https://xyzsupplier.com\",\r\n    \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\r\n    \"supplier_business_type\": \"Tier-2 Supplier\",\r\n    \"supplier_supplied_categories\": [\r\n        \"Fasteners\",\r\n        \"Plastic Components\"\r\n    ],\r\n    \"supplier_years_in_business\": \"12\",\r\n    \"supplier_city\": \"Chennai\",\r\n    \"supplier_state\": \"Tamil Nadu\",\r\n    \"supplier_country\": \"India\",\r\n    \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\r\n    \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\r\n    \"supplier_pan_number\": \"ABCDE1234F\",\r\n    \"supplier_bank_account_number\": \"123456789012\",\r\n    \"supplier_ifsc_code\": \"HDFC0001234\",\r\n    \"supplier_bank_name\": \"HDFC Bank\",\r\n    \"supplier_bank_branch\": \"Chennai Industrial Branch\",\r\n    \"supplier_key_automotive_clients\": [\r\n        \"Ashok Leyland\",\r\n        \"TVS Motors\"\r\n    ],\r\n    \"supplier_business_registration_certificate\": [\r\n        \"doc_url_1\"\r\n    ],\r\n    \"supplier_tax_registration_proof\": [\r\n        \"doc_url_2\"\r\n    ],\r\n    \"supplier_product_catalogue\": [\r\n        \"catalog_url\"\r\n    ],\r\n    \"supplier_additional_supporting_documents\": [\r\n        \"extra_doc_url\"\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/supplier/onboarding/update",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "onboarding",
+                "update"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\r\n    \"supplier_name\": \"XYZ Components Supplier\",\r\n    \"supplier_email\": \"sales@abcsupplier.com\",\r\n    \"supplier_phone_number\": \"+918888887777\",\r\n    \"supplier_alternate_phone_number\": \"+918888886666\",\r\n    \"supplier_gender\": \"Company\",\r\n    \"supplier_date_of_birth\": \"2010-06-15\",\r\n    \"supplier_image\": \"profile url here\",\r\n    \"supplier_company_logo\": \"logo_url_here\",\r\n    \"supplier_company_website\": \"https://xyzsupplier.com\",\r\n    \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\r\n    \"supplier_business_type\": \"Tier-2 Supplier\",\r\n    \"supplier_supplied_categories\": [\r\n        \"Fasteners\",\r\n        \"Plastic Components\"\r\n    ],\r\n    \"supplier_years_in_business\": \"12\",\r\n    \"supplier_city\": \"Chennai\",\r\n    \"supplier_state\": \"Tamil Nadu\",\r\n    \"supplier_country\": \"India\",\r\n    \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\r\n    \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\r\n    \"supplier_pan_number\": \"ABCDE1234F\",\r\n    \"supplier_bank_account_number\": \"123456789012\",\r\n    \"supplier_ifsc_code\": \"HDFC0001234\",\r\n    \"supplier_bank_name\": \"HDFC Bank\",\r\n    \"supplier_bank_branch\": \"Chennai Industrial Branch\",\r\n    \"supplier_key_automotive_clients\": [\r\n        \"Ashok Leyland\",\r\n        \"TVS Motors\"\r\n    ],\r\n    \"supplier_business_registration_certificate\": [\r\n        \"doc_url_1\"\r\n    ],\r\n    \"supplier_tax_registration_proof\": [\r\n        \"doc_url_2\"\r\n    ],\r\n    \"supplier_product_catalogue\": [\r\n        \"catalog_url\"\r\n    ],\r\n    \"supplier_additional_supporting_documents\": [\r\n        \"extra_doc_url\"\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/supplier/onboarding/update",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supplier",
+                    "onboarding",
+                    "update"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1441"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5a1-j34tY8nt4vt7XqvFvH2Kgd8UIMc\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:03:25 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Supplier updated\",\n    \"code\": 200,\n    \"data\": {\n        \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\n        \"code\": \"SUP01654\",\n        \"supplier_name\": \"XYZ Components Supplier\",\n        \"supplier_email\": \"sales@abcsupplier.com\",\n        \"supplier_phone_number\": \"+918888887777\",\n        \"update_date\": \"2026-01-30T05:03:25.002Z\",\n        \"created_date\": \"2026-01-30T04:57:24.992Z\",\n        \"supplier_alternate_phone_number\": \"+918888886666\",\n        \"supplier_gender\": \"Company\",\n        \"supplier_date_of_birth\": \"2010-06-14T18:30:00.000Z\",\n        \"supplier_image\": \"profile url here\",\n        \"supplier_company_logo\": \"logo_url_here\",\n        \"supplier_company_website\": \"https://xyzsupplier.com\",\n        \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\n        \"supplier_business_type\": \"Tier-2 Supplier\",\n        \"supplier_supplied_categories\": [\n            \"Fasteners\",\n            \"Plastic Components\"\n        ],\n        \"supplier_years_in_business\": \"12\",\n        \"supplier_city\": \"Chennai\",\n        \"supplier_state\": \"Tamil Nadu\",\n        \"supplier_country\": \"India\",\n        \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\n        \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\n        \"supplier_pan_number\": \"ABCDE1234F\",\n        \"supplier_bank_account_number\": \"123456789012\",\n        \"supplier_ifsc_code\": \"HDFC0001234\",\n        \"supplier_bank_name\": \"HDFC Bank\",\n        \"supplier_bank_branch\": \"Chennai Industrial Branch\",\n        \"supplier_key_automotive_clients\": [\n            \"Ashok Leyland\",\n            \"TVS Motors\"\n        ],\n        \"supplier_business_registration_certificate\": [\n            \"doc_url_1\"\n        ],\n        \"supplier_tax_registration_proof\": [\n            \"doc_url_2\"\n        ],\n        \"supplier_product_catalogue\": [\n            \"catalog_url\"\n        ],\n        \"supplier_additional_supporting_documents\": [\n            \"extra_doc_url\"\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "UploadImageOrFile",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "uuid": "9b6203bf-04e3-46a7-b171-b211b8f6acb2",
+                  "src": "/C:/Users/Chethan/Pictures/Screenshots/Screenshot 2025-05-19 110139.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{local-url}}/api/onboarding-forms-image-or-file",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "onboarding-forms-image-or-file"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "uuid": "9b6203bf-04e3-46a7-b171-b211b8f6acb2",
+                      "src": "/C:/Users/Chethan/Pictures/Screenshots/Screenshot 2025-05-19 110139.png"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/onboarding-forms-image-or-file",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "onboarding-forms-image-or-file"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "321"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"141-2fUM6y/csbsIShgWVSqPtYxWpy0\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:04:39 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Uploaded successfully\",\n    \"url\": \"https://images.in-maa-1.linodeobjects.com/onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png\",\n    \"key\": \"onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GetImageOrFile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local-url}}/api/onboarding-forms-get-image?key=onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "onboarding-forms-get-image"
+              ],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Succeess",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{local-url}}/api/onboarding-forms-get-image?key=onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "onboarding-forms-get-image"
+                  ],
+                  "query": [
+                    {
+                      "key": "key",
+                      "value": "onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot 2025-05-19 110139.png"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "523"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"20b-dCcSTihOUWyPbF0SdExjTkW/58k\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:05:53 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"url\": \"https://in-maa-1.linodeobjects.com/images/onboardingformdocs/IMG-1769749479442-c8968519-89b7-4519-aa9f-769b747725ca-Screenshot%202025-05-19%20110139.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=3EPN6WAZACV03T68TS93%2F20260130%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260130T050553Z&X-Amz-Expires=600&X-Amz-Signature=b2c7cf6b5337a906bbf1165c162ea6f94f5f5fb86c5d50ab143b47eff6239da5&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "SupplierList",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local-url}}/api/supplier/onboarding/list?pageNumber=1&pageSize=20",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "onboarding",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": null,
+                  "description": "code,supplier_name,supplier_email,supplier_phone_number,supplier_gst_number,supplier_company_name,",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "code",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_name",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_email",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_phone_number",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_gst_number",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "supplier_company_name",
+                  "value": null,
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{local-url}}/api/supplier/onboarding/list?pageNumber=1&pageSize=20",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supplier",
+                    "onboarding",
+                    "list"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageNumber",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    },
+                    {
+                      "key": "search",
+                      "value": null,
+                      "description": "code,supplier_name,supplier_email,supplier_phone_number,supplier_gst_number,supplier_company_name,",
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "code",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "supplier_name",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "supplier_email",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "supplier_phone_number",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "supplier_gst_number",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    },
+                    {
+                      "key": "supplier_company_name",
+                      "value": null,
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "13823"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"35ff-OSiQ7kocXwHZCxAEe7xBBcTqc54\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:49:09 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Success!\",\n    \"code\": 200,\n    \"data\": {\n        \"page\": 1,\n        \"pageSize\": 20,\n        \"totalCount\": 13,\n        \"data\": [\n            {\n                \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\n                \"code\": \"SUP01654\",\n                \"supplier_name\": \"XYZ Components Supplier\",\n                \"supplier_email\": \"sales@abcsupplier.com\",\n                \"supplier_phone_number\": \"+918888887777\",\n                \"update_date\": \"2026-01-30T05:03:25.002Z\",\n                \"created_date\": \"2026-01-30T04:57:24.992Z\",\n                \"supplier_alternate_phone_number\": \"+918888886666\",\n                \"supplier_gender\": \"Company\",\n                \"supplier_date_of_birth\": \"2010-06-14T18:30:00.000Z\",\n                \"supplier_image\": \"profile url here\",\n                \"supplier_company_logo\": \"logo_url_here\",\n                \"supplier_company_website\": \"https://xyzsupplier.com\",\n                \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\n                \"supplier_business_type\": \"Tier-2 Supplier\",\n                \"supplier_supplied_categories\": [\n                    \"Fasteners\",\n                    \"Plastic Components\"\n                ],\n                \"supplier_years_in_business\": \"12\",\n                \"supplier_city\": \"Chennai\",\n                \"supplier_state\": \"Tamil Nadu\",\n                \"supplier_country\": \"India\",\n                \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\n                \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\n                \"supplier_pan_number\": \"ABCDE1234F\",\n                \"supplier_bank_account_number\": \"123456789012\",\n                \"supplier_ifsc_code\": \"HDFC0001234\",\n                \"supplier_bank_name\": \"HDFC Bank\",\n                \"supplier_bank_branch\": \"Chennai Industrial Branch\",\n                \"supplier_key_automotive_clients\": [\n                    \"Ashok Leyland\",\n                    \"TVS Motors\"\n                ],\n                \"supplier_business_registration_certificate\": [\n                    \"doc_url_1\"\n                ],\n                \"supplier_tax_registration_proof\": [\n                    \"doc_url_2\"\n                ],\n                \"supplier_product_catalogue\": [\n                    \"catalog_url\"\n                ],\n                \"supplier_additional_supporting_documents\": [\n                    \"extra_doc_url\"\n                ]\n            },\n            {\n                \"sup_id\": \"01KG05Z982M9JN2S5MN1JWDM35\",\n                \"code\": \"SUP01536\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"sridevi.zotanextech.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-27T16:53:14.112Z\",\n                \"created_date\": \"2026-01-27T16:53:14.112Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KF8PNDKS1E325VT528B0DZ5N\",\n                \"code\": \"SUP00252\",\n                \"supplier_name\": \"sai pranay sup\",\n                \"supplier_email\": \"saipranayadepu07@gmail.com\",\n                \"supplier_phone_number\": \"8465001147\",\n                \"update_date\": \"2026-01-18T14:03:10.326Z\",\n                \"created_date\": \"2026-01-18T14:03:10.326Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": \"Kalapuli\",\n                \"supplier_state\": \"Hyderabad\",\n                \"supplier_country\": \"Andra Pradesh\",\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG90A9MNG2F8XMMRZWZJ4\",\n                \"code\": \"SUP00023\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"vishnu.simhadri@enviguide.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG905YSD6N4TKG86F83VM\",\n                \"code\": \"SUP00019\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"Sivaprasad@enviguide.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG90680Q7CDCZQF6PBXDW\",\n                \"code\": \"SUP00020\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"hruday.murikipudi@enviguide.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG907EB792XH9H9ESMWRY\",\n                \"code\": \"SUP00021\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"govardhan.kothapalli@enviguide.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG90832DD038K2P9FWMW4\",\n                \"code\": \"SUP00022\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"info@enviguide.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEWDG904HTWZFGEQNMHEYTZS\",\n                \"code\": \"SUP00018\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"cksivaprasad.sap@gmail.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T19:32:11.393Z\",\n                \"created_date\": \"2026-01-13T19:32:11.393Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"02K3KD7B0WN8745HJVW11G2TEC\",\n                \"code\": \"SUP00001\",\n                \"supplier_name\": \"Chethan\",\n                \"supplier_email\": \"chethan@zotanextech.com\",\n                \"supplier_phone_number\": \"7899937456\",\n                \"update_date\": \"2026-01-13T15:41:28.604Z\",\n                \"created_date\": \"2026-01-13T15:41:28.604Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": \"Mysuru\",\n                \"supplier_state\": \"Karnataka\",\n                \"supplier_country\": \"India\",\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEVEH4Q0352DCXZCCKR9QDSQ\",\n                \"code\": \"SUP00012\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"sricharan@zotanextech.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T10:30:53.574Z\",\n                \"created_date\": \"2026-01-13T10:30:53.574Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEVEH4ZW4H3CSC04AJN1FD1S\",\n                \"code\": \"SUP00013\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"subhash@zotanextech.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T10:30:53.574Z\",\n                \"created_date\": \"2026-01-13T10:30:53.574Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            },\n            {\n                \"sup_id\": \"01KEVEH4E69NV76JQPGZEE34A0\",\n                \"code\": \"SUP00011\",\n                \"supplier_name\": null,\n                \"supplier_email\": \"abhiram@zotanextech.com\",\n                \"supplier_phone_number\": null,\n                \"update_date\": \"2026-01-13T10:30:53.574Z\",\n                \"created_date\": \"2026-01-13T10:30:53.574Z\",\n                \"supplier_alternate_phone_number\": null,\n                \"supplier_gender\": null,\n                \"supplier_date_of_birth\": null,\n                \"supplier_image\": null,\n                \"supplier_company_logo\": null,\n                \"supplier_company_website\": null,\n                \"supplier_company_name\": null,\n                \"supplier_business_type\": null,\n                \"supplier_supplied_categories\": null,\n                \"supplier_years_in_business\": null,\n                \"supplier_city\": null,\n                \"supplier_state\": null,\n                \"supplier_country\": null,\n                \"supplier_registered_address\": null,\n                \"supplier_gst_number\": null,\n                \"supplier_pan_number\": null,\n                \"supplier_bank_account_number\": null,\n                \"supplier_ifsc_code\": null,\n                \"supplier_bank_name\": null,\n                \"supplier_bank_branch\": null,\n                \"supplier_key_automotive_clients\": null,\n                \"supplier_business_registration_certificate\": null,\n                \"supplier_tax_registration_proof\": null,\n                \"supplier_product_catalogue\": null,\n                \"supplier_additional_supporting_documents\": null\n            }\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "SupplierGetById",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{local-url}}/api/supplier/onboarding/get-by-id?id=01KG6M6R6C7PBNS9NK68A3XVR4",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "onboarding",
+                "get-by-id"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "01KG6M6R6C7PBNS9NK68A3XVR4"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{local-url}}/api/supplier/onboarding/get-by-id?id=01KG6M6R6C7PBNS9NK68A3XVR4",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supplier",
+                    "onboarding",
+                    "get-by-id"
+                  ],
+                  "query": [
+                    {
+                      "key": "id",
+                      "value": "01KG6M6R6C7PBNS9NK68A3XVR4"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1454"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5ae-m4zzv6wpLHEayaEx4ccsPbzBwgE\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:49:56 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Supplier fetched successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\",\n        \"code\": \"SUP01654\",\n        \"supplier_name\": \"XYZ Components Supplier\",\n        \"supplier_email\": \"sales@abcsupplier.com\",\n        \"supplier_phone_number\": \"+918888887777\",\n        \"update_date\": \"2026-01-30T05:03:25.002Z\",\n        \"created_date\": \"2026-01-30T04:57:24.992Z\",\n        \"supplier_alternate_phone_number\": \"+918888886666\",\n        \"supplier_gender\": \"Company\",\n        \"supplier_date_of_birth\": \"2010-06-14T18:30:00.000Z\",\n        \"supplier_image\": \"profile url here\",\n        \"supplier_company_logo\": \"logo_url_here\",\n        \"supplier_company_website\": \"https://xyzsupplier.com\",\n        \"supplier_company_name\": \"XYZ Supplier Pvt Ltd\",\n        \"supplier_business_type\": \"Tier-2 Supplier\",\n        \"supplier_supplied_categories\": [\n            \"Fasteners\",\n            \"Plastic Components\"\n        ],\n        \"supplier_years_in_business\": \"12\",\n        \"supplier_city\": \"Chennai\",\n        \"supplier_state\": \"Tamil Nadu\",\n        \"supplier_country\": \"India\",\n        \"supplier_registered_address\": \"SIDCO Industrial Estate, Chennai\",\n        \"supplier_gst_number\": \"29ABCDE1234F1Z5\",\n        \"supplier_pan_number\": \"ABCDE1234F\",\n        \"supplier_bank_account_number\": \"123456789012\",\n        \"supplier_ifsc_code\": \"HDFC0001234\",\n        \"supplier_bank_name\": \"HDFC Bank\",\n        \"supplier_bank_branch\": \"Chennai Industrial Branch\",\n        \"supplier_key_automotive_clients\": [\n            \"Ashok Leyland\",\n            \"TVS Motors\"\n        ],\n        \"supplier_business_registration_certificate\": [\n            \"doc_url_1\"\n        ],\n        \"supplier_tax_registration_proof\": [\n            \"doc_url_2\"\n        ],\n        \"supplier_product_catalogue\": [\n            \"catalog_url\"\n        ],\n        \"supplier_additional_supporting_documents\": [\n            \"extra_doc_url\"\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Supplier Delete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{access-token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{local-url}}/api/supplier/onboarding/delete",
+              "host": [
+                "{{local-url}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "onboarding",
+                "delete"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "{{access-token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"sup_id\": \"01KG6M6R6C7PBNS9NK68A3XVR4\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{local-url}}/api/supplier/onboarding/delete",
+                  "host": [
+                    "{{local-url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supplier",
+                    "onboarding",
+                    "delete"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Headers",
+                  "value": "Origin, X-Requested-With, Content-Type, Accept"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "80"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"50-ynBV8UF3p6V8Mcoi0XyeeoDqgTg\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 30 Jan 2026 05:50:49 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": true,\n    \"message\": \"Supplier deleted successfully\",\n    \"code\": 200,\n    \"data\": null\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "local-url",
+      "value": "",
+      "type": "default"
     }
   ]
 }

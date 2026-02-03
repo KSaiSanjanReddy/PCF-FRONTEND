@@ -102,18 +102,25 @@ const AllProducts: React.FC = () => {
 
       if (response?.status) {
         const data = response.data;
+        // New format: { data: [...], pagination: { total, page, limit, totalPages } }
+        const pagination = data?.pagination || {};
         let safeProducts: Product[] = [];
 
         if (Array.isArray(data)) {
           safeProducts = data as Product[];
+        } else if (data && Array.isArray(data.data)) {
+          // New format: data.data contains products array
+          safeProducts = data.data as Product[];
         } else if (data && Array.isArray(data.rows)) {
           safeProducts = data.rows as Product[];
         }
 
         setProducts(safeProducts);
-        const total = data?.totalCount || safeProducts.length;
+        // Handle pagination format: { total, page, limit, totalPages }
+        const total = pagination.total || data?.totalCount || data?.total || safeProducts.length;
+        const pages = pagination.totalPages || data?.totalPages || Math.max(1, Math.ceil(total / pageSize));
         setTotalCount(total);
-        setTotalPages(Math.max(1, Math.ceil(total / pageSize)));
+        setTotalPages(pages);
       }
     } catch (error) {
       console.error("Error fetching products:", error);

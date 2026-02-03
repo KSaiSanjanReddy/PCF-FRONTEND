@@ -266,19 +266,24 @@ class PCFService {
           }
         }
         
+        // Check for pagination object in response
+        const pagination = result.pagination || pageInfo.pagination || {};
+
         console.log("Extracted data:", {
           dataArrayLength: dataArray.length,
           pageInfo,
+          pagination,
         });
-        
-        const totalCount = pageInfo.total_count || pageInfo.totalCount || pageInfo.totalRecords || result.total_count || result.totalCount || dataArray.length;
-        const totalPages = pageInfo.total_pages || pageInfo.totalPages || result.total_pages || result.totalPages || Math.ceil(totalCount / pageSize);
+
+        const totalCount = pagination.total || pageInfo.total_count || pageInfo.totalCount || pageInfo.total || pageInfo.totalRecords || result.total_count || result.totalCount || dataArray.length;
+        const totalPages = pagination.totalPages || pageInfo.total_pages || pageInfo.totalPages || result.total_pages || result.totalPages || Math.ceil(totalCount / pageSize);
+        const currentPage = pagination.page || pageInfo.page || pageInfo.currentPage || result.current_page || 1;
 
         return {
           success: true,
           message: result.message || "PCF BOM list fetched successfully",
           data: dataArray as PCFBOMItem[],
-          current_page: pageInfo.page || pageInfo.currentPage || result.current_page || 1,
+          current_page: currentPage,
           total_pages: totalPages,
           total_count: totalCount,
         };
