@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import {
   Card,
   Row,
@@ -9,8 +9,6 @@ import {
   Table,
   Tag,
   Space,
-  Input,
-  Select,
   Tabs,
   Divider,
   message,
@@ -20,36 +18,23 @@ import {
 } from "antd";
 import {
   Puzzle,
-  Edit,
-  Trash2,
-  Upload,
-  Search,
   Eye,
   Download,
-  Share2,
-  Plus,
   Shield,
   CheckCircle,
   FileText,
-  ArrowLeft,
   ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
   Wrench,
   Zap,
   Settings,
-  Clock,
-  Calendar,
   User,
   AlertTriangle,
-  Box,
   Layers,
 } from "lucide-react";
 import componentMasterService, { type ComponentItem } from "../lib/componentMasterService";
 import { documentMasterService } from "../lib/documentMasterService";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 interface ComponentData {
   id: string;
@@ -81,11 +66,17 @@ interface PCFDataSummary {
   status: string;
 }
 
+interface LocationState {
+  componentData?: ComponentItem;
+}
+
 const ComponentsMasterView: React.FC = () => {
   const { id: code } = useParams<{ id: string }>(); // Route param is still "id" but contains the PCF code
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const bomId = searchParams.get('bomId');
+  const passedComponentData = (location.state as LocationState)?.componentData;
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [componentData, setComponentData] = useState<ComponentData | null>(null);
@@ -174,6 +165,29 @@ const ComponentsMasterView: React.FC = () => {
     }
   };
 
+  const transformComponentData = useCallback((data: ComponentItem): ComponentData => {
+    const extractString = (value: any, fallback: string = "N/A"): string => {
+      if (!value) return fallback;
+      if (typeof value === "string") return value;
+      if (typeof value === "object" && value.name) return value.name;
+      return fallback;
+    };
+
+    return {
+      ...data,
+      id: data.id,
+      componentCode: data.code || "N/A",
+      componentName: data.request_title || "N/A",
+      lifecycleStage: extractString(data.component_category) || "N/A",
+      manufacturer: extractString(data.manufacturer) || "N/A",
+      location: data.bom_details?.[0]?.production_location || "N/A",
+      materialType: data.bom_details?.[0]?.material_emission?.[0]?.material_type || "N/A",
+      weight: data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A",
+      recyclability: "N/A",
+      certificateStatus: data.status || "N/A",
+    };
+  }, []);
+
   const fetchComponentData = useCallback(async () => {
     if (!code) {
       message.error("Component code is missing");
@@ -183,30 +197,21 @@ const ComponentsMasterView: React.FC = () => {
 
     setLoading(true);
     try {
+      // Use passed data from list page if available
+      if (passedComponentData) {
+        const transformedData = transformComponentData(passedComponentData);
+        setComponentData(transformedData);
+        setPcfSummary(calculatePCFSummary(transformedData));
+        await fetchDocumentUrls(transformedData);
+        setLoading(false);
+        return;
+      }
+
+      // Fallback to API call if no data was passed (e.g., direct URL access)
       const result = await componentMasterService.getComponentByCode(code);
 
       if (result.success && result.data) {
-        const data = result.data;
-        const extractString = (value: any, fallback: string = "N/A"): string => {
-          if (!value) return fallback;
-          if (typeof value === "string") return value;
-          if (typeof value === "object" && value.name) return value.name;
-          return fallback;
-        };
-
-        const transformedData: ComponentData = {
-          ...data,
-          id: data.id,
-          componentCode: data.code || "N/A",
-          componentName: data.request_title || "N/A",
-          lifecycleStage: extractString(data.component_category) || "N/A",
-          manufacturer: extractString(data.manufacturer) || "N/A",
-          location: data.bom_details?.[0]?.production_location || "N/A",
-          materialType: data.bom_details?.[0]?.material_emission?.[0]?.material_type || "N/A",
-          weight: data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A",
-          recyclability: "N/A",
-          certificateStatus: data.status || "N/A",
-        };
+        const transformedData = transformComponentData(result.data);
         setComponentData(transformedData);
         setPcfSummary(calculatePCFSummary(transformedData));
         await fetchDocumentUrls(transformedData);
@@ -221,7 +226,7 @@ const ComponentsMasterView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [code, navigate]);
+  }, [code, navigate, passedComponentData, transformComponentData]);
 
   useEffect(() => {
     if (code) {
@@ -259,6 +264,90 @@ const ComponentsMasterView: React.FC = () => {
     const icons: { [key: string]: any } = { wrench: Wrench, zap: Zap, settings: Settings, file: FileText };
     const IconComponent = icons[iconName] || FileText;
     return <IconComponent size={16} />;
+  };
+
+  // Export emission data to CSV
+  const handleExportCSV = () => {
+    if (!componentData?.bom_details?.length) {
+      message.warning("No emission data available to export");
+      return;
+    }
+
+    const headers = [
+      "Material Number",
+      "Component Name",
+      "Component Category",
+      "Manufacturer",
+      "Weight (gms)",
+      "Material Emission (kgCO2e)",
+      "Production Emission (kgCO2e)",
+      "Logistics Emission (kgCO2e)",
+      "Packaging Emission (kgCO2e)",
+      "Waste Emission (kgCO2e)",
+      "Total PCF (kgCO2e)",
+    ];
+
+    const rows = componentData.bom_details.map((bom: any) => {
+      const pcfTotal = bom.pcf_total_emission_calculation || {};
+      return [
+        bom.material_number || "N/A",
+        bom.component_name || "N/A",
+        bom.component_category || "N/A",
+        bom.manufacturer || "N/A",
+        bom.weight_gms || 0,
+        pcfTotal.material_value || 0,
+        pcfTotal.production_value || 0,
+        pcfTotal.logistic_value || 0,
+        pcfTotal.packaging_value || 0,
+        pcfTotal.waste_value || 0,
+        pcfTotal.total_pcf_value || 0,
+      ];
+    });
+
+    // Add totals row
+    const totals = componentData.bom_details.reduce(
+      (acc: any, bom: any) => {
+        const pcfTotal = bom.pcf_total_emission_calculation || {};
+        return {
+          weight: acc.weight + (bom.weight_gms || 0),
+          material: acc.material + (pcfTotal.material_value || 0),
+          production: acc.production + (pcfTotal.production_value || 0),
+          logistics: acc.logistics + (pcfTotal.logistic_value || 0),
+          packaging: acc.packaging + (pcfTotal.packaging_value || 0),
+          waste: acc.waste + (pcfTotal.waste_value || 0),
+          total: acc.total + (pcfTotal.total_pcf_value || 0),
+        };
+      },
+      { weight: 0, material: 0, production: 0, logistics: 0, packaging: 0, waste: 0, total: 0 }
+    );
+
+    rows.push([
+      "TOTAL",
+      "",
+      "",
+      "",
+      totals.weight,
+      totals.material,
+      totals.production,
+      totals.logistics,
+      totals.packaging,
+      totals.waste,
+      totals.total,
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `PCF_Report_${componentData.componentCode || "export"}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    message.success("PCF Report exported successfully");
   };
 
   // Overview Tab
@@ -371,13 +460,10 @@ const ComponentsMasterView: React.FC = () => {
             <Card className="h-full border border-gray-200">
               <span className="font-semibold text-gray-900 block mb-4">Quick Actions</span>
               <Space direction="vertical" className="w-full">
-                <Button type="primary" icon={<Download size={16} />} block className="shadow-lg shadow-green-600/20">
+                <Button type="primary" icon={<Download size={16} />} block className="shadow-lg shadow-green-600/20" onClick={handleExportCSV}>
                   Export PCF Report
                 </Button>
-                <Button icon={<Plus size={16} />} block onClick={() => navigate("/components-master/new")}>
-                  Request Component PCF
-                </Button>
-                <Button icon={<Eye size={16} />} block>
+                <Button icon={<Eye size={16} />} block onClick={() => navigate(`/pcf-request/${componentData?.id}`)}>
                   View Full PCF Details
                 </Button>
               </Space>
