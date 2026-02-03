@@ -280,6 +280,20 @@ export interface ProductListResponse {
   };
 }
 
+// Product Dropdown Item
+export interface ProductDropdownItem {
+  id: string;
+  product_code: string;
+  product_name: string;
+}
+
+export interface ProductDropdownResponse {
+  status: boolean;
+  message: string;
+  code: number;
+  data: ProductDropdownItem[];
+}
+
 export interface ProductResponse {
     status: boolean;
     message: string;
@@ -434,6 +448,15 @@ const productService = {
     const response = await axios.get(`${API_URL}/product/pcf-bom/history-bom-details`, {
       headers: { Authorization: token },
       params: { product_code: productCode }
+    });
+    return response.data;
+  },
+
+  // Get Product Dropdown
+  getProductDropdown: async (): Promise<ProductDropdownResponse> => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/product/drop-down`, {
+      headers: { Authorization: token }
     });
     return response.data;
   },

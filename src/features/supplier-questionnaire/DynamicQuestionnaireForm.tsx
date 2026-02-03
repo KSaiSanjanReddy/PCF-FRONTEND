@@ -124,6 +124,14 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             case 'processSpecificEnergy':
               data = await questionnaireDropdownService.getProcessSpecificEnergyDropdown();
               break;
+            case 'energyType':
+              data = await questionnaireDropdownService.getEnergyTypeDropdown();
+              break;
+            case 'bomMaterials':
+              // BOM materials are derived from form data (products_manufactured)
+              // This is handled separately in renderSelectField
+              data = [];
+              break;
             case 'wasteType':
               data = await questionnaireDropdownService.getWasteTypeDropdown();
               break;
@@ -733,6 +741,53 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               }}
                             >
                               {apiOptions.map((opt: DropdownItem) => (
+                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        );
+                      }
+
+                      // Handle BOM Materials dropdown (derived from products_manufactured)
+                      if (col.apiDropdown === 'bomMaterials') {
+                        // Get products_manufactured data from form
+                        const productsManufactured = form.getFieldValue(['product_details', 'products_manufactured']) || [];
+                        const bomMaterialOptions: DropdownItem[] = productsManufactured.map((item: any) => ({
+                          id: item.material_number || item.mpn || '',
+                          name: `${item.material_number || item.mpn || ''} - ${item.product_name || ''}`,
+                          bom_id: item.bom_id || '',
+                        })).filter((opt: DropdownItem) => opt.id);
+
+                        return (
+                          <Form.Item
+                            name={[fieldRecord.name, col.name]}
+                            rules={[
+                              {
+                                required: col.required,
+                                message: col.required
+                                  ? `Please fill in "${col.label}" for this row. This field is required.`
+                                  : undefined
+                              }
+                            ].filter(Boolean)}
+                            className="mb-0"
+                          >
+                            <Select
+                              placeholder={col.placeholder}
+                              style={{ minWidth: 150, width: '100%' }}
+                              showSearch
+                              filterOption={(input, option) =>
+                                (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
+                              }
+                              onChange={(value) => {
+                                // Find the selected item to get the bom_id
+                                const selectedItem = bomMaterialOptions.find((opt: any) => opt.id === value);
+                                if (selectedItem && selectedItem.bom_id) {
+                                  // Set the bom_id in the row data
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'bom_id'], selectedItem.bom_id);
+                                }
+                              }}
+                            >
+                              {bomMaterialOptions.map((opt: any) => (
                                 <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
                               ))}
                             </Select>

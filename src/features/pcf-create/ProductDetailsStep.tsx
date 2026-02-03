@@ -27,6 +27,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { listSetup, type SetupItem } from "../../lib/dataSetupService";
+import productService, { type ProductDropdownItem } from "../../lib/productService";
 import BomTable from "./BomTable";
 
 interface ProductDetailsStepProps {
@@ -54,6 +55,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   const [componentCategories, setComponentCategories] = useState<SetupItem[]>([]);
   const [componentTypes, setComponentTypes] = useState<SetupItem[]>([]);
   const [manufacturers, setManufacturers] = useState<SetupItem[]>([]);
+  const [products, setProducts] = useState<ProductDropdownItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [rawCsvData, setRawCsvData] = useState<string>("");
 
@@ -78,16 +80,18 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     const loadDropdowns = async () => {
       try {
         setLoading(true);
-        const [productCats, componentCats, compTypes, mfrs] = await Promise.all([
+        const [productCats, componentCats, compTypes, mfrs, productsRes] = await Promise.all([
           listSetup("product-category"),
           listSetup("component-category"),
           listSetup("component-type"),
           listSetup("manufacturer"),
+          productService.getProductDropdown(),
         ]);
         setProductCategories(productCats);
         setComponentCategories(componentCats);
         setComponentTypes(compTypes);
         setManufacturers(mfrs);
+        setProducts(productsRes.data || []);
       } catch (error) {
         console.error("Error loading dropdowns:", error);
         message.error("Failed to load categories");
@@ -432,14 +436,27 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
 
               <div>
                 <Form.Item
-                  label={<span className="text-sm font-medium text-gray-700">Product Code</span>}
+                  label={<span className="text-sm font-medium text-gray-700">Product Code *</span>}
                   name="productCode"
+                  rules={[{ required: true, message: "Select Product Code" }]}
                 >
-                  <Input
-                    placeholder="Enter product code"
+                  <Select
+                    placeholder="Select Product Code"
                     size="large"
-                    prefix={<Code className="w-4 h-4 text-gray-400 mr-2" />}
-                  />
+                    loading={loading}
+                    showSearch
+                    suffixIcon={<Code className="w-4 h-4 text-gray-400" />}
+                    filterOption={(input, option) => {
+                      const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {products.map((product) => (
+                      <Option key={product.id} value={product.product_code}>
+                        {product.product_code} - {product.product_name}
+                      </Option>
+                    ))}
+                  </Select>
                 </Form.Item>
               </div>
 
@@ -615,8 +632,8 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
                 <Package className="w-4 h-4 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Categories</p>
-                <p className="text-sm font-semibold text-gray-900">3 required</p>
+                <p className="text-xs text-gray-500">Required Fields</p>
+                <p className="text-sm font-semibold text-gray-900">4 required</p>
               </div>
             </div>
             <div className="w-px h-8 bg-gray-200"></div>

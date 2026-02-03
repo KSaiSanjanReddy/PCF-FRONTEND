@@ -139,7 +139,10 @@ export interface SupplierQuestionnaireData {
       }[];
       process_specific_usage_enabled: boolean; // Added
       process_specific_usage: {
+        bom_id?: string;
+        material_number?: string;
         process_type: string;
+        energy_type?: string;
         quantity: number;
         unit: string;
         support_from_enviguide?: boolean;
@@ -887,7 +890,10 @@ class SupplierQuestionnaireService {
               process_specific_energy_usage_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage)
                   .filter(item => item.process_type && item.quantity)
                   .map(item => ({
+                      ...(item.bom_id && { bom_id: item.bom_id }),
+                      ...(item.material_number && { material_number: item.material_number }),
                       process_specific_energy_type: item.process_type,
+                      ...(item.energy_type && { energy_type: item.energy_type }),
                       quantity_consumed: item.quantity,
                       unit: item.unit,
                       support_from_enviguide: this.convertToBoolean(item.support_from_enviguide || false)
