@@ -44,6 +44,7 @@ import {
 } from "@ant-design/icons";
 import { Package, FileText, ArrowLeft, Edit } from "lucide-react";
 import productService from "../lib/productService";
+import { usePermissions } from "../contexts/PermissionContext";
 import type {
   Product,
   LinkedPCF,
@@ -67,6 +68,7 @@ const { TextArea } = Input;
 const ProductView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canUpdate, canDelete } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [dataEntryMethod, setDataEntryMethod] = useState<

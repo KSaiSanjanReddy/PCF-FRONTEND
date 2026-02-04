@@ -13,6 +13,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckSquare, ArrowLeft, Save } from "lucide-react";
 import dayjs from "dayjs";
 import taskService from "../lib/taskService";
+import { usePermissions } from "../contexts/PermissionContext";
 
 const { TextArea } = Input;
 
@@ -39,9 +40,18 @@ interface CategoryOption {
 
 const TaskCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+
+  // Redirect if user doesn't have create permission
+  useEffect(() => {
+    if (!canCreate("Task Management")) {
+      message.error("You don't have permission to create tasks");
+      navigate("/task-management");
+    }
+  }, [canCreate, navigate]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [pcfOptions, setPcfOptions] = useState<PCFOption[]>([]);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);

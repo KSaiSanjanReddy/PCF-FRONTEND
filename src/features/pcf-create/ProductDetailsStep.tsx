@@ -25,6 +25,7 @@ import {
   ArrowRight,
   Beaker,
   ClipboardList,
+  Save,
 } from "lucide-react";
 import { listSetup, type SetupItem } from "../../lib/dataSetupService";
 import productService, { type ProductDropdownItem } from "../../lib/productService";
@@ -34,6 +35,7 @@ interface ProductDetailsStepProps {
   initialValues: any;
   onSave: (values: any) => void;
   onBack?: () => void;
+  onSaveAsDraft?: () => void;
 }
 
 const { Option } = Select;
@@ -42,6 +44,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   initialValues,
   onSave,
   onBack,
+  onSaveAsDraft,
 }) => {
   const [form] = Form.useForm();
   const [isBomModalVisible, setIsBomModalVisible] = useState(false);
@@ -658,6 +661,15 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
                 className="!border-gray-300"
               >
                 Back
+              </Button>
+            )}
+            {onSaveAsDraft && (
+              <Button
+                size="large"
+                onClick={onSaveAsDraft}
+                icon={<Save className="w-4 h-4" />}
+              >
+                Save as Draft
               </Button>
             )}
             <Button

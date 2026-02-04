@@ -15,6 +15,11 @@ import MFAVerification from "../pages/auth/MFAVerification";
 import Users from "../pages/settings/Users";
 import UsersCreate from "../pages/settings/UsersCreate";
 import UsersEdit from "../pages/settings/UsersEdit";
+import Authorizations from "../pages/settings/Authorizations";
+import ManufacturerOnboardingForm from "../pages/settings/ManufacturerOnboardingForm";
+import SupplierOnboardingForm from "../pages/settings/SupplierOnboardingForm";
+import PublicManufacturerOnboarding from "../pages/PublicManufacturerOnboarding";
+import PublicSupplierOnboarding from "../pages/PublicSupplierOnboarding";
 import Products from "../pages/settings/Products";
 import Components from "../pages/settings/Components";
 import Industry from "../pages/settings/Industry";
@@ -86,6 +91,16 @@ export const router = createBrowserRouter([
   {
     path: "/supplier-questionnaire",
     element: <SupplierQuestionnaire />,
+  },
+  // Public manufacturer onboarding form (no login required)
+  {
+    path: "/manufacturer-onboarding",
+    element: <PublicManufacturerOnboarding />,
+  },
+  // Public supplier onboarding form (no login required)
+  {
+    path: "/supplier-onboarding",
+    element: <PublicSupplierOnboarding />,
   },
   {
     path: "/",
@@ -238,6 +253,26 @@ export const router = createBrowserRouter([
       {
         path: "settings/users/edit/:userId",
         element: <UsersEdit />,
+      },
+      {
+        path: "settings/manufacturer-onboarding",
+        element: <ManufacturerOnboardingForm />,
+      },
+      {
+        path: "settings/manufacturer-onboarding/:id",
+        element: <ManufacturerOnboardingForm />,
+      },
+      {
+        path: "settings/supplier-onboarding",
+        element: <SupplierOnboardingForm />,
+      },
+      {
+        path: "settings/supplier-onboarding/:id",
+        element: <SupplierOnboardingForm />,
+      },
+      {
+        path: "settings/authorizations",
+        element: <Authorizations />,
       },
       {
         path: "settings/products",

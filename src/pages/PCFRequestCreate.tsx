@@ -7,6 +7,7 @@ import ProductDetailsStep from "../features/pcf-create/ProductDetailsStep";
 import DocumentationStep from "../features/pcf-create/DocumentationStep";
 import ReviewSubmitStep from "../features/pcf-create/ReviewSubmitStep";
 import pcfService from "../lib/pcfService";
+import authService from "../lib/authService";
 
 const PCFRequestCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -73,57 +74,84 @@ const PCFRequestCreate: React.FC = () => {
     }
   };
 
+  const buildPayload = (isDraft: boolean) => {
+    // Get current user ID for client_id
+    const currentUser = authService.getCurrentUser();
+    const userId = currentUser?.id || null;
+
+    // Extract file keys from uploaded documents
+    const technicalSpecificationFileKeys = (formData.technicalSpecifications || [])
+      .filter((f: any) => f.fileKey)
+      .map((f: any) => f.fileKey);
+
+    const productImageKeys = (formData.productImages || [])
+      .filter((f: any) => f.fileKey)
+      .map((f: any) => f.fileKey);
+
+    return {
+      bom_pcf_request: {
+        request_title: formData.title || "",
+        priority: formData.priority || "Medium",
+        request_organization: formData.organization || "",
+        due_date: formData.dueDate || null,
+        request_description: formData.description || "",
+        product_category_id: formData.productCategory || null,
+        component_category_id: formData.componentCategory || null,
+        component_type_id: formData.componentType || null,
+        product_code: formData.productCode || "",
+        manufacturer_id: formData.manufacture || null,
+        model_version: formData.modelVersion || "",
+        technical_specification_file: technicalSpecificationFileKeys,
+        product_images: productImageKeys,
+        is_draft: isDraft,
+        is_client: true,
+        client_id: userId,
+      },
+      bom_pcf_request_product_specification: (
+        formData.specifications || []
+      ).map((spec: any) => ({
+        specification_name: spec.name,
+        specification_value: spec.value,
+        specification_unit: spec.unit,
+      })),
+      bom: (formData.bomData || []).map((item: any) => ({
+        material_number: item.materialNumber,
+        component_name: item.componentName,
+        qunatity: parseInt(item.quantity || "0"), // Note: API expects "qunatity" (typo in API)
+        production_location: item.productionLocation,
+        manufacturer: item.manufacturer,
+        detail_description: item.detailedDescription,
+        weight_gms: parseFloat(item.totalWeight || item.weight || "0"),
+        component_category: item.category,
+        price: parseFloat(item.totalPrice || item.price || "0"),
+        supplier_email: item.supplierEmail,
+        supplier_name: item.supplierName || null,
+        supplier_phone_number: item.supplierNumber || null,
+      })),
+    };
+  };
+
+  const handleSaveAsDraft = async () => {
+    try {
+      const payload = buildPayload(true);
+      console.log("Saving PCF Request as Draft:", payload);
+      const response = await pcfService.createPCFRequest(payload);
+
+      if (response.success) {
+        message.success("PCF Request saved as draft successfully!");
+        navigate("/pcf-request");
+      } else {
+        message.error(response.message || "Failed to save draft");
+      }
+    } catch (error) {
+      console.error("Error saving PCF Request as draft:", error);
+      message.error("An error occurred while saving the draft");
+    }
+  };
+
   const handleSubmit = async () => {
     try {
-      // Extract file keys from uploaded documents
-      const technicalSpecificationFileKeys = (formData.technicalSpecifications || [])
-        .filter((f: any) => f.fileKey)
-        .map((f: any) => f.fileKey);
-
-      const productImageKeys = (formData.productImages || [])
-        .filter((f: any) => f.fileKey)
-        .map((f: any) => f.fileKey);
-
-      const payload = {
-        bom_pcf_request: {
-          request_title: formData.title,
-          priority: formData.priority,
-          request_organization: formData.organization,
-          due_date: formData.dueDate,
-          request_description: formData.description,
-          product_category_id: formData.productCategory,
-          component_category_id: formData.componentCategory,
-          component_type_id: formData.componentType,
-          product_code: formData.productCode,
-          manufacturer_id: formData.manufacture,
-          model_version: formData.modelVersion,
-          technical_specification_file: technicalSpecificationFileKeys,
-          product_images: productImageKeys,
-          is_draft: false,
-        },
-        bom_pcf_request_product_specification: (
-          formData.specifications || []
-        ).map((spec: any) => ({
-          specification_name: spec.name,
-          specification_value: spec.value,
-          specification_unit: spec.unit,
-        })),
-        bom: (formData.bomData || []).map((item: any) => ({
-          material_number: item.materialNumber,
-          component_name: item.componentName,
-          qunatity: parseInt(item.quantity || "0"), // Note: API expects "qunatity" (typo in API)
-          production_location: item.productionLocation,
-          manufacturer: item.manufacturer,
-          detail_description: item.detailedDescription,
-          weight_gms: parseFloat(item.totalWeight || item.weight || "0"),
-          component_category: item.category,
-          price: parseFloat(item.totalPrice || item.price || "0"),
-          supplier_email: item.supplierEmail,
-          supplier_name: item.supplierName || null,
-          supplier_phone_number: item.supplierNumber || null,
-        })),
-      };
-
+      const payload = buildPayload(false);
       console.log("Submitting PCF Request Payload:", payload);
       const response = await pcfService.createPCFRequest(payload);
 
@@ -146,6 +174,7 @@ const PCFRequestCreate: React.FC = () => {
           <BasicInformationStep
             initialValues={formData}
             onSave={handleStepSave}
+            onSaveAsDraft={handleSaveAsDraft}
           />
         );
       case 1:
@@ -154,11 +183,16 @@ const PCFRequestCreate: React.FC = () => {
             initialValues={formData}
             onSave={handleStepSave}
             onBack={() => setCurrentStep(0)}
+            onSaveAsDraft={handleSaveAsDraft}
           />
         );
       case 2:
         return (
-          <DocumentationStep initialValues={formData} onSave={handleStepSave} />
+          <DocumentationStep
+            initialValues={formData}
+            onSave={handleStepSave}
+            onSaveAsDraft={handleSaveAsDraft}
+          />
         );
       case 3:
         return (
@@ -166,6 +200,7 @@ const PCFRequestCreate: React.FC = () => {
             formData={formData}
             onEditStep={setCurrentStep}
             onSubmit={handleSubmit}
+            onSaveAsDraft={handleSaveAsDraft}
           />
         );
       default:

@@ -64,6 +64,7 @@ import {
 import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
 import taskService, { type TaskItem } from "../lib/taskService";
+import { usePermissions } from "../contexts/PermissionContext";
 import { CheckSquare, ArrowRight } from "lucide-react";
 import BomTable from "../features/pcf-create/BomTable";
 
@@ -74,6 +75,7 @@ const { Title, Text } = Typography;
 const PCFRequestView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canUpdate } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [requestData, setRequestData] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -85,6 +87,7 @@ const PCFRequestView: React.FC = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [calculatingPCF, setCalculatingPCF] = useState(false);
+  const [submittingInternally, setSubmittingInternally] = useState(false);
   const [resultValidationTab, setResultValidationTab] = useState("overview");
   const [expandedTransportRow, setExpandedTransportRow] = useState<string | null>(null);
   // DQR stages now come from pcf_data_dqr_rating_stage in getById response
@@ -238,6 +241,24 @@ const PCFRequestView: React.FC = () => {
       message.error("An error occurred while calculating PCF");
     } finally {
       setCalculatingPCF(false);
+    }
+  };
+
+  const handleSubmitInternally = async () => {
+    if (!id) return;
+    setSubmittingInternally(true);
+    try {
+      const result = await pcfService.submitPCFRequestInternally(id);
+      if (result.success) {
+        message.success(result.message || "PCF request submitted successfully");
+        fetchData(id); // Refresh data to update stages
+      } else {
+        message.error(result.message || "Failed to submit PCF request");
+      }
+    } catch (error) {
+      message.error("An error occurred while submitting PCF request");
+    } finally {
+      setSubmittingInternally(false);
     }
   };
 
@@ -1067,6 +1088,24 @@ const PCFRequestView: React.FC = () => {
                 </Text>
               </div>
             </div>
+            {!requestData?.pcf_request_stages?.is_result_submitted && (
+              <Button
+                type="primary"
+                size="large"
+                icon={submittingInternally ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                onClick={handleSubmitInternally}
+                loading={submittingInternally}
+                className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              >
+                {submittingInternally ? "Submitting..." : "Submit PCF Results"}
+              </Button>
+            )}
+            {requestData?.pcf_request_stages?.is_result_submitted && (
+              <Tag color="success" className="text-sm px-3 py-1">
+                <CheckCircle size={14} className="inline mr-1" />
+                Results Submitted
+              </Tag>
+            )}
           </div>
 
           <Tabs
@@ -1634,28 +1673,51 @@ const PCFRequestView: React.FC = () => {
       })()}
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-4 mb-8">
-        <Button
-          danger
-          size="large"
-          icon={<ThumbsDown size={18} />}
-          onClick={() => setRejectModalVisible(true)}
-          disabled={requestData.is_rejected || requestData.is_approved}
-        >
-          Reject
-        </Button>
-        <Button
-          type="primary"
-          size="large"
-          icon={<ThumbsUp size={18} />}
-          className="bg-green-600 hover:bg-green-700"
-          onClick={handleApprove}
-          loading={submitting}
-          disabled={requestData.is_rejected || requestData.is_approved}
-        >
-          Approve
-        </Button>
-      </div>
+      {canUpdate("PCF Request") && (
+        <div className="flex justify-end gap-4 mb-8">
+          {/* Show Submit button when in Result Validation stage */}
+          {requestData?.pcf_request_stages?.is_pcf_calculated && !requestData?.pcf_request_stages?.is_result_submitted ? (
+            <Button
+              type="primary"
+              size="large"
+              icon={submittingInternally ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              onClick={handleSubmitInternally}
+              loading={submittingInternally}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600"
+            >
+              {submittingInternally ? "Submitting..." : "Submit PCF Results"}
+            </Button>
+          ) : requestData?.pcf_request_stages?.is_result_submitted ? (
+            <Tag color="success" className="text-base px-4 py-2">
+              <CheckCircle size={16} className="inline mr-2" />
+              Results Submitted
+            </Tag>
+          ) : (
+            <>
+              <Button
+                danger
+                size="large"
+                icon={<ThumbsDown size={18} />}
+                onClick={() => setRejectModalVisible(true)}
+                disabled={requestData.is_rejected || requestData.is_approved}
+              >
+                Reject
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<ThumbsUp size={18} />}
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleApprove}
+                loading={submitting}
+                disabled={requestData.is_rejected || requestData.is_approved}
+              >
+                Approve
+              </Button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Comments Section */}
       <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">

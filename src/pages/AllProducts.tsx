@@ -23,9 +23,11 @@ import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import productService from "../lib/productService";
 import type { Product, ProductCategory } from "../lib/productService";
+import { usePermissions } from "../contexts/PermissionContext";
 
 const AllProducts: React.FC = () => {
   const navigate = useNavigate();
+  const { canCreate, canUpdate, canDelete } = usePermissions();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -271,19 +273,23 @@ const AllProducts: React.FC = () => {
             icon={<Eye size={16} className="mt-[5px]" />}
             title="View"
           />
-          <Button
-            type="text"
-            onClick={() => navigate(`/product-portfolio/edit/${record.id}`)}
-            icon={<Edit size={16} className="mt-[5px]" />}
-            title="Edit"
-          />
-          <Button
-            type="text"
-            danger
-            onClick={() => handleDelete(record.id)}
-            icon={<Trash2 size={16} className="mt-[5px]" />}
-            title="Delete"
-          />
+          {canUpdate("Product Portfolio") && (
+            <Button
+              type="text"
+              onClick={() => navigate(`/product-portfolio/edit/${record.id}`)}
+              icon={<Edit size={16} className="mt-[5px]" />}
+              title="Edit"
+            />
+          )}
+          {canDelete("Product Portfolio") && (
+            <Button
+              type="text"
+              danger
+              onClick={() => handleDelete(record.id)}
+              icon={<Trash2 size={16} className="mt-[5px]" />}
+              title="Delete"
+            />
+          )}
         </Space>
       ),
     },
@@ -393,15 +399,17 @@ const AllProducts: React.FC = () => {
                   (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                 }
               />
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                size="large"
-                onClick={() => navigate("/product-portfolio/new")}
-                className="shadow-lg shadow-green-600/20"
-              >
-                Add Product
-              </Button>
+              {canCreate("Product Portfolio") && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  size="large"
+                  onClick={() => navigate("/product-portfolio/new")}
+                  className="shadow-lg shadow-green-600/20"
+                >
+                  Add Product
+                </Button>
+              )}
             </Space>
           </div>
 

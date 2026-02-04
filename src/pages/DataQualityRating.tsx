@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import authService from "../lib/authService";
+import { usePermissions } from "../contexts/PermissionContext";
 import { DQR_CONFIG } from "../config/questionnaireConfig";
 import {
   DQR_QUESTIONS_CONFIG,
@@ -129,6 +130,7 @@ interface DQIState {
 const DataQualityRating = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { canUpdate } = usePermissions();
   const sgiq_id = searchParams.get("sgiq_id");
   const bom_pcf_id_from_url = searchParams.get("bom_pcf_id");
 
@@ -979,23 +981,25 @@ const DataQualityRating = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg shadow-lg shadow-green-600/20 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <Loader className="animate-spin" size={18} />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save size={18} />
-                  <span>Save Progress</span>
-                </>
-              )}
-            </button>
+            {canUpdate("Data Quality Rating") && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg shadow-lg shadow-green-600/20 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader className="animate-spin" size={18} />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>Save Progress</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 

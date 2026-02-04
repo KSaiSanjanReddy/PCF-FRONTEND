@@ -24,6 +24,7 @@ import {
 } from "../../lib/dataSetupService";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { Modal, Select, Table, Button, message } from "antd";
+import { usePermissions } from "../../contexts/PermissionContext";
 
 const { Option } = Select;
 
@@ -54,6 +55,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   defaultTab,
 }) => {
   const navigate = useNavigate();
+  const { canCreate, canUpdate, canDelete } = usePermissions();
   const { tab: urlTab } = useParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<string>(
     urlTab || defaultTab || tabs[0]?.key || ""
@@ -268,6 +270,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     setEditingItem(null);
     setEditItem({ code: "", name: "", description: "" });
     setNewItem({ code: "", name: "", description: "" });
+    // Update URL to reflect tab change
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.replace(/\/[^/]*$/, '');
+    navigate(`${basePath}/${tabKey}`, { replace: true });
   };
 
   const handleExport = () => {
@@ -733,20 +739,24 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <button
-                                    onClick={() => handleEdit(item)}
-                                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                    title="Edit item"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteClick(item)}
-                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
-                                    title="Delete item"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
+                                  {canUpdate("Settings") && (
+                                    <button
+                                      onClick={() => handleEdit(item)}
+                                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                      title="Edit item"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  {canDelete("Settings") && (
+                                    <button
+                                      onClick={() => handleDeleteClick(item)}
+                                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                      title="Delete item"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </>
@@ -755,70 +765,72 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                       ))}
 
                       {/* Add New Row */}
-                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            placeholder="Enter code"
-                            value={newItem.code}
-                            onChange={(e) =>
-                              handleInputChange("code", e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            placeholder="Enter name"
-                            value={newItem.name}
-                            onChange={(e) =>
-                              handleInputChange("name", e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            placeholder="Enter description"
-                            value={newItem.description}
-                            onChange={(e) =>
-                              handleInputChange("description", e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                          />
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center space-x-2">
-                            <button
-                              onClick={handleAddNew}
-                              disabled={
-                                !newItem.code ||
-                                !newItem.name ||
-                                !newItem.description
+                      {canCreate("Settings") && (
+                        <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
+                          <td className="px-6 py-4">
+                            <input
+                              type="text"
+                              placeholder="Enter code"
+                              value={newItem.code}
+                              onChange={(e) =>
+                                handleInputChange("code", e.target.value)
                               }
-                              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
-                            >
-                              <Plus className="h-4 w-4" />
-                              <span>Add</span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                setNewItem({
-                                  code: "",
-                                  name: "",
-                                  description: "",
-                                })
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <input
+                              type="text"
+                              placeholder="Enter name"
+                              value={newItem.name}
+                              onChange={(e) =>
+                                handleInputChange("name", e.target.value)
                               }
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                              title="Clear form"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <input
+                              type="text"
+                              placeholder="Enter description"
+                              value={newItem.description}
+                              onChange={(e) =>
+                                handleInputChange("description", e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                            />
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center space-x-2">
+                              <button
+                                onClick={handleAddNew}
+                                disabled={
+                                  !newItem.code ||
+                                  !newItem.name ||
+                                  !newItem.description
+                                }
+                                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
+                              >
+                                <Plus className="h-4 w-4" />
+                                <span>Add</span>
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setNewItem({
+                                    code: "",
+                                    name: "",
+                                    description: "",
+                                  })
+                                }
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                                title="Clear form"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

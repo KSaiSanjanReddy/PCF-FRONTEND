@@ -2,6 +2,7 @@ import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import { router } from './routes';
 import { AuthProvider } from './contexts/AuthContext';
+import { PermissionProvider } from './contexts/PermissionContext';
 
 // Green accent theme configuration for Ant Design
 const themeConfig = {
@@ -97,7 +98,9 @@ function App() {
   return (
     <ConfigProvider theme={themeConfig}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <PermissionProvider>
+          <RouterProvider router={router} />
+        </PermissionProvider>
       </AuthProvider>
     </ConfigProvider>
   );

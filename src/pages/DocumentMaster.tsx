@@ -31,12 +31,14 @@ import type { PCFDocumentItem } from "../lib/documentMasterService";
 import pcfService from "../lib/pcfService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { usePermissions } from "../contexts/PermissionContext";
 
 dayjs.extend(relativeTime);
 
 const { Option } = Select;
 
 const DocumentMaster: React.FC = () => {
+  const { canUpdate } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState<PCFDocumentItem[]>([]);
   const [pagination, setPagination] = useState({
@@ -575,15 +577,17 @@ const DocumentMaster: React.FC = () => {
         footer={
           <div className="flex justify-end gap-3">
             <Button onClick={closeDrawer}>Cancel</Button>
-            <Button
-              type="primary"
-              onClick={handleSaveDocuments}
-              loading={saving}
-              disabled={!hasChanges}
-              className="shadow-lg shadow-green-600/20 !text-white"
-            >
-              Save Changes
-            </Button>
+            {canUpdate("Document Master") && (
+              <Button
+                type="primary"
+                onClick={handleSaveDocuments}
+                loading={saving}
+                disabled={!hasChanges}
+                className="shadow-lg shadow-green-600/20 !text-white"
+              >
+                Save Changes
+              </Button>
+            )}
           </div>
         }
       >
@@ -596,11 +600,13 @@ const DocumentMaster: React.FC = () => {
                   <FileType size={18} className="text-blue-600" />
                   Technical Specifications
                 </h3>
-                <Upload {...techSpecUploadProps}>
-                  <Button icon={<UploadIcon size={14} />} size="small">
-                    Add File
-                  </Button>
-                </Upload>
+                {canUpdate("Document Master") && (
+                  <Upload {...techSpecUploadProps}>
+                    <Button icon={<UploadIcon size={14} />} size="small">
+                      Add File
+                    </Button>
+                  </Upload>
+                )}
               </div>
               <div className="space-y-2">
                 {techSpecFiles.length === 0 ? (
@@ -635,16 +641,18 @@ const DocumentMaster: React.FC = () => {
                           <span className="truncate">{getFileName(file)}</span>
                         </div>
                       )}
-                      <Popconfirm
-                        title="Remove this file?"
-                        onConfirm={() => handleRemoveTechSpec(index)}
-                        okText="Yes"
-                        cancelText="No"
-                      >
-                        <button className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
-                          <X size={16} />
-                        </button>
-                      </Popconfirm>
+                      {canUpdate("Document Master") && (
+                        <Popconfirm
+                          title="Remove this file?"
+                          onConfirm={() => handleRemoveTechSpec(index)}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <button className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                            <X size={16} />
+                          </button>
+                        </Popconfirm>
+                      )}
                     </div>
                   ))
                 )}
@@ -658,11 +666,13 @@ const DocumentMaster: React.FC = () => {
                   <ImageIcon size={18} className="text-purple-600" />
                   Product Images
                 </h3>
-                <Upload {...productImageUploadProps}>
-                  <Button icon={<UploadIcon size={14} />} size="small">
-                    Add Image
-                  </Button>
-                </Upload>
+                {canUpdate("Document Master") && (
+                  <Upload {...productImageUploadProps}>
+                    <Button icon={<UploadIcon size={14} />} size="small">
+                      Add Image
+                    </Button>
+                  </Upload>
+                )}
               </div>
               <div className="space-y-2">
                 {productImages.length === 0 ? (
@@ -708,16 +718,18 @@ const DocumentMaster: React.FC = () => {
                             {getFileName(file)}
                           </span>
                         </div>
-                        <Popconfirm
-                          title="Remove this image?"
-                          onConfirm={() => handleRemoveProductImage(index)}
-                          okText="Yes"
-                          cancelText="No"
-                        >
-                          <button className="absolute top-2 right-2 p-1 bg-white/80 text-gray-600 hover:text-red-600 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X size={14} />
-                          </button>
-                        </Popconfirm>
+                        {canUpdate("Document Master") && (
+                          <Popconfirm
+                            title="Remove this image?"
+                            onConfirm={() => handleRemoveProductImage(index)}
+                            okText="Yes"
+                            cancelText="No"
+                          >
+                            <button className="absolute top-2 right-2 p-1 bg-white/80 text-gray-600 hover:text-red-600 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                              <X size={14} />
+                            </button>
+                          </Popconfirm>
+                        )}
                       </div>
                     ))}
                   </div>

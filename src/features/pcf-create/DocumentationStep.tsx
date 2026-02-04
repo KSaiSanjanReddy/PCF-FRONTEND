@@ -13,19 +13,21 @@ import {
   FileImage,
   ArrowRight,
   CloudUpload,
+  Save,
 } from 'lucide-react';
 import pcfService from '../../lib/pcfService';
 
 interface DocumentationStepProps {
   initialValues: any;
   onSave: (values: any) => void;
+  onSaveAsDraft?: () => void;
 }
 
 interface ExtendedUploadFile extends UploadFile {
   fileKey?: string;
 }
 
-const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, onSave }) => {
+const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, onSave, onSaveAsDraft }) => {
   const [techSpecFiles, setTechSpecFiles] = useState<ExtendedUploadFile[]>(initialValues.technicalSpecifications || []);
   const [productImageFiles, setProductImageFiles] = useState<ExtendedUploadFile[]>(initialValues.productImages || []);
   const [uploadingTechSpec, setUploadingTechSpec] = useState(false);
@@ -395,16 +397,27 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, on
               </div>
             </div>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            onClick={handleSave}
-            className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
-            icon={<ArrowRight className="w-4 h-4" />}
-            iconPosition="end"
-          >
-            Save & Continue
-          </Button>
+          <div className="flex items-center gap-3">
+            {onSaveAsDraft && (
+              <Button
+                size="large"
+                onClick={onSaveAsDraft}
+                icon={<Save className="w-4 h-4" />}
+              >
+                Save as Draft
+              </Button>
+            )}
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSave}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="end"
+            >
+              Save & Continue
+            </Button>
+          </div>
         </div>
       </div>
     </div>

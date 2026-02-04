@@ -28,13 +28,14 @@ import { useNavigate } from "react-router-dom";
 import pcfService from "../lib/pcfService";
 import type { PCFBOMItem } from "../lib/pcfService";
 import dayjs from "dayjs";
+import { usePermissions } from "../contexts/PermissionContext";
 
 interface PCFRequestItem {
   id: string;
   requestNumber: string;
   productName: string;
   productIcon: React.ReactNode;
-  status: "in-progress" | "completed" | "draft" | "rejected";
+  status: "in-progress" | "completed" | "draft" | "rejected" | "open";
   submittedBy: string;
   submittedOn: string;
 }
@@ -51,6 +52,7 @@ interface PCFFilters {
 const PCFRequest: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const [pageSize, setPageSize] = useState(10);
   const [pcfRequests, setPcfRequests] = useState<PCFRequestItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +62,9 @@ const PCFRequest: React.FC = () => {
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [dateRange, setDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+  >(null);
 
   // Helper function to get product icon based on category
   const getProductIcon = (categoryName: string): React.ReactNode => {
@@ -80,7 +84,7 @@ const PCFRequest: React.FC = () => {
   // Helper function to determine status from API response
   const getStatus = (
     item: any,
-  ): "in-progress" | "completed" | "draft" | "rejected" => {
+  ): "in-progress" | "completed" | "draft" | "rejected" | "open" => {
     const status = item.status?.toLowerCase() || "";
 
     if (status === "rejected") return "rejected";
@@ -94,7 +98,7 @@ const PCFRequest: React.FC = () => {
       return "in-progress";
 
     // Default to draft if status is unclear
-    return "draft";
+    return "open";
   };
 
   // Build filters object based on current state
@@ -135,7 +139,11 @@ const PCFRequest: React.FC = () => {
     setIsLoading(true);
     try {
       const filters = buildFilters();
-      const result = await pcfService.getPCFBOMList(currentPage, pageSize, filters);
+      const result = await pcfService.getPCFBOMList(
+        currentPage,
+        pageSize,
+        filters,
+      );
 
       if (result.success && result.data && Array.isArray(result.data)) {
         // Helper function to format date
@@ -255,7 +263,9 @@ const PCFRequest: React.FC = () => {
     fetchPCFList();
   };
 
-  const handleDateRangeChange = (dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) => {
+  const handleDateRangeChange = (
+    dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null,
+  ) => {
     setDateRange(dates);
     setCurrentPage(1);
   };
@@ -269,13 +279,13 @@ const PCFRequest: React.FC = () => {
   };
 
   const getStatusTag = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string; label: string }> = {
       "in-progress": { color: "blue", label: "In Progress" },
       completed: { color: "green", label: "Completed" },
       draft: { color: "gold", label: "Draft" },
       rejected: { color: "red", label: "Rejected" },
     };
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status] || { color: "default", label: status || "Unknown" };
     return <Tag color={config.color}>{config.label}</Tag>;
   };
 
@@ -405,7 +415,7 @@ const PCFRequest: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-sm text-amber-600 font-medium">
-                      Draft
+                      Pending
                     </div>
                     <div className="text-2xl font-bold text-amber-700">
                       {statusCounts.pending}
@@ -452,19 +462,21 @@ const PCFRequest: React.FC = () => {
                   { label: "All Status", value: "all" },
                   { label: "In Progress", value: "in-progress" },
                   { label: "Completed", value: "completed" },
-                  { label: "Draft", value: "draft" },
+                  { label: "Pending", value: "pending" },
                   { label: "Rejected", value: "rejected" },
                 ]}
               />
-              <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                size="large"
-                onClick={() => navigate("/pcf-request/new")}
-                className="shadow-lg shadow-green-600/20"
-              >
-                New Request
-              </Button>
+              {canCreate("PCF Request") && (
+                <Button
+                  type="primary"
+                  icon={<Plus size={16} />}
+                  size="large"
+                  onClick={() => navigate("/pcf-request/new")}
+                  className="shadow-lg shadow-green-600/20"
+                >
+                  New Request
+                </Button>
+              )}
             </Space>
           </div>
 

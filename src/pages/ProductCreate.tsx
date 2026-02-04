@@ -18,13 +18,23 @@ import productService, {
   type ManufacturingProcess,
   type LifeCycleStage,
 } from "../lib/productService";
+import { usePermissions } from "../contexts/PermissionContext";
 
 const { TextArea } = Input;
 
 const ProductCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+
+  // Redirect if user doesn't have create permission
+  useEffect(() => {
+    if (!canCreate("Product Portfolio")) {
+      message.error("You don't have permission to create products");
+      navigate("/product-portfolio/all-products");
+    }
+  }, [canCreate, navigate]);
 
   // Dropdown Data
   const [categories, setCategories] = useState<ProductCategory[]>([]);

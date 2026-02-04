@@ -22,16 +22,26 @@ import type {
   Product,
 } from "../lib/productService";
 import dayjs from "dayjs";
+import { usePermissions } from "../contexts/PermissionContext";
 
 const { TextArea } = Input;
 
 const ProductEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canUpdate } = usePermissions();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
+
+  // Redirect if user doesn't have update permission
+  useEffect(() => {
+    if (!canUpdate("Product Portfolio")) {
+      message.error("You don't have permission to edit products");
+      navigate("/product-portfolio/all-products");
+    }
+  }, [canUpdate, navigate]);
 
   // Dropdown Data
   const [categories, setCategories] = useState<ProductCategory[]>([]);

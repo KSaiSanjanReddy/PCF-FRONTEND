@@ -1,13 +1,24 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, User } from "lucide-react";
+import { message } from "antd";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import type { BackendUser } from "../../types";
+import { usePermissions } from "../../contexts/PermissionContext";
 
 const UsersEdit: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { canUpdate } = usePermissions();
   const [loading, setLoading] = useState(true);
+
+  // Redirect if user doesn't have update permission
+  useEffect(() => {
+    if (!canUpdate("Users")) {
+      message.error("You don't have permission to edit users");
+      navigate("/settings/users");
+    }
+  }, [canUpdate, navigate]);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<BackendUser | null>(null);
   const [roles, setRoles] = useState<

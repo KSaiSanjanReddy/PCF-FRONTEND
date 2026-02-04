@@ -63,11 +63,20 @@ const Settings: React.FC = () => {
           cardType: "default",
         },
         {
+          name: "Authorizations",
+          description:
+            "Configure module-level access permissions for roles and users",
+          path: "/settings/authorizations",
+          icon: Shield,
+          badge: "NEW",
+          cardType: "default",
+        },
+        {
           name: "Create New User",
           description: "Add a new user to the system with custom permissions",
           path: "/settings/users/create",
           icon: UserPlus,
-          badge: "NEW",
+          badge: null,
           cardType: "default",
         },
       ],

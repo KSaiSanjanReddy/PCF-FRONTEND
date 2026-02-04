@@ -599,6 +599,47 @@ class PCFService {
   }
 
   /**
+   * Submit PCF request internally (final stage after result validation)
+   * POST /api/pcf-bom/submit-pcf-request-internally
+   */
+  async submitPCFRequestInternally(
+    bom_pcf_id: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pcf-bom/submit-pcf-request-internally`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({ bom_pcf_id }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "PCF request submitted internally successfully",
+          data: result.data,
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to submit PCF request internally",
+        };
+      }
+    } catch (error) {
+      console.error("Submit PCF request internally error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
+
+  /**
    * List comments for PCF BOM request
    */
   async listPCFComments(

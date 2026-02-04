@@ -60,7 +60,7 @@ const SupplierQuestionnaire: React.FC = () => {
   }
 
   // Determine if this is client mode
-  const isClientMode = is_client && client_id && product_id && bom_pcf_id;
+  const isClientMode = !!(is_client && client_id && product_id && bom_pcf_id);
 
   const isViewMode = location.pathname.includes("/view");
   const isEditMode = location.pathname.includes("/edit");
