@@ -352,6 +352,29 @@ const PCFRequestView: React.FC = () => {
         Back to List
       </Button>
 
+      {/* Rejection Banner */}
+      {requestData?.is_rejected && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <XCircle size={24} className="text-red-600" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Text className="text-lg font-semibold text-red-800">
+                  Request Rejected
+                </Text>
+                <Tag color="red" className="!m-0">Rejected</Tag>
+              </div>
+              <Text className="text-red-700 block">
+                <span className="font-medium">Reason: </span>
+                {requestData.reject_reason || "No reason provided"}
+              </Text>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Card */}
       <Card className="!mb-6 shadow-sm rounded-xl border-gray-200">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

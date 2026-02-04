@@ -112,51 +112,84 @@ export async function listSetup(
 export async function addSetup(
   entity: SetupEntity,
   item: SetupItem
-): Promise<boolean> {
-  const res = await fetch(endpoint(entity, "add"), {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      code: item.code,
-      name: item.name,
-      description: item.description ?? "",
-    }),
-  });
-  const data = await res.json();
-  return !!(data?.success ?? data?.status);
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(endpoint(entity, "add"), {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        code: item.code,
+        name: item.name,
+        description: item.description ?? "",
+      }),
+    });
+    const data = await res.json();
+    const success = !!(data?.success ?? data?.status);
+    return {
+      success,
+      message: data?.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "An error occurred while adding item",
+    };
+  }
 }
 
 export async function updateSetup(
   entity: SetupEntity,
   item: SetupItem & { id: string }
-): Promise<boolean> {
-  const res = await fetch(endpoint(entity, "update"), {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify([
-      {
-        id: item.id,
-        code: item.code,
-        name: item.name,
-        description: item.description ?? "",
-      },
-    ]),
-  });
-  const data = await res.json();
-  return !!(data?.success ?? data?.status);
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(endpoint(entity, "update"), {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify([
+        {
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          description: item.description ?? "",
+        },
+      ]),
+    });
+    const data = await res.json();
+    const success = !!(data?.success ?? data?.status);
+    return {
+      success,
+      message: data?.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "An error occurred while updating item",
+    };
+  }
 }
 
 export async function deleteSetup(
   entity: SetupEntity,
   id: string
-): Promise<boolean> {
-  const res = await fetch(endpoint(entity, "delete"), {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ id }),
-  });
-  const data = await res.json();
-  return !!(data?.success ?? data?.status);
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(endpoint(entity, "delete"), {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    const success = !!(data?.success ?? data?.status);
+    return {
+      success,
+      message: data?.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "An error occurred while deleting item",
+    };
+  }
 }
 
 export async function bulkAddSetup(

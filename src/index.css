@@ -189,6 +189,39 @@ textarea,
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
+/* Sidebar Menu Styles */
+.sidebar-menu-item {
+  background-color: transparent !important;
+  color: #e2e8f0 !important;
+  text-decoration: none !important;
+}
+
+.sidebar-menu-item:hover {
+  background-color: #16a34a !important;
+  color: white !important;
+  box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.2) !important;
+}
+
+.sidebar-menu-item.active,
+.sidebar-menu-item:active {
+  background-color: #16a34a !important;
+  color: white !important;
+  box-shadow: 0 10px 15px -3px rgba(22, 163, 74, 0.25) !important;
+}
+
+/* Override any default link colors in sidebar */
+nav a.sidebar-menu-item,
+nav a.sidebar-menu-item:link,
+nav a.sidebar-menu-item:visited {
+  color: #e2e8f0 !important;
+  text-decoration: none !important;
+}
+
+nav a.sidebar-menu-item:hover,
+nav a.sidebar-menu-item.active {
+  color: white !important;
+}
+
 /* Dashboard Chart Custom Scrollbar */
 .chart-scrollbar::-webkit-scrollbar {
   height: 10px;

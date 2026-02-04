@@ -1,5 +1,5 @@
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntApp } from 'antd';
 import { router } from './routes';
 import { AuthProvider } from './contexts/AuthContext';
 import { PermissionProvider } from './contexts/PermissionContext';
@@ -97,11 +97,13 @@ const themeConfig = {
 function App() {
   return (
     <ConfigProvider theme={themeConfig}>
-      <AuthProvider>
-        <PermissionProvider>
-          <RouterProvider router={router} />
-        </PermissionProvider>
-      </AuthProvider>
+      <AntApp>
+        <AuthProvider>
+          <PermissionProvider>
+            <RouterProvider router={router} />
+          </PermissionProvider>
+        </AuthProvider>
+      </AntApp>
     </ConfigProvider>
   );
 }
