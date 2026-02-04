@@ -393,10 +393,16 @@ const UsersPage: React.FC = () => {
       )
     ) {
       try {
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `https://enviguide.nextechltd.in/api/user/delete/${userId}`,
+          `https://enviguide.nextechltd.in/api/delete/user`,
           {
-            method: "DELETE",
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ user_id: userId }),
           }
         );
 

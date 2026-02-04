@@ -388,8 +388,8 @@ class AuthorizationService {
   }> {
     try {
       const url = search
-        ? `${API_BASE_URL}/api/get-role-list?search=${encodeURIComponent(search)}`
-        : `${API_BASE_URL}/api/get-role-list`;
+        ? `${API_BASE_URL}/api/roles/get?search=${encodeURIComponent(search)}`
+        : `${API_BASE_URL}/api/roles/get`;
 
       const response = await fetch(url, {
         method: "GET",
