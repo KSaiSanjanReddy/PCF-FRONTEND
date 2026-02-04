@@ -131,11 +131,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => toggleExpanded(item.id)}
               className={cn(
-                "flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
-                "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
+                "sidebar-menu-item flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
                 isActive
-                  ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
-                  : "text-slate-300 hover:text-white"
+                  ? "active text-white shadow-lg"
+                  : "text-slate-300"
               )}
               title={item.title}
             >
@@ -151,11 +150,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
-                  "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
+                  "sidebar-menu-item flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
                   isActive
-                    ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
-                    : "text-slate-300 hover:text-white"
+                    ? "active text-white shadow-lg"
+                    : "text-slate-300"
                 )
               }
               title={item.title}
@@ -180,11 +178,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => toggleExpanded(item.id)}
               className={cn(
-                "flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
+                "sidebar-menu-item flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
                 isActive
-                  ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
-                  : "text-slate-200 hover:text-white",
+                  ? "active text-white shadow-lg"
+                  : "text-slate-200",
                 level === 0 ? "text-sm font-semibold" : "text-sm font-medium",
                 "group"
               )}
@@ -209,11 +206,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                  "hover:bg-green-600 hover:text-white hover:shadow-lg hover:shadow-green-600/20",
+                  "sidebar-menu-item flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
                   isActive
-                    ? "bg-green-600 text-white shadow-lg shadow-green-600/25"
-                    : "text-slate-200 hover:text-white",
+                    ? "active text-white shadow-lg"
+                    : "text-slate-200",
                   level === 0
                     ? "text-sm font-semibold"
                     : "text-sm font-medium",
