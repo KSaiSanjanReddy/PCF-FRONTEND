@@ -23,10 +23,11 @@ import {
   type SetupEntity,
 } from "../../lib/dataSetupService";
 import LoadingSpinner from "../../components/LoadingSpinner";
-import { Modal, Select, Table, Button, message } from "antd";
+import { Modal, Select, Table, Button, App } from "antd";
 import { usePermissions } from "../../contexts/PermissionContext";
 
 const { Option } = Select;
+const { useApp } = App;
 
 interface DataSetupItem {
   id: string;
@@ -55,6 +56,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   defaultTab,
 }) => {
   const navigate = useNavigate();
+  const { message } = useApp();
   const { canCreate, canUpdate, canDelete } = usePermissions();
   const { tab: urlTab } = useParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<string>(
@@ -130,12 +132,18 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   const handleDelete = async (id: string) => {
     if (!currentEntity) return;
-    const ok = await deleteSetup(currentEntity, id);
-    if (ok) {
+    const result = await deleteSetup(currentEntity, id);
+    if (result.success) {
+      message.success("Item deleted successfully");
       setTabData((prev) => ({
         ...prev,
         [activeTab]: (prev[activeTab] || []).filter((item) => item.id !== id),
       }));
+    } else {
+      message.error({
+        content: result.message || "Failed to delete item",
+        duration: 5,
+      });
     }
   };
 
@@ -147,8 +155,9 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       !newItem.description
     )
       return;
-    const ok = await addSetup(currentEntity, newItem);
-    if (ok) {
+    const result = await addSetup(currentEntity, newItem);
+    if (result.success) {
+      message.success("Item added successfully");
       const data = await listSetup(currentEntity);
       const normalized: DataSetupItem[] = (data as SetupItem[]).map(
         (i, idx) => ({
@@ -163,6 +172,11 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       );
       setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
       setNewItem({ code: "", name: "", description: "" });
+    } else {
+      message.error({
+        content: result.message || "Failed to add item",
+        duration: 5,
+      });
     }
   };
 
@@ -189,6 +203,11 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     )
       return;
 
+    // Store original data for rollback
+    const originalData = tabData[activeTab] || [];
+    const currentEditing = editingItem;
+    const editedValues = { ...editItem };
+
     // Optimistic UI update
     setTabData((prev) => ({
       ...prev,
@@ -204,25 +223,26 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       ),
     }));
 
-    const currentEditing = editingItem;
     handleCancelEdit();
 
     // Process API in background
-    (async () => {
-      const ok = await updateSetup(currentEntity, {
-        id: currentEditing.item.id,
-        code: editItem.code,
-        name: editItem.name,
-        description: editItem.description,
+    const result = await updateSetup(currentEntity, {
+      id: currentEditing.item.id,
+      code: editedValues.code,
+      name: editedValues.name,
+      description: editedValues.description,
+    });
+
+    if (result.success) {
+      message.success("Item updated successfully");
+    } else {
+      // Rollback on failure
+      setTabData((prev) => ({ ...prev, [activeTab]: originalData }));
+      message.error({
+        content: result.message || "Failed to update item",
+        duration: 5,
       });
-      if (!ok) {
-        console.error(
-          "Update failed for",
-          currentEntity,
-          currentEditing.item.id
-        );
-      }
-    })();
+    }
   };
 
   const handleCancelEdit = () => {
@@ -467,10 +487,17 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         setColumnMapping({ code: "", name: "", description: "" });
         setImportPreview([]);
       } else {
-        message.error(result.message || "Import failed");
+        // Show backend error message in toast
+        message.error({
+          content: result.message || "Import failed",
+          duration: 5,
+        });
       }
-    } catch (error) {
-      message.error("An error occurred during import");
+    } catch (error: any) {
+      message.error({
+        content: error?.message || "An error occurred during import",
+        duration: 5,
+      });
     } finally {
       setIsImporting(false);
     }
