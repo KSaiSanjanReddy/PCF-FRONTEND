@@ -16,6 +16,7 @@ interface DynamicQuestionnaireFormProps {
   onValuesChange?: (changedValues: any, allValues: any) => void;
   autoPopulatedFields?: Set<string>;
   formErrors?: Record<string, string[]>;
+  isClientMode?: boolean; // Client mode uses Product Code/Name instead of MPN/Component Name
 }
 
 // Type for storing dropdown data
@@ -31,7 +32,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   form,
   onValuesChange,
   autoPopulatedFields = new Set(),
-  formErrors = {}
+  formErrors = {},
+  isClientMode = false
 }) => {
   const [charCounts, setCharCounts] = useState<Record<string, number>>({});
 
@@ -626,10 +628,20 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                   // Check if this column's value is depended on by another column
                   const isDependedOn = field.columns?.some(c => c.dependsOnField === col.name);
 
+                  // Determine display label for client mode
+                  let displayLabel = col.label;
+                  if (isClientMode) {
+                    if (col.name === 'mpn') {
+                      displayLabel = 'Product Code';
+                    } else if (col.name === 'component_name') {
+                      displayLabel = 'Product Name';
+                    }
+                  }
+
                   return {
                     title: (
                       <div className="flex items-center gap-1">
-                        <span>{col.label}</span>
+                        <span>{displayLabel}</span>
                         {col.required && <span className="text-red-500">*</span>}
                         {col.apiDropdown && dropdownLoading[col.apiDropdown] && (
                           <LoadingOutlined className="text-blue-500 text-xs" />
@@ -658,6 +670,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           // Clear invalid value asynchronously to avoid render issues
                           setTimeout(() => {
                             form.setFieldValue([...fieldPath, fieldRecord.name, col.name], null);
+                            form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
                           }, 0);
                         }
 
@@ -685,6 +698,15 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               filterOption={(input, option) =>
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
+                              onChange={(value) => {
+                                // Store the display name for combining in payload
+                                const selectedOption = dependentOptions.find((opt: DropdownItem) => opt.id === value);
+                                if (selectedOption) {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                } else {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                }
+                              }}
                             >
                               {dependentOptions.map((opt: DropdownItem) => (
                                 <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
@@ -725,10 +747,19 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
+                                // Store the display name for combining in payload
+                                const selectedOption = apiOptions.find((opt: DropdownItem) => opt.id === value);
+                                if (selectedOption) {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                } else {
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                }
+
                                 // Clear dependent column value when parent changes
                                 if (dependentCol) {
                                   const dependentFieldPath = [...fieldPath, fieldRecord.name, dependentCol.name];
                                   form.setFieldValue(dependentFieldPath, null);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${dependentCol.name}_name`], null);
                                   // Force form to recognize the change
                                   form.setFields([{ name: dependentFieldPath, value: null, errors: [] }]);
                                 }

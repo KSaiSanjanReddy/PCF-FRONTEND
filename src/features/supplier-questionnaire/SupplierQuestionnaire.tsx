@@ -25,6 +25,7 @@ import {
 } from "@ant-design/icons";
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import authService from "../../lib/authService";
+import productService from "../../lib/productService";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
 
@@ -41,6 +42,10 @@ const SupplierQuestionnaire: React.FC = () => {
   let sup_id = searchParams.get("sup_id");
   let bom_pcf_id = searchParams.get("bom_pcf_id");
   let user_id = searchParams.get("user_id");
+  // Client mode params
+  let is_client = searchParams.get("is_client") === "true";
+  let client_id = searchParams.get("client_id");
+  let product_id = searchParams.get("product_id");
 
   if (location.search) {
     const urlParams = new URLSearchParams(location.search);
@@ -48,7 +53,14 @@ const SupplierQuestionnaire: React.FC = () => {
     sup_id = sup_id || urlParams.get("sup_id");
     bom_pcf_id = bom_pcf_id || urlParams.get("bom_pcf_id");
     user_id = user_id || urlParams.get("user_id");
+    // Client mode params
+    is_client = is_client || urlParams.get("is_client") === "true";
+    client_id = client_id || urlParams.get("client_id");
+    product_id = product_id || urlParams.get("product_id");
   }
+
+  // Determine if this is client mode
+  const isClientMode = !!(is_client && client_id && product_id && bom_pcf_id);
 
   const isViewMode = location.pathname.includes("/view");
   const isEditMode = location.pathname.includes("/edit");
@@ -119,8 +131,91 @@ const SupplierQuestionnaire: React.FC = () => {
           setIsLoading(false);
         }
       } else if (isCreateMode) {
-        // Auto-populate product details if sup_id and bom_pcf_id are provided
-        if (sup_id && bom_pcf_id) {
+        // Client mode auto-populate using product get-by-id API
+        if (isClientMode && product_id) {
+          setIsLoading(true);
+          try {
+            const result = await productService.getProductById(product_id);
+            if (result.status && result.data) {
+              console.log("Client mode - Product API response:", result.data);
+              const productData = result.data;
+
+              // Map product data to form structure
+              // Use schema field names (mpn, component_name) but fill with product data
+              // product_id is stored for backend, not shown in UI
+              const productionSiteDetails = [
+                {
+                  product_id: productData.id, // Hidden, passed to backend
+                  mpn: productData.product_code || "", // Shows as "Product Code" for client
+                  component_name: productData.product_name || "", // Shows as "Product Name" for client
+                  location: "", // To be filled by user
+                },
+              ];
+
+              const productsManufactured = [
+                {
+                  product_id: productData.id, // Hidden, passed to backend
+                  mpn: productData.product_code || "", // Shows as "Product Code" for client
+                  product_name: productData.product_name || "", // Already named product_name in schema
+                  production_period: "",
+                  weight_per_unit: productData.ts_weight_kg || 0,
+                  unit: "Kg",
+                  price: 0,
+                  quantity: 0,
+                },
+              ];
+
+              const autoPopulatedData: any = {
+                product_details: {
+                  production_site_details: productionSiteDetails,
+                  products_manufactured: productsManufactured,
+                },
+              };
+
+              console.log("Client mode - Auto-populated data:", autoPopulatedData);
+
+              // Merge with existing form data
+              const mergedFormData = {
+                ...formData,
+                ...autoPopulatedData,
+              };
+
+              setFormData(mergedFormData);
+
+              // Set form values
+              setTimeout(() => {
+                form.setFieldsValue(mergedFormData);
+              }, 200);
+
+              // Track auto-populated fields
+              const autoPopulatedFieldNames = new Set<string>();
+              autoPopulatedFieldNames.add("product_details.production_site_details");
+              autoPopulatedFieldNames.add("product_details.products_manufactured");
+              setAutoPopulatedFields(autoPopulatedFieldNames);
+
+              message.success({
+                content: `Successfully auto-populated product details for ${productData.product_name}.`,
+                duration: 3,
+              });
+            } else {
+              console.warn("Client mode - Failed to fetch product:", result);
+              message.warning({
+                content: "Could not fetch product details. Please fill them in manually.",
+                duration: 4,
+              });
+            }
+          } catch (error) {
+            console.error("Error auto-populating client data:", error);
+            message.warning({
+              content: "Some product details could not be auto-populated. Please fill them in manually.",
+              duration: 4,
+            });
+          } finally {
+            setIsLoading(false);
+          }
+        }
+        // Auto-populate product details if sup_id and bom_pcf_id are provided (supplier mode)
+        else if (sup_id && bom_pcf_id) {
           setIsLoading(true);
           try {
             const result =
@@ -624,7 +719,17 @@ const SupplierQuestionnaire: React.FC = () => {
           questionnaireId,
           finalData,
         );
+      } else if (isClientMode && client_id && product_id && bom_pcf_id) {
+        // Client mode - use client-specific endpoint
+        console.log("Submitting client questionnaire with:", { client_id, product_id, bom_pcf_id });
+        result = await supplierQuestionnaireService.createClientQuestionnaire(
+          finalData,
+          client_id,
+          product_id,
+          bom_pcf_id,
+        );
       } else {
+        // Supplier mode - use supplier endpoint
         result = await supplierQuestionnaireService.createQuestionnaire(
           finalData,
           sup_id || undefined,
@@ -821,7 +926,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 />
               )}
               <h1 className="text-xl font-bold text-gray-900">
-                Supplier Questionnaire
+                {isClientMode ? "Manufacturer Own Emissions Questionnaire" : "Supplier Questionnaire"}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -960,6 +1065,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 }}
                 autoPopulatedFields={autoPopulatedFields}
                 formErrors={formErrors}
+                isClientMode={isClientMode}
               />
 
               {/* Navigation Buttons */}

@@ -8,6 +8,7 @@ import {
   ArrowRight,
   AlertCircle,
   Info,
+  Save,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 
@@ -16,9 +17,10 @@ const { TextArea } = Input;
 interface BasicInformationStepProps {
   initialValues: any;
   onSave: (values: any) => void;
+  onSaveAsDraft?: () => void;
 }
 
-const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValues, onSave }) => {
+const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValues, onSave, onSaveAsDraft }) => {
   const [form] = Form.useForm();
 
   const handleSave = () => {
@@ -205,16 +207,27 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">All fields marked with * are required</span>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            onClick={handleSave}
-            className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
-            icon={<ArrowRight className="w-4 h-4" />}
-            iconPosition="end"
-          >
-            Save & Continue
-          </Button>
+          <div className="flex items-center gap-3">
+            {onSaveAsDraft && (
+              <Button
+                size="large"
+                onClick={onSaveAsDraft}
+                icon={<Save className="w-4 h-4" />}
+              >
+                Save as Draft
+              </Button>
+            )}
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSave}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="end"
+            >
+              Save & Continue
+            </Button>
+          </div>
         </div>
       </div>
     </div>

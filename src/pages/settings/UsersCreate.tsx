@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, User, Shield, Key, ChevronDown } from "lucide-react";
+import { message } from "antd";
 import authService from "../../lib/authService";
 import type { Department, Role, SignupRequest } from "../../types";
+import { usePermissions } from "../../contexts/PermissionContext";
 
 const UsersCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { canCreate } = usePermissions();
+
+  // Redirect if user doesn't have create permission
+  useEffect(() => {
+    if (!canCreate("Users")) {
+      message.error("You don't have permission to create users");
+      navigate("/settings/users");
+    }
+  }, [canCreate, navigate]);
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);

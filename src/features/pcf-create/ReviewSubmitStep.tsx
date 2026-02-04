@@ -19,6 +19,7 @@ import {
   Image as ImageIcon,
   File,
   FileSpreadsheet,
+  Save,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import BomTable from './BomTable';
@@ -28,9 +29,10 @@ interface ReviewSubmitStepProps {
   formData: any;
   onEditStep: (step: number) => void;
   onSubmit: () => void;
+  onSaveAsDraft?: () => void;
 }
 
-const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({ formData, onEditStep, onSubmit }) => {
+const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({ formData, onEditStep, onSubmit, onSaveAsDraft }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
@@ -411,15 +413,26 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({ formData, onEditSte
             <CheckCircle className="w-5 h-5 text-green-500" />
             <span className="text-sm">All validations passed. Ready to submit.</span>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            onClick={onSubmit}
-            className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
-            icon={<Send className="w-4 h-4" />}
-          >
-            Submit Request
-          </Button>
+          <div className="flex items-center gap-3">
+            {onSaveAsDraft && (
+              <Button
+                size="large"
+                onClick={onSaveAsDraft}
+                icon={<Save className="w-4 h-4" />}
+              >
+                Save as Draft
+              </Button>
+            )}
+            <Button
+              type="primary"
+              size="large"
+              onClick={onSubmit}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 shadow-lg shadow-green-600/20"
+              icon={<Send className="w-4 h-4" />}
+            >
+              Submit Request
+            </Button>
+          </div>
         </div>
       </div>
 

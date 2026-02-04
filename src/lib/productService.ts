@@ -179,7 +179,14 @@ export interface BomPcfDetails {
     name: string;
   };
   bom_list: BomListItem[];
-  pcf_request_stages?: any;
+  pcf_request_stages?: {
+    pcf_request_created_by?: {
+      user_id: string;
+      user_name: string;
+      user_role: string;
+    };
+    [key: string]: any;
+  };
 }
 
 export interface BomPcfDetailsResponse {

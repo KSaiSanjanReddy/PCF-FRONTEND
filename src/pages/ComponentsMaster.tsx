@@ -549,20 +549,25 @@ const ComponentsMaster: React.FC = () => {
       key: "actions",
       width: 120,
       fixed: "right",
-      render: (_: any, record: FlattenedBOMRow) => (
-        <Button
-          type="primary"
-          onClick={() =>
-            navigate(
-              `/components-master/view/${record.pcf_code}${record.bom_id ? `?bomId=${record.bom_id}` : ""}`,
-            )
-          }
-          icon={<Eye size={16} />}
-          className="shadow-lg shadow-green-600/20"
-        >
-          View
-        </Button>
-      ),
+      render: (_: any, record: FlattenedBOMRow) => {
+        // Find the full component data from the components array
+        const componentData = components.find((c) => c.id === record.pcf_id);
+        return (
+          <Button
+            type="primary"
+            onClick={() =>
+              navigate(
+                `/components-master/view/${record.pcf_code}${record.bom_id ? `?bomId=${record.bom_id}` : ""}`,
+                { state: { componentData } },
+              )
+            }
+            icon={<Eye size={16} />}
+            className="shadow-lg shadow-green-600/20"
+          >
+            View
+          </Button>
+        );
+      },
     },
   ];
 

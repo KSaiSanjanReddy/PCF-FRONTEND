@@ -27,6 +27,7 @@ import type { ColumnsType } from "antd/es/table";
 import taskService from "../lib/taskService";
 import type { TaskItem } from "../lib/taskService";
 import { useNavigate } from "react-router-dom";
+import { usePermissions } from "../contexts/PermissionContext";
 
 interface TaskManagementItem {
   id: string;
@@ -40,6 +41,7 @@ interface TaskManagementItem {
 }
 
 const TaskManagement: React.FC = () => {
+  const { canCreate, canDelete } = usePermissions();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [tasks, setTasks] = useState<TaskManagementItem[]>([]);
@@ -267,20 +269,22 @@ const TaskManagement: React.FC = () => {
       width: 100,
       render: (_, record) => (
         <div className="flex gap-2">
-          <Popconfirm
-            title="Delete Task"
-            description="Are you sure you want to delete this task?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button
-              type="text"
-              danger
-              icon={<Trash2 size={16} />}
-              className="flex items-center justify-center"
-            />
-          </Popconfirm>
+          {canDelete("Task Management") && (
+            <Popconfirm
+              title="Delete Task"
+              description="Are you sure you want to delete this task?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button
+                type="text"
+                danger
+                icon={<Trash2 size={16} />}
+                className="flex items-center justify-center"
+              />
+            </Popconfirm>
+          )}
           <Button
             type="text"
             icon={<Eye size={16} />}
@@ -426,15 +430,17 @@ const TaskManagement: React.FC = () => {
                     })),
                   ]}
                 />
-                <Button
-                  type="primary"
-                  icon={<Plus size={16} />}
-                  size="large"
-                  onClick={() => navigate("/task-management/new")}
-                  className="shadow-lg shadow-green-600/20"
-                >
-                  Create Task
-                </Button>
+                {canCreate("Task Management") && (
+                  <Button
+                    type="primary"
+                    icon={<Plus size={16} />}
+                    size="large"
+                    onClick={() => navigate("/task-management/new")}
+                    className="shadow-lg shadow-green-600/20"
+                  >
+                    Create Task
+                  </Button>
+                )}
               </Space>
             </div>
 
