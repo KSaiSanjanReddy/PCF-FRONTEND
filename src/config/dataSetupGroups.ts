@@ -141,11 +141,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
     description: "Configure transport modes, vehicles, and routes",
     tabs: [
       {
-        key: "transport-mode",
-        label: "Transport Mode",
-        entity: "transport-mode",
-      },
-      {
         key: "transport-modes",
         label: "Transport Modes",
         entity: "transport-modes",

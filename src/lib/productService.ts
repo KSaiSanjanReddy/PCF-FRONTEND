@@ -42,7 +42,7 @@ export interface Product {
   product_status?: string;
   own_emission_id?: string;
   own_emission_status?: string;
-  own_emission?: any; // Could be null or emission object
+  own_emission?: OwnEmissionItem[]; // Array of own emission items per PCF
 }
 
 export interface ProductCategory {
@@ -103,6 +103,128 @@ export interface BomPcfDropdownItem {
   code: string;
   request_title: string;
   is_own_emission_calculated: boolean;
+}
+
+// Total Emission Summary
+export interface TotalEmissionSummary {
+  id?: string;
+  total_pcf_value: number;
+  waste_value: number;
+  logistic_value: number;
+  material_value: number;
+  packaging_value: number;
+  production_value: number;
+  [key: string]: any;
+}
+
+// Material Emission Item
+export interface MaterialEmissionItem {
+  id?: string;
+  material_type: string;
+  material_emission: number;
+  material_composition: number;
+  material_emission_factor: number;
+  material_composition_weight: number;
+  [key: string]: any;
+}
+
+// Logistic Emission
+export interface LogisticEmission {
+  id?: string;
+  distance_km: number;
+  mode_of_transport: string;
+  mass_transported_kg: number;
+  mass_transported_ton: number;
+  leg_wise_transport_emissions_per_unit_kg_co2e: number;
+  transport_mode_emission_factor_value_kg_co2e_t_km: number;
+  [key: string]: any;
+}
+
+// Packaging Emission
+export interface PackagingEmission {
+  id?: string;
+  pack_weight_kg: number;
+  packaging_type: string;
+  emission_factor_box_kg: number;
+  [key: string]: any;
+}
+
+// Production Emission
+export interface ProductionEmission {
+  id?: string;
+  component_weight_kg: number;
+  allocation_methodology: string;
+  emission_factor_of_heat: number;
+  emission_factor_of_steam: number;
+  emission_factor_of_cooling: number;
+  emission_factor_of_electricity: number;
+  no_of_products_current_component_produced: number;
+  total_weight_produced_at_factory_level_kg: number;
+  [key: string]: any;
+}
+
+// Waste Emission
+export interface WasteEmission {
+  id?: string;
+  waste_generated_per_box_kg: number;
+  emission_factor_box_waste_treatment_kg_co2e_kg: number;
+  emission_factor_packaging_waste_treatment_kg_co2e_kwh: number;
+  [key: string]: any;
+}
+
+// Allocation Methodology
+export interface AllocationMethodology {
+  id?: string;
+  split_allocation: boolean;
+  check_er_less_than_five: string;
+  sys_expansion_allocation: boolean;
+  econ_allocation_er_greater_than_five: string;
+  phy_mass_allocation_er_less_than_five: string;
+  [key: string]: any;
+}
+
+// Own Emission Detail Item (inside own_emission_details array)
+export interface OwnEmissionDetailItem {
+  id: string;
+  client_id: string;
+  bom_pcf_id: string;
+  product_id: string;
+  total_emission: TotalEmissionSummary;
+  waste_emission: WasteEmission;
+  logistic_emission: LogisticEmission;
+  material_emission: MaterialEmissionItem[];
+  packaging_emission: PackagingEmission;
+  production_emission: ProductionEmission;
+  allocation_methodology: AllocationMethodology;
+}
+
+// PCF Details within Own Emission
+export interface OwnEmissionPcfDetails {
+  id: string;
+  code: string;
+  request_title?: string;
+  priority?: string;
+  status?: string;
+  overall_pcf?: number;
+  own_emission_details?: OwnEmissionDetailItem[];
+  [key: string]: any;
+}
+
+// Own Emission Item from product response
+export interface OwnEmissionItem {
+  id?: string;
+  code?: string;
+  bom_pcf_id: string;
+  product_id?: string;
+  client_id?: string;
+  pcf_code?: string;
+  pcf_title?: string;
+  request_title?: string;
+  is_quetions_filled: boolean;
+  is_own_emission_calculated: boolean;
+  own_emission_status?: string;
+  additional_notes?: string;
+  pcf_details?: OwnEmissionPcfDetails;
 }
 
 export interface BomPcfDropdownResponse {
@@ -465,6 +587,21 @@ const productService = {
     const response = await axios.get(`${API_URL}/product/drop-down`, {
       headers: { Authorization: token }
     });
+    return response.data;
+  },
+
+  // Calculate PCF for own emission
+  calculatePcfOwnEmission: async (bomPcfId: string, productId: string): Promise<{
+    status: boolean;
+    message: string;
+    code: number;
+    data?: any;
+  }> => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(`${API_URL}/product/pcf-calculate`,
+      { bom_pcf_id: bomPcfId, product_id: productId },
+      { headers: { Authorization: token } }
+    );
     return response.data;
   },
 };

@@ -25,24 +25,44 @@ import {
   Menu,
 } from "antd";
 import type { TableColumnsType, MenuProps } from "antd";
+// Note: Removed unused ant-design icons in favor of lucide-react
 import {
-  EditOutlined,
-  DeleteOutlined,
-  SaveOutlined,
-  ReloadOutlined,
-  EyeOutlined,
-  DownloadOutlined,
-  LeftOutlined,
-  SearchOutlined,
-  DownOutlined,
-  LinkOutlined,
-  BarChartOutlined,
-  ShareAltOutlined,
-  PlusOutlined,
-  CloseOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
-import { Package, FileText, ArrowLeft, Edit } from "lucide-react";
+  Package,
+  FileText,
+  ArrowLeft,
+  Edit,
+  Leaf,
+  Puzzle,
+  Link2,
+  BarChart3,
+  Clock,
+  Home,
+  Box,
+  FileBarChart,
+  Calculator,
+  Send,
+  Mail,
+  User,
+  Phone,
+  MessageSquare,
+  ChevronDown,
+  Eye,
+  Trash2,
+  Share2,
+  Plus,
+  CircleDot,
+  Layers,
+  Activity,
+  List,
+  History,
+  Database,
+  Settings,
+  Search,
+  Info,
+  X,
+  Save,
+  Download,
+} from "lucide-react";
 import productService from "../lib/productService";
 import { usePermissions } from "../contexts/PermissionContext";
 import type {
@@ -53,6 +73,7 @@ import type {
   BomListItem,
   SecondaryDataEntries,
   SecondaryDataBomItem,
+  OwnEmissionItem,
 } from "../lib/productService";
 import ownEmissionService from "../lib/ownEmissionService";
 import type {
@@ -79,8 +100,17 @@ const ProductView: React.FC = () => {
   const [ownEmissionPcfId, setOwnEmissionPcfId] = useState<string | null>(null);
   const [questionnaireLink, setQuestionnaireLink] = useState<string>("");
   const [ownEmissionClientId, setOwnEmissionClientId] = useState<string>("");
-  const [ownEmissionClientName, setOwnEmissionClientName] = useState<string>("");
+  const [ownEmissionClientName, setOwnEmissionClientName] =
+    useState<string>("");
   const [ownEmissionLinkLoading, setOwnEmissionLinkLoading] = useState(false);
+
+  // Own Emission PCF selection state
+  const [selectedOwnEmissionPcf, setSelectedOwnEmissionPcf] = useState<
+    string | null
+  >(null);
+  const [selectedOwnEmissionItem, setSelectedOwnEmissionItem] =
+    useState<OwnEmissionItem | null>(null);
+  const [ownEmissionCalculating, setOwnEmissionCalculating] = useState(false);
 
   // Own Emissions state
   const [ownEmissionLoading, setOwnEmissionLoading] = useState(false);
@@ -165,6 +195,15 @@ const ProductView: React.FC = () => {
           fetchLinkedPCFs(response.data.product_code);
           fetchBomPcfDropdown(response.data.product_code);
           fetchPcfHistoryData(response.data.product_code);
+        }
+        // Auto-select first own_emission item if available
+        if (
+          response.data.own_emission &&
+          response.data.own_emission.length > 0
+        ) {
+          const firstItem = response.data.own_emission[0];
+          setSelectedOwnEmissionPcf(firstItem.bom_pcf_id);
+          setSelectedOwnEmissionItem(firstItem);
         }
       } else {
         message.error("Failed to fetch product details");
@@ -257,6 +296,47 @@ const ProductView: React.FC = () => {
     setSelectedBomPcfId(value);
     setBomCurrentPage(1);
     fetchBomPcfDetails(value);
+  };
+
+  // Handle own emission PCF selection change
+  const handleOwnEmissionPcfChange = (value: string) => {
+    setSelectedOwnEmissionPcf(value);
+    const selectedItem = product?.own_emission?.find(
+      (item) => item.bom_pcf_id === value,
+    );
+    setSelectedOwnEmissionItem(selectedItem || null);
+  };
+
+  // Calculate PCF for own emission
+  const handleCalculateOwnEmission = async () => {
+    if (!selectedOwnEmissionPcf || !id) return;
+
+    try {
+      setOwnEmissionCalculating(true);
+      const response = await productService.calculatePcfOwnEmission(
+        selectedOwnEmissionPcf,
+        id,
+      );
+      if (response.status) {
+        message.success("PCF calculation completed successfully");
+        // Refresh product data to get updated emission details
+        await fetchProduct(id);
+      } else {
+        message.error(response.message || "Failed to calculate PCF");
+      }
+    } catch (error) {
+      console.error("Error calculating PCF:", error);
+      message.error("Error calculating PCF");
+    } finally {
+      setOwnEmissionCalculating(false);
+    }
+  };
+
+  // Get questionnaire link for own emission
+  const getOwnEmissionQuestionnaireLink = () => {
+    if (!selectedOwnEmissionPcf || !id) return "";
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/supplier-questionnaire?is_client=true&product_id=${id}&bom_pcf_id=${selectedOwnEmissionPcf}`;
   };
 
   const fetchPcfHistoryData = async (productCode: string) => {
@@ -467,6 +547,46 @@ const ProductView: React.FC = () => {
   };
 
   const calculateTotalEmissions = () => {
+    // Check if we have selected PCF with emission data
+    if (
+      selectedOwnEmissionItem?.is_own_emission_calculated &&
+      selectedOwnEmissionItem?.pcf_details?.own_emission_details?.length
+    ) {
+      const detail =
+        selectedOwnEmissionItem.pcf_details.own_emission_details[0];
+      const totalEmission = detail?.total_emission;
+
+      if (totalEmission) {
+        const total = totalEmission.total_pcf_value || 0;
+        const material = totalEmission.material_value || 0;
+        const waste = totalEmission.waste_value || 0;
+        const logistic = totalEmission.logistic_value || 0;
+        const packaging = totalEmission.packaging_value || 0;
+        const production = totalEmission.production_value || 0;
+
+        return {
+          total: total.toFixed(6),
+          material: material.toFixed(6),
+          waste: waste.toFixed(6),
+          logistic: logistic.toFixed(6),
+          packaging: packaging.toFixed(6),
+          production: production.toFixed(6),
+          hasData: true,
+          // Calculate percentages
+          materialPercent:
+            total > 0 ? ((material / total) * 100).toFixed(1) : "0",
+          wastePercent: total > 0 ? ((waste / total) * 100).toFixed(1) : "0",
+          logisticPercent:
+            total > 0 ? ((logistic / total) * 100).toFixed(1) : "0",
+          packagingPercent:
+            total > 0 ? ((packaging / total) * 100).toFixed(1) : "0",
+          productionPercent:
+            total > 0 ? ((production / total) * 100).toFixed(1) : "0",
+        };
+      }
+    }
+
+    // Fallback to form values (legacy)
     const scope1 =
       (parseFloat(fuelCombustionValue) || 0) +
       (parseFloat(processEmissionValue) || 0) +
@@ -481,7 +601,8 @@ const ProductView: React.FC = () => {
       total: total.toFixed(2),
       scope1: scope1.toFixed(2),
       scope2: scope2.toFixed(2),
-      scope3: "0.00", // Not implemented yet
+      scope3: "0.00",
+      hasData: false,
     };
   };
 
@@ -531,195 +652,275 @@ const ProductView: React.FC = () => {
   const items = [
     {
       key: "1",
-      label: "Product Overview",
+      label: (
+        <span className="flex items-center gap-2 px-1">
+          <Home className="w-4 h-4" />
+          Overview
+        </span>
+      ),
       children: (
-        <div className="flex flex-col gap-6">
-          {/* General Product Information - Collapsible */}
-          <Collapse
-            defaultActiveKey={["1"]}
-            expandIconPosition="end"
-            className="bg-white rounded-xl shadow-sm border-0"
-            items={[
-              {
-                key: "1",
-                label: (
-                  <div className="flex items-center gap-3">
-                    <Text strong className="text-base">
-                      General Product Information
-                    </Text>
-                    <Tag
-                      color="cyan"
-                      className="rounded-full px-3 py-0.5 text-xs font-medium"
-                    >
-                      {product.category_name || "General"}
-                    </Tag>
+        <div className="p-6 space-y-6">
+          {/* Product Details Card */}
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Package className="w-5 h-5 text-white" />
                   </div>
-                ),
-                children: (
-                  <div className="pt-2">
-                    <Row gutter={[48, 16]}>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Product Category
+                  <div>
+                    <h3 className="text-white font-semibold text-lg">
+                      Product Details
+                    </h3>
+                    <p className="text-white/70 text-sm">
+                      General information and specifications
+                    </p>
+                  </div>
+                </div>
+                <Tag className="bg-white/20 text-white border-0 rounded-full px-3 py-0.5 backdrop-blur-sm">
+                  {product.category_name || "General"}
+                </Tag>
+              </div>
+            </div>
+            <div className="p-6">
+              <Row gutter={[24, 24]}>
+                <Col xs={24} sm={12} md={6}>
+                  <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 h-full min-h-[88px] flex flex-col justify-between">
+                    <Text
+                      type="secondary"
+                      className="block text-xs mb-2 uppercase tracking-wider"
+                    >
+                      Category
+                    </Text>
+                    <Text strong className="text-base text-emerald-700">
+                      {product.category_name || "-"}
+                    </Text>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 h-full min-h-[88px] flex flex-col justify-between">
+                    <Text
+                      type="secondary"
+                      className="block text-xs mb-2 uppercase tracking-wider"
+                    >
+                      Sub-Category
+                    </Text>
+                    <Text strong className="text-base text-blue-700">
+                      {product.sub_category_name || "-"}
+                    </Text>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 h-full min-h-[88px]">
+                    <Text
+                      type="secondary"
+                      className="block text-xs mb-2 uppercase tracking-wider"
+                    >
+                      Created By
+                    </Text>
+                    <Text strong className="text-base text-purple-700">
+                      {product.created_by_name || "System"}
+                    </Text>
+                    <Text className="block text-xs text-purple-500 mt-1">
+                      {product.created_date
+                        ? dayjs(product.created_date).format("DD MMM YYYY")
+                        : "-"}
+                    </Text>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 h-full min-h-[88px]">
+                    <Text
+                      type="secondary"
+                      className="block text-xs mb-2 uppercase tracking-wider"
+                    >
+                      Last Updated
+                    </Text>
+                    <Text strong className="text-base text-amber-700">
+                      {product.updated_by_name || "-"}
+                    </Text>
+                    <Text className="block text-xs text-amber-500 mt-1">
+                      {product.update_date
+                        ? dayjs(product.update_date).format("DD MMM YYYY")
+                        : "-"}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+              {product.description && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <Text
+                    type="secondary"
+                    className="block text-xs mb-2 uppercase tracking-wider"
+                  >
+                    Description
+                  </Text>
+                  <Text className="text-gray-700 leading-relaxed">
+                    {product.description}
+                  </Text>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Linked PCFs & Emission Metrics */}
+          <Row gutter={24}>
+            {/* Linked PCFs */}
+            <Col xs={24} lg={12}>
+              <div className="bg-white rounded-2xl border border-gray-200 h-full overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <Link2 className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <Text strong className="text-base text-gray-900 block">
+                          Linked PCF Requests
                         </Text>
-                        <Text strong>{product.category_name || "-"}</Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Product Sub-Category
+                        <Text type="secondary" className="text-xs">
+                          {linkedPCFs.length} requests associated
                         </Text>
-                        <Text strong>{product.sub_category_name || "-"}</Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Created By
-                        </Text>
-                        <Text strong>
-                          {product.created_by_name || "System"} -{" "}
-                          {product.created_date
-                            ? dayjs(product.created_date).format("DD MMM YYYY")
-                            : "-"}
-                        </Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Last Submitted By
-                        </Text>
-                        <Text strong>
-                          {product.updated_by_name || "-"} -{" "}
-                          {product.update_date
-                            ? dayjs(product.update_date).format("DD MMM YYYY")
-                            : "-"}
-                        </Text>
-                      </Col>
-                    </Row>
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <Text type="secondary" className="block text-xs mb-1">
-                        Description
-                      </Text>
-                      <Text className="text-gray-700">
-                        {product.description || "No description available."}
-                      </Text>
+                      </div>
                     </div>
                   </div>
-                ),
-              },
-            ]}
-          />
-
-          {/* Linked Information & Product Level Emission Metrics */}
-          <Row gutter={24}>
-            {/* Linked Information */}
-            <Col xs={24} lg={12}>
-              <div className="border border-gray-200 rounded-xl p-6 h-full bg-white">
-                <Text strong className="text-base block mb-4">
-                  Linked Information
-                </Text>
-                <Text type="secondary" className="block mb-3 text-sm">
-                  Linked PCFs
-                </Text>
-                <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+                </div>
+                <div className="p-4 max-h-[320px] overflow-y-auto custom-scrollbar">
                   {linkedPCFsLoading ? (
-                    <div className="text-center py-8">
-                      <Spin size="small" />
+                    <div className="flex justify-center py-12">
+                      <Spin size="default" />
                     </div>
                   ) : linkedPCFs.length > 0 ? (
-                    linkedPCFs.map((pcf) => (
-                      <div
-                        key={pcf.id}
-                        className="flex justify-between items-center py-3 border-b border-gray-100 last:border-b-0"
-                      >
-                        <Text className="text-gray-700">
-                          {pcf.request_title || pcf.code}
-                        </Text>
-                        {pcf.status && (
+                    <div className="space-y-3">
+                      {linkedPCFs.map((pcf) => (
+                        <div
+                          key={pcf.id}
+                          className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white border border-gray-100 hover:border-emerald-200 hover:shadow-md transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                              {(pcf.request_title || pcf.code)
+                                .charAt(0)
+                                .toUpperCase()}
+                            </div>
+                            <div>
+                              <Text
+                                strong
+                                className="block text-sm group-hover:text-emerald-600 transition-colors"
+                              >
+                                {pcf.request_title || pcf.code}
+                              </Text>
+                              <Text type="secondary" className="text-xs">
+                                PCF:{" "}
+                                {pcf.overall_pcf
+                                  ? `${pcf.overall_pcf.toFixed(2)} kg CO₂e`
+                                  : "Pending"}
+                              </Text>
+                            </div>
+                          </div>
                           <Tag
                             color={
                               pcf.status === "Approved"
                                 ? "green"
                                 : pcf.status === "Pending"
                                   ? "orange"
-                                  : "blue"
+                                  : pcf.status === "In Progress"
+                                    ? "blue"
+                                    : "default"
                             }
                             className="rounded-full px-3 py-0.5 text-xs font-medium m-0"
                           >
                             {pcf.status}
                           </Tag>
-                        )}
-                      </div>
-                    ))
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <Text type="secondary">No PCFs linked yet</Text>
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+                        <Link2 className="w-8 h-8 text-emerald-300" />
+                      </div>
+                      <Text className="block text-gray-500 font-medium">
+                        No PCF requests linked yet
+                      </Text>
+                      <Text type="secondary" className="text-xs mt-1">
+                        Create a PCF request to get started
+                      </Text>
                     </div>
                   )}
                 </div>
               </div>
             </Col>
 
-            {/* Product Level Emission Metrics */}
+            {/* Emission Metrics */}
             <Col xs={24} lg={12}>
-              <div className="bg-white rounded-xl p-6 h-full">
-                <Text strong className="text-base block mb-6">
-                  Product Level Emission Metrics
-                </Text>
-                <div className="flex flex-col gap-4">
-                  {/* Total Emission Card */}
-                  <div className="border border-gray-200 rounded-xl p-5">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <Text className="block text-sm text-gray-500 mb-1">
-                          Total Emission
-                        </Text>
-                        <div className="flex items-baseline gap-1">
-                          <Text className="text-3xl font-semibold text-blue-500">
-                            {totalEmissionFromPCFs > 0
-                              ? totalEmissionFromPCFs.toExponential(2)
-                              : product.ed_estimated_pcf
-                                ? product.ed_estimated_pcf.toExponential(2)
-                                : "0.00"}
+              <div className="bg-white rounded-2xl border border-gray-200 h-full overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <BarChart3 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <Text strong className="text-base text-gray-900 block">
+                        Emission Metrics
+                      </Text>
+                      <Text type="secondary" className="text-xs">
+                        Product carbon footprint summary
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Total Emission */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-6 text-white">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Text className="text-white/90 text-sm font-medium block mb-2">
+                            Total Emission
                           </Text>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-bold">
+                              {totalEmissionFromPCFs > 0
+                                ? totalEmissionFromPCFs.toExponential(2)
+                                : product.ed_estimated_pcf
+                                  ? product.ed_estimated_pcf.toExponential(2)
+                                  : "0.00"}
+                            </span>
+                            <span className="text-white/80 text-sm font-medium">
+                              kg CO₂e
+                            </span>
+                          </div>
                         </div>
-                        <Text className="text-sm text-blue-500 mt-1 block">
-                          T CO₂e
-                        </Text>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                        <svg
-                          className="w-6 h-6 text-blue-500"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z" />
-                        </svg>
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Leaf className="w-7 h-7 text-white" />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Total Components Linked Card */}
-                  <div className="border border-gray-200 rounded-xl p-5">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <Text className="block text-sm text-emerald-500 mb-1">
-                          Total Components Linked
-                        </Text>
-                        <div className="flex items-baseline gap-1">
-                          <Text className="text-3xl font-semibold text-emerald-500">
-                            {totalComponentsLinked}
+                  {/* Components Card */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800 p-6 text-white">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Text className="text-white/90 text-sm font-medium block mb-2">
+                            Total Components
                           </Text>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-bold">
+                              {totalComponentsLinked}
+                            </span>
+                            <span className="text-white/80 text-sm font-medium">
+                              active
+                            </span>
+                          </div>
                         </div>
-                        <Text className="text-sm text-emerald-500 mt-1 block">
-                          Active Components
-                        </Text>
-                      </div>
-                      <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-                        <svg
-                          className="w-6 h-6 text-emerald-500"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M20.5,11H19V7C19,5.89 18.1,5 17,5H13V3.5A2.5,2.5 0 0,0 10.5,1A2.5,2.5 0 0,0 8,3.5V5H4A2,2 0 0,0 2,7V10.8H3.5C5,10.8 6.2,12 6.2,13.5C6.2,15 5,16.2 3.5,16.2H2V20A2,2 0 0,0 4,22H7.8V20.5C7.8,19 9,17.8 10.5,17.8C12,17.8 13.2,19 13.2,20.5V22H17A2,2 0 0,0 19,20V16H20.5A2.5,2.5 0 0,0 23,13.5A2.5,2.5 0 0,0 20.5,11Z" />
-                        </svg>
+                        <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                          <Puzzle className="w-7 h-7 text-white" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -732,89 +933,78 @@ const ProductView: React.FC = () => {
     },
     {
       key: "2",
-      label: "BOM",
+      label: (
+        <span className="flex items-center gap-2 px-1">
+          <Box className="w-4 h-4" />
+          BOM
+        </span>
+      ),
       children: (
-        <div className="flex flex-col gap-6">
-          {/* General Product Information - Collapsible */}
-          <Collapse
-            defaultActiveKey={["1"]}
-            expandIconPosition="end"
-            className="bg-white rounded-xl shadow-sm border-0"
-            items={[
-              {
-                key: "1",
-                label: (
-                  <div className="flex items-center gap-3">
-                    <Text strong className="text-base">
-                      General Product Information
-                    </Text>
-                    <Tag
-                      color="cyan"
-                      className="rounded-full px-3 py-0.5 text-xs font-medium"
-                    >
-                      {product.category_name || "General"}
-                    </Tag>
-                  </div>
-                ),
-                children: (
-                  <div className="pt-2">
-                    <Row gutter={[48, 16]}>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Product Category
-                        </Text>
-                        <Text strong>{product.category_name || "-"}</Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Product Type
-                        </Text>
-                        <Text strong>{product.sub_category_name || "-"}</Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          Creation Date
-                        </Text>
-                        <Text strong>
-                          {product.created_date
-                            ? dayjs(product.created_date).format("DD MMM YYYY")
-                            : "-"}
-                        </Text>
-                      </Col>
-                      <Col xs={24} sm={12} md={6}>
-                        <Text type="secondary" className="block text-xs mb-1">
-                          ProductStatus
-                        </Text>
-                        <Text strong className="text-emerald-600">
-                          Active
-                        </Text>
-                      </Col>
-                    </Row>
-                  </div>
-                ),
-              },
-            ]}
-          />
-
-          {/* PCF Section */}
-          <Row gutter={24}>
-            {/* PCF Dropdown */}
-            <Col xs={24} lg={8}>
-              <div className="bg-white rounded-xl p-5 shadow-sm h-full">
-                <Text strong className="text-base block mb-4">
-                  PCF
+        <div className="p-6 space-y-6">
+          {/* Quick Info Bar */}
+          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-gray-100">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <Text type="secondary" className="text-sm">
+                  Category:
                 </Text>
-                <div className="mb-3">
-                  <Text type="secondary" className="block text-xs mb-2">
-                    PCF Request ID
-                  </Text>
+                <Text strong>{product.category_name || "-"}</Text>
+              </div>
+              <div className="h-4 w-px bg-gray-200"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <Text type="secondary" className="text-sm">
+                  Type:
+                </Text>
+                <Text strong>{product.sub_category_name || "-"}</Text>
+              </div>
+              <div className="h-4 w-px bg-gray-200"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <Text type="secondary" className="text-sm">
+                  Created:
+                </Text>
+                <Text strong>
+                  {product.created_date
+                    ? dayjs(product.created_date).format("DD MMM YYYY")
+                    : "-"}
+                </Text>
+              </div>
+            </div>
+            <Tag color="green" className="rounded-full px-3 py-0.5 font-medium">
+              Active
+            </Tag>
+          </div>
+
+          {/* PCF Selection & Analyzer */}
+          <Row gutter={24}>
+            {/* PCF Selection Card */}
+            <Col xs={24} lg={8}>
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden h-full">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <FileBarChart className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <Text strong className="text-base text-gray-900 block">
+                        Select PCF
+                      </Text>
+                      <Text type="secondary" className="text-xs">
+                        Choose a PCF request
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5">
                   <Select
                     value={selectedBomPcfId}
                     onChange={handleBomPcfChange}
                     className="w-full"
                     size="large"
                     loading={bomLoading}
-                    suffixIcon={<DownOutlined />}
+                    suffixIcon={<ChevronDown size={16} />}
                     placeholder="Select PCF Request"
                   >
                     {bomPcfDropdown.map((item) => (
@@ -822,7 +1012,7 @@ const ProductView: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Avatar
                             size="small"
-                            className="bg-amber-400 text-white text-xs"
+                            className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xs"
                           >
                             {item.request_title?.charAt(0)?.toUpperCase() ||
                               "N"}
@@ -832,92 +1022,137 @@ const ProductView: React.FC = () => {
                       </Select.Option>
                     ))}
                   </Select>
+                  {bomPcfDetails && (
+                    <div className="mt-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <Text className="text-emerald-700 text-xs flex items-center gap-2 font-medium">
+                        <Clock className="w-4 h-4" />
+                        Processed on{" "}
+                        {bomPcfDetails.created_date
+                          ? dayjs(bomPcfDetails.created_date).format(
+                              "DD MMM YYYY",
+                            )
+                          : "-"}
+                      </Text>
+                    </div>
+                  )}
                 </div>
-                {bomPcfDetails && (
-                  <Text type="secondary" className="text-xs text-blue-500">
-                    Processed on{" "}
-                    {bomPcfDetails.created_date
-                      ? dayjs(bomPcfDetails.created_date).format("DD MMM YYYY")
-                      : "-"}
-                  </Text>
-                )}
               </div>
             </Col>
 
-            {/* PCF Analyser */}
+            {/* PCF Analyser Card */}
             <Col xs={24} lg={16}>
-              <div className="bg-white rounded-xl p-5 shadow-sm h-full">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <Text strong className="text-base block">
-                      PCF Analyser
-                    </Text>
-                    <Text type="secondary" className="text-sm">
-                      Component PCF Progress
-                    </Text>
-                  </div>
-                  <div className="text-right">
-                    <Text type="secondary" className="block text-xs">
-                      PCF Value
-                    </Text>
-                    <Text strong className="text-lg text-blue-600">
-                      {bomPcfDetails?.overall_pcf
-                        ? `${bomPcfDetails.overall_pcf.toExponential(2)} kg CO₂e`
-                        : "0.00 kg CO₂e"}
-                    </Text>
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden h-full">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <BarChart3 className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <Text strong className="text-base text-gray-900 block">
+                          PCF Analyzer
+                        </Text>
+                        <Text type="secondary" className="text-xs">
+                          Component PCF Progress
+                        </Text>
+                      </div>
+                    </div>
+                    <div className="text-right bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm">
+                      <Text type="secondary" className="block text-xs">
+                        Total PCF Value
+                      </Text>
+                      <Text strong className="text-xl text-emerald-600">
+                        {bomPcfDetails?.overall_pcf
+                          ? bomPcfDetails.overall_pcf.toExponential(2)
+                          : "0.00"}
+                        <span className="text-xs ml-1 text-emerald-500 font-normal">
+                          kg CO₂e
+                        </span>
+                      </Text>
+                    </div>
                   </div>
                 </div>
-                <div className="mb-2 flex justify-between items-center">
-                  <div></div>
-                  <Text type="secondary" className="text-xs">
-                    {bomPcfDetails?.bom_list?.length || 0}/
-                    {bomPcfDetails?.bom_list?.length || 0} components completed
-                  </Text>
-                </div>
-                <Progress
-                  percent={100}
-                  showInfo={false}
-                  strokeColor={{
-                    "0%": "#22c55e",
-                    "100%": "#16a34a",
-                  }}
-                  trailColor="#e5e7eb"
-                  size={["100%", 12]}
-                />
-                <div className="flex justify-between mt-1">
-                  <Text type="secondary" className="text-xs">
-                    0%
-                  </Text>
-                  <Text type="secondary" className="text-xs">
-                    100%
-                  </Text>
+                <div className="p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <Text className="text-sm font-medium">
+                      Components Progress
+                    </Text>
+                    <Tag color="green" className="rounded-full px-3">
+                      {bomPcfDetails?.bom_list?.length || 0}/
+                      {bomPcfDetails?.bom_list?.length || 0} completed
+                    </Tag>
+                  </div>
+                  <div className="relative">
+                    <Progress
+                      percent={100}
+                      showInfo={false}
+                      strokeColor={{
+                        "0%": "#10b981",
+                        "50%": "#059669",
+                        "100%": "#047857",
+                      }}
+                      trailColor="#e5e7eb"
+                      size={["100%", 16]}
+                      className="rounded-full"
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <Text type="secondary" className="text-xs">
+                      0%
+                    </Text>
+                    <Text type="secondary" className="text-xs">
+                      100%
+                    </Text>
+                  </div>
                 </div>
               </div>
             </Col>
           </Row>
 
-          {/* Component Used In Section */}
-          <div className="bg-white rounded-xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <Text strong className="text-lg">
-                Component Used In
-              </Text>
-              <Input
-                placeholder="Search Components..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                value={bomComponentSearch}
-                onChange={(e) => {
-                  setBomComponentSearch(e.target.value);
-                  setBomCurrentPage(1);
-                }}
-                className="w-64"
-                allowClear
-              />
+          {/* Components Table Section */}
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/20">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-2 .9-2 2v3.8h1.5c1.5 0 2.7 1.2 2.7 2.7s-1.2 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.5 1.2-2.7 2.7-2.7s2.7 1.2 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <Text strong className="text-base block">
+                      Bill of Materials
+                    </Text>
+                    <Text type="secondary" className="text-xs">
+                      {(bomPcfDetails?.bom_list || []).length} components in
+                      this product
+                    </Text>
+                  </div>
+                </div>
+                <Input
+                  placeholder="Search components..."
+                  prefix={<Search size={16} className="text-gray-400" />}
+                  value={bomComponentSearch}
+                  onChange={(e) => {
+                    setBomComponentSearch(e.target.value);
+                    setBomCurrentPage(1);
+                  }}
+                  className="w-72 rounded-lg"
+                  size="large"
+                  allowClear
+                />
+              </div>
             </div>
 
             {/* Components Table */}
             {bomLoading ? (
-              <div className="flex justify-center py-12">
+              <div className="flex justify-center py-16">
                 <Spin size="large" />
               </div>
             ) : (
@@ -925,23 +1160,23 @@ const ProductView: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-emerald-500 text-white">
-                        <th className="px-4 py-3 text-left text-sm font-medium rounded-tl-lg">
+                      <tr className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+                        <th className="px-5 py-4 text-left text-sm font-semibold">
                           Material Number
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium">
+                        <th className="px-5 py-4 text-left text-sm font-semibold">
                           Component
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium">
+                        <th className="px-5 py-4 text-center text-sm font-semibold">
                           Components
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium">
+                        <th className="px-5 py-4 text-center text-sm font-semibold">
                           Sub Components
                         </th>
-                        <th className="px-4 py-3 text-center text-sm font-medium">
+                        <th className="px-5 py-4 text-center text-sm font-semibold">
                           Quantity
                         </th>
-                        <th className="px-4 py-3 text-right text-sm font-medium rounded-tr-lg">
+                        <th className="px-5 py-4 text-right text-sm font-semibold">
                           Total PCF
                         </th>
                       </tr>
@@ -980,32 +1215,59 @@ const ProductView: React.FC = () => {
                         return paginatedList.map((item, index) => (
                           <tr
                             key={item.id}
-                            className={`border-b border-gray-100 hover:bg-gray-50 ${
-                              index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                            className={`border-b border-gray-100 hover:bg-emerald-50/50 transition-colors ${
+                              index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                             }`}
                           >
-                            <td className="px-4 py-3 text-sm text-gray-700">
-                              {item.material_number || "-"}
+                            <td className="px-5 py-4">
+                              <Tag className="bg-slate-100 border-0 text-slate-600 font-mono text-xs">
+                                {item.material_number || "-"}
+                              </Tag>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700">
-                              {item.component_name || "-"}
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                                  <span className="text-emerald-600 text-xs font-semibold">
+                                    {(item.component_name || "-")
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </span>
+                                </div>
+                                <Text className="font-medium text-gray-800">
+                                  {item.component_name || "-"}
+                                </Text>
+                              </div>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 text-center">
-                              {item.material_emission?.length || 1}
+                            <td className="px-5 py-4 text-center">
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-semibold text-sm">
+                                {item.material_emission?.length || 1}
+                              </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 text-center">
-                              {item.material_emission?.length
-                                ? Math.max(0, item.material_emission.length - 1)
-                                : 0}
+                            <td className="px-5 py-4 text-center">
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-50 text-purple-600 font-semibold text-sm">
+                                {item.material_emission?.length
+                                  ? Math.max(
+                                      0,
+                                      item.material_emission.length - 1,
+                                    )
+                                  : 0}
+                              </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 text-center">
-                              {item.quantity || 1}
+                            <td className="px-5 py-4 text-center">
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-50 text-amber-600 font-semibold text-sm">
+                                {item.quantity || 1}
+                              </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                              {item.pcf_total_emission_calculation
-                                ?.total_pcf_value
-                                ? `${item.pcf_total_emission_calculation.total_pcf_value.toExponential(1)} kg CO₂e`
-                                : "-"}
+                            <td className="px-5 py-4 text-right">
+                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-sm">
+                                {item.pcf_total_emission_calculation
+                                  ?.total_pcf_value
+                                  ? `${item.pcf_total_emission_calculation.total_pcf_value.toExponential(1)}`
+                                  : "-"}
+                                <span className="text-emerald-500 text-xs font-normal">
+                                  kg CO₂e
+                                </span>
+                              </span>
                             </td>
                           </tr>
                         ));
@@ -1015,46 +1277,52 @@ const ProductView: React.FC = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between items-center px-6 py-4 bg-gray-50/50 border-t border-gray-100">
                   <Text type="secondary" className="text-sm">
                     Showing{" "}
-                    {Math.min(
-                      (bomCurrentPage - 1) * bomPageSize + 1,
-                      (bomPcfDetails?.bom_list || []).filter(
-                        (item) =>
-                          item.component_name
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()) ||
-                          item.material_number
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()),
-                      ).length,
-                    )}{" "}
+                    <span className="font-semibold text-gray-700">
+                      {Math.min(
+                        (bomCurrentPage - 1) * bomPageSize + 1,
+                        (bomPcfDetails?.bom_list || []).filter(
+                          (item) =>
+                            item.component_name
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()) ||
+                            item.material_number
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()),
+                        ).length,
+                      )}
+                    </span>{" "}
                     to{" "}
-                    {Math.min(
-                      bomCurrentPage * bomPageSize,
-                      (bomPcfDetails?.bom_list || []).filter(
-                        (item) =>
-                          item.component_name
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()) ||
-                          item.material_number
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()),
-                      ).length,
-                    )}{" "}
+                    <span className="font-semibold text-gray-700">
+                      {Math.min(
+                        bomCurrentPage * bomPageSize,
+                        (bomPcfDetails?.bom_list || []).filter(
+                          (item) =>
+                            item.component_name
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()) ||
+                            item.material_number
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()),
+                        ).length,
+                      )}
+                    </span>{" "}
                     of{" "}
-                    {
-                      (bomPcfDetails?.bom_list || []).filter(
-                        (item) =>
-                          item.component_name
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()) ||
-                          item.material_number
-                            ?.toLowerCase()
-                            .includes(bomComponentSearch.toLowerCase()),
-                      ).length
-                    }{" "}
+                    <span className="font-semibold text-gray-700">
+                      {
+                        (bomPcfDetails?.bom_list || []).filter(
+                          (item) =>
+                            item.component_name
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()) ||
+                            item.material_number
+                              ?.toLowerCase()
+                              .includes(bomComponentSearch.toLowerCase()),
+                        ).length
+                      }
+                    </span>{" "}
                     entries
                   </Text>
                   <Pagination
@@ -1073,7 +1341,7 @@ const ProductView: React.FC = () => {
                     }
                     onChange={(page) => setBomCurrentPage(page)}
                     showSizeChanger={false}
-                    size="small"
+                    size="default"
                   />
                 </div>
               </>
@@ -1084,573 +1352,1597 @@ const ProductView: React.FC = () => {
     },
     {
       key: "3",
-      label: "Own Emission",
+      label: (
+        <span className="flex items-center gap-2 px-1">
+          <Leaf className="w-4 h-4" />
+          Own Emission
+        </span>
+      ),
       children: (
-        <Row gutter={24}>
+        <Row gutter={24} className="p-6">
           {/* Main Content */}
           <Col xs={24} lg={16}>
-            <Card
-              className="shadow-sm rounded-xl"
-              title="Own Emission Data Entry"
-            >
-              {/* Data Entry Method Selection */}
-              <div className="mb-6">
-                <Text strong className="block mb-4">
-                  Select Data Entry Method
-                </Text>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <div
-                      className={`border-2 p-4 rounded-lg cursor-pointer transition-all ${
-                        dataEntryMethod === "questionnaire"
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
-                      onClick={() => setDataEntryMethod("questionnaire")}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            dataEntryMethod === "questionnaire"
-                              ? "border-green-500"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {dataEntryMethod === "questionnaire" && (
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          )}
-                        </div>
-                        <Text strong>Client Questionnaire</Text>
-                      </div>
+            {/* PCF Selection Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-6">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <Text strong className="text-lg block">
+                        Select PCF Request
+                      </Text>
                       <Text type="secondary" className="text-sm">
-                        Fill the questionnaire to calculate product emissions
+                        Choose a PCF to view or calculate emissions
                       </Text>
                     </div>
-                  </Col>
-                  <Col span={12}>
-                    <div
-                      className={`border-2 p-4 rounded-lg cursor-pointer transition-all ${
-                        dataEntryMethod === "contact"
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
-                      onClick={() => setDataEntryMethod("contact")}
+                  </div>
+                  {selectedOwnEmissionItem && (
+                    <Tag
+                      color={
+                        selectedOwnEmissionItem.is_own_emission_calculated
+                          ? "green"
+                          : selectedOwnEmissionItem.is_quetions_filled
+                            ? "blue"
+                            : "orange"
+                      }
+                      className="rounded-full px-4 py-1"
                     >
-                      <div className="flex items-center gap-2 mb-2">
+                      {selectedOwnEmissionItem.is_own_emission_calculated
+                        ? "Calculated"
+                        : selectedOwnEmissionItem.is_quetions_filled
+                          ? "Ready"
+                          : "Pending"}
+                    </Tag>
+                  )}
+                </div>
+              </div>
+              <div className="p-6">
+                <Select
+                  placeholder="Select a PCF request"
+                  size="large"
+                  className="w-full"
+                  value={selectedOwnEmissionPcf}
+                  onChange={handleOwnEmissionPcfChange}
+                  loading={loading}
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children as unknown as string)
+                      ?.toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                >
+                  {(product?.own_emission || []).map((item) => (
+                    <Select.Option
+                      key={item.bom_pcf_id}
+                      value={item.bom_pcf_id}
+                    >
+                      <div className="flex items-center gap-2">
                         <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            dataEntryMethod === "contact"
-                              ? "border-green-500"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {dataEntryMethod === "contact" && (
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          )}
-                        </div>
-                        <Text strong>Contact Enviguide Team</Text>
+                          className={`w-2 h-2 rounded-full ${item.is_own_emission_calculated ? "bg-green-500" : item.is_quetions_filled ? "bg-blue-500" : "bg-orange-500"}`}
+                        ></div>
+                        {item.pcf_details?.code || item.code || item.bom_pcf_id}{" "}
+                        -{" "}
+                        {item.pcf_details?.request_title ||
+                          item.request_title ||
+                          "PCF Request"}
                       </div>
-                      <Text type="secondary" className="text-sm">
-                        Get expert help with your emission calculations
-                      </Text>
-                    </div>
-                  </Col>
-                </Row>
+                    </Select.Option>
+                  ))}
+                </Select>
               </div>
 
-              <Divider />
-
-              {dataEntryMethod === "questionnaire" ? (
-                <>
-                  {/* Client Questionnaire Link Generator */}
-                  <div className="mb-6">
-                    <Title level={5}>Generate Client Questionnaire Link</Title>
-                    <Text type="secondary" className="block mb-4">
-                      Select a PCF to generate a questionnaire link for calculating product emissions.
-                    </Text>
-
-                    {/* PCF Selection */}
-                    <div className="mb-6">
-                      <Text strong className="block mb-2">
-                        Select PCF <span className="text-red-500">*</span>
-                      </Text>
-                      <Select
-                        placeholder="Select a PCF"
-                        size="large"
-                        className="w-full"
-                        value={ownEmissionPcfId}
-                        onChange={async (value) => {
-                          setOwnEmissionPcfId(value);
-                          setQuestionnaireLink("");
-                          setOwnEmissionClientId("");
-                          setOwnEmissionClientName("");
-
-                          if (value && id) {
-                            try {
-                              setOwnEmissionLinkLoading(true);
-                              // Fetch PCF details to get submittedBy.user_id
-                              const pcfResponse = await productService.getBomPcfDetailsById(value);
-                              if (pcfResponse.status && pcfResponse.data?.[0]) {
-                                const pcfData = pcfResponse.data[0];
-                                const clientId = pcfData.pcf_request_stages?.pcf_request_created_by?.user_id || "";
-                                const clientName = pcfData.pcf_request_stages?.pcf_request_created_by?.user_name || "";
-
-                                setOwnEmissionClientId(clientId);
-                                setOwnEmissionClientName(clientName);
-
-                                if (clientId) {
-                                  const baseUrl = window.location.origin;
-                                  const link = `${baseUrl}/supplier-questionnaire?is_client=true&client_id=${clientId}&product_id=${id}&bom_pcf_id=${value}`;
-                                  setQuestionnaireLink(link);
-                                } else {
-                                  message.warning("No client found for this PCF");
-                                }
-                              }
-                            } catch (error) {
-                              console.error("Error fetching PCF details:", error);
-                              message.error("Failed to fetch PCF details");
-                            } finally {
-                              setOwnEmissionLinkLoading(false);
-                            }
-                          }
-                        }}
-                        loading={bomLoading || ownEmissionLinkLoading}
-                        allowClear
-                        showSearch
-                        filterOption={(input, option) =>
-                          (option?.children as unknown as string)
-                            ?.toLowerCase()
-                            .includes(input.toLowerCase())
-                        }
-                      >
-                        {bomPcfDropdown.map((pcf) => (
-                          <Select.Option key={pcf.id} value={pcf.id}>
-                            {pcf.code} - {pcf.request_title}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </div>
-
-                    {/* Generated Link Display */}
-                    {questionnaireLink && (
-                      <div className="mb-6">
-                        <Text strong className="block mb-2">
-                          Questionnaire Link
-                        </Text>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="flex items-center gap-2 mb-3">
-                            <LinkOutlined className="text-green-600" />
-                            <Text className="text-sm text-gray-600 break-all">
-                              {questionnaireLink}
+              {/* Status and Actions based on selected PCF */}
+              {selectedOwnEmissionItem && (
+                <div className="p-6 border-t border-gray-100">
+                  {/* Questionnaire not filled - Two options side by side */}
+                  {!selectedOwnEmissionItem.is_quetions_filled && (
+                    <Row gutter={20}>
+                      {/* Option 1: Fill Questionnaire */}
+                      <Col span={12}>
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-6 h-full hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 transition-all cursor-pointer">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/30 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                          <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+                              <FileText className="text-white w-6 h-6" />
+                            </div>
+                            <Text
+                              strong
+                              className="block mb-2 text-lg text-gray-800"
+                            >
+                              Fill Questionnaire
                             </Text>
+                            <Text className="text-sm text-gray-600 block mb-5">
+                              Complete the emission questionnaire yourself to
+                              calculate product emissions.
+                            </Text>
+                            <div className="flex gap-3">
+                              <Button
+                                type="primary"
+                                icon={<Link2 size={16} />}
+                                size="large"
+                                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
+                                onClick={() => {
+                                  const link =
+                                    getOwnEmissionQuestionnaireLink();
+                                  if (link) {
+                                    window.open(link, "_blank");
+                                  }
+                                }}
+                              >
+                                Open Form
+                              </Button>
+                              <Button
+                                icon={<Link2 size={16} />}
+                                size="large"
+                                className="rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                                onClick={() => {
+                                  const link =
+                                    getOwnEmissionQuestionnaireLink();
+                                  if (link) {
+                                    navigator.clipboard.writeText(link);
+                                    message.success(
+                                      "Link copied to clipboard!",
+                                    );
+                                  }
+                                }}
+                              >
+                                Copy Link
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
+                        </div>
+                      </Col>
+                      {/* Option 2: Contact Enviguide */}
+                      <Col span={12}>
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 border-2 border-slate-200 rounded-2xl p-6 h-full hover:border-slate-300 hover:shadow-lg hover:shadow-slate-100 transition-all cursor-pointer">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-slate-200/30 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                          <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-4 shadow-lg shadow-slate-500/25 group-hover:scale-110 transition-transform">
+                              <Mail className="text-white w-6 h-6" />
+                            </div>
+                            <Text
+                              strong
+                              className="block mb-2 text-lg text-gray-800"
+                            >
+                              Contact Enviguide Team
+                            </Text>
+                            <Text className="text-sm text-gray-600 block mb-5">
+                              Get expert assistance with your emission
+                              calculations from our team.
+                            </Text>
                             <Button
                               type="primary"
-                              icon={<LinkOutlined />}
-                              className="bg-green-600 hover:bg-green-700"
+                              icon={<Send size={16} />}
+                              size="large"
+                              className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 border-0 rounded-xl shadow-lg shadow-slate-500/25"
                               onClick={() => {
-                                navigator.clipboard.writeText(questionnaireLink);
-                                message.success("Link copied to clipboard!");
+                                setDataEntryMethod("contact");
+                                message.info(
+                                  "Please fill out the contact form below",
+                                );
                               }}
                             >
-                              Copy Link
-                            </Button>
-                            <Button
-                              icon={<ShareAltOutlined />}
-                              onClick={() => window.open(questionnaireLink, "_blank")}
-                            >
-                              Open Questionnaire
+                              Contact Team
                             </Button>
                           </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  )}
+
+                  {/* Questionnaire filled but not calculated */}
+                  {selectedOwnEmissionItem.is_quetions_filled &&
+                    !selectedOwnEmissionItem.is_own_emission_calculated && (
+                      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                              <CircleDot className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <Text className="block text-lg font-semibold text-white">
+                                Ready for Calculation
+                              </Text>
+                              <Text className="text-emerald-100 text-sm">
+                                Questionnaire submitted. Calculate emissions
+                                now.
+                              </Text>
+                            </div>
+                          </div>
+                          <Button
+                            type="primary"
+                            icon={<Calculator size={16} />}
+                            size="large"
+                            className="bg-white text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 border-0 rounded-xl shadow-lg font-semibold"
+                            onClick={handleCalculateOwnEmission}
+                            loading={ownEmissionCalculating}
+                          >
+                            Calculate Emissions
+                          </Button>
                         </div>
                       </div>
                     )}
 
-                    {/* Info Box */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex gap-3">
-                        <InfoCircleOutlined className="text-blue-500 text-lg mt-0.5" />
-                        <div>
-                          <Text strong className="block mb-1">
-                            How it works
-                          </Text>
-                          <Text type="secondary" className="text-sm">
-                            1. Select a PCF from the dropdown above
-                            <br />
-                            2. A unique questionnaire link will be generated
-                            <br />
-                            3. Use the link to fill the questionnaire with product emission data
-                            <br />
-                            4. The questionnaire data will be associated with this product
-                          </Text>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Calculation complete - show emission details */}
+                  {selectedOwnEmissionItem.is_quetions_filled &&
+                    selectedOwnEmissionItem.is_own_emission_calculated &&
+                    selectedOwnEmissionItem.pcf_details
+                      ?.own_emission_details && (
+                      <div className="space-y-6">
+                        {(() => {
+                          // own_emission_details is directly an array
+                          const detailItems =
+                            selectedOwnEmissionItem.pcf_details
+                              ?.own_emission_details || [];
 
-                  {/* Product Info Summary */}
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <Title level={5} style={{ margin: 0, marginBottom: 12 }}>
-                      Product Details
-                    </Title>
-                    <Row gutter={16}>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Product Code:
-                        </Text>
-                        <Text strong>{product?.product_code || "-"}</Text>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Product Name:
-                        </Text>
-                        <Text strong>{product?.product_name || "-"}</Text>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Category:
-                        </Text>
-                        <Text strong>{product?.category_name || "-"}</Text>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Client:
-                        </Text>
-                        <Text strong className="text-xs">
-                          {ownEmissionClientName || ownEmissionClientId || "-"}
-                        </Text>
-                      </Col>
-                    </Row>
+                          if (detailItems.length === 0) {
+                            return (
+                              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-8 text-center">
+                                <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4">
+                                  <BarChart3 className="text-emerald-300 w-8 h-8" />
+                                </div>
+                                <Text className="text-gray-500 font-medium text-lg">
+                                  No emission details available
+                                </Text>
+                              </div>
+                            );
+                          }
+
+                          const detail = detailItems[0]; // Use first item
+                          const totalEmission = detail.total_emission;
+                          const materialEmissions =
+                            detail.material_emission || [];
+                          const logisticEmission = detail.logistic_emission;
+                          const packagingEmission = detail.packaging_emission;
+                          const productionEmission = detail.production_emission;
+                          const wasteEmission = detail.waste_emission;
+                          const allocation = detail.allocation_methodology;
+
+                          return (
+                            <>
+                              {/* Total Emission Summary - Hero Card */}
+                              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 rounded-2xl p-6">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                                <div className="relative z-10">
+                                  <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                      <BarChart3 className="text-white w-6 h-6" />
+                                    </div>
+                                    <div>
+                                      <span className="text-white/90 text-sm block">
+                                        Total PCF Summary
+                                      </span>
+                                      <span className="text-white text-xl font-bold block">
+                                        Emission Breakdown
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <Row gutter={[16, 16]}>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Total PCF Value
+                                        </span>
+                                        <span className="text-white text-2xl font-bold block">
+                                          {(
+                                            totalEmission?.total_pcf_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Material
+                                        </span>
+                                        <span className="text-white text-xl font-bold block">
+                                          {(
+                                            totalEmission?.material_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Waste
+                                        </span>
+                                        <span className="text-white text-xl font-bold block">
+                                          {(
+                                            totalEmission?.waste_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Logistics
+                                        </span>
+                                        <span className="text-white text-xl font-bold block">
+                                          {(
+                                            totalEmission?.logistic_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Packaging
+                                        </span>
+                                        <span className="text-white text-xl font-bold block">
+                                          {(
+                                            totalEmission?.packaging_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                    <Col span={8}>
+                                      <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/25">
+                                        <span className="text-white text-xs font-medium block mb-1">
+                                          Production
+                                        </span>
+                                        <span className="text-white text-xl font-bold block">
+                                          {(
+                                            totalEmission?.production_value || 0
+                                          ).toFixed(4)}
+                                        </span>
+                                        <span className="text-white/90 text-xs">
+                                          kg CO₂e
+                                        </span>
+                                      </div>
+                                    </Col>
+                                  </Row>
+                                </div>
+                              </div>
+
+                              {/* Material Emissions */}
+                              {materialEmissions.length > 0 && (
+                                <Collapse
+                                  defaultActiveKey={["material"]}
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "material",
+                                      label: (
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                              <span className="text-white text-sm font-bold">
+                                                M
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <Text strong className="block">
+                                                Material Emissions
+                                              </Text>
+                                              <Text
+                                                type="secondary"
+                                                className="text-xs"
+                                              >
+                                                {materialEmissions.length}{" "}
+                                                materials analyzed
+                                              </Text>
+                                            </div>
+                                          </div>
+                                          <Tag
+                                            color="blue"
+                                            className="rounded-full px-3 ml-4"
+                                          >
+                                            {totalEmission?.material_value?.toFixed(
+                                              4,
+                                            )}{" "}
+                                            kg CO₂e
+                                          </Tag>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Table
+                                          dataSource={materialEmissions}
+                                          rowKey="id"
+                                          size="middle"
+                                          pagination={false}
+                                          className="rounded-lg overflow-hidden"
+                                          columns={[
+                                            {
+                                              title: "Material Type",
+                                              dataIndex: "material_type",
+                                              key: "material_type",
+                                              render: (text: string) => (
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                                    <span className="text-blue-600 text-xs font-semibold">
+                                                      {text?.charAt(0)}
+                                                    </span>
+                                                  </div>
+                                                  <Text strong>{text}</Text>
+                                                </div>
+                                              ),
+                                            },
+                                            {
+                                              title: "Composition",
+                                              dataIndex: "material_composition",
+                                              key: "material_composition",
+                                              align: "center" as const,
+                                              render: (val: number) => (
+                                                <Tag className="rounded-full">
+                                                  {val}%
+                                                </Tag>
+                                              ),
+                                            },
+                                            {
+                                              title: "Weight (kg)",
+                                              dataIndex:
+                                                "material_composition_weight",
+                                              key: "material_composition_weight",
+                                              align: "right" as const,
+                                              render: (val: number) => (
+                                                <Text className="font-mono">
+                                                  {val?.toFixed(6)}
+                                                </Text>
+                                              ),
+                                            },
+                                            {
+                                              title: "Emission Factor",
+                                              dataIndex:
+                                                "material_emission_factor",
+                                              key: "material_emission_factor",
+                                              align: "right" as const,
+                                              render: (val: number) => (
+                                                <Text className="font-mono">
+                                                  {val?.toFixed(2)}
+                                                </Text>
+                                              ),
+                                            },
+                                            {
+                                              title: "Emission",
+                                              dataIndex: "material_emission",
+                                              key: "material_emission",
+                                              align: "right" as const,
+                                              render: (val: number) => (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-semibold text-sm">
+                                                  {val?.toFixed(6)}
+                                                  <span className="text-blue-400 text-xs font-normal">
+                                                    kg CO₂e
+                                                  </span>
+                                                </span>
+                                              ),
+                                            },
+                                          ]}
+                                        />
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Logistics Emission */}
+                              {logisticEmission && (
+                                <Collapse
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "logistics",
+                                      label: (
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                              <span className="text-white text-sm font-bold">
+                                                L
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <Text strong className="block">
+                                                Logistics Emission
+                                              </Text>
+                                              <Text
+                                                type="secondary"
+                                                className="text-xs"
+                                              >
+                                                Transport and distribution
+                                              </Text>
+                                            </div>
+                                          </div>
+                                          <Tag
+                                            color="orange"
+                                            className="rounded-full px-3 ml-4"
+                                          >
+                                            {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
+                                              4,
+                                            )}{" "}
+                                            kg CO₂e
+                                          </Tag>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Row gutter={[16, 16]}>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Mode of Transport
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-orange-700"
+                                              >
+                                                {logisticEmission.mode_of_transport ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Distance
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-orange-700"
+                                              >
+                                                {logisticEmission.distance_km}{" "}
+                                                km
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Mass Transported
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-orange-700"
+                                              >
+                                                {
+                                                  logisticEmission.mass_transported_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Emission Factor
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-orange-700"
+                                              >
+                                                {
+                                                  logisticEmission.transport_mode_emission_factor_value_kg_co2e_t_km
+                                                }{" "}
+                                                kg CO₂e/t·km
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 rounded-xl text-white">
+                                              <Text className="block text-xs mb-2 uppercase tracking-wide text-white/80">
+                                                Transport Emission
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-white text-lg"
+                                              >
+                                                {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
+                                                  6,
+                                                )}{" "}
+                                                kg CO₂e
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                        </Row>
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Packaging Emission */}
+                              {packagingEmission && (
+                                <Collapse
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "packaging",
+                                      label: (
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                                              <span className="text-white text-sm font-bold">
+                                                P
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <Text strong className="block">
+                                                Packaging Emission
+                                              </Text>
+                                              <Text
+                                                type="secondary"
+                                                className="text-xs"
+                                              >
+                                                Materials and processes
+                                              </Text>
+                                            </div>
+                                          </div>
+                                          <Tag
+                                            color="purple"
+                                            className="rounded-full px-3 ml-4"
+                                          >
+                                            {totalEmission?.packaging_value?.toFixed(
+                                              4,
+                                            )}{" "}
+                                            kg CO₂e
+                                          </Tag>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Row gutter={[16, 16]}>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Packaging Type
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-purple-700"
+                                              >
+                                                {packagingEmission.packaging_type ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Pack Weight
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-purple-700"
+                                              >
+                                                {
+                                                  packagingEmission.pack_weight_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Emission Factor
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-purple-700"
+                                              >
+                                                {
+                                                  packagingEmission.emission_factor_box_kg
+                                                }{" "}
+                                                kg CO₂e/kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                        </Row>
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Production Emission */}
+                              {productionEmission && (
+                                <Collapse
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "production",
+                                      label: (
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                                              <span className="text-white text-sm font-bold">
+                                                Pr
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <Text strong className="block">
+                                                Production Emission
+                                              </Text>
+                                              <Text
+                                                type="secondary"
+                                                className="text-xs"
+                                              >
+                                                Manufacturing processes
+                                              </Text>
+                                            </div>
+                                          </div>
+                                          <Tag
+                                            color="cyan"
+                                            className="rounded-full px-3 ml-4"
+                                          >
+                                            {totalEmission?.production_value?.toFixed(
+                                              4,
+                                            )}{" "}
+                                            kg CO₂e
+                                          </Tag>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Row gutter={[16, 16]}>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-cyan-50 to-teal-50 p-4 rounded-xl border border-cyan-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Allocation Methodology
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-cyan-700 text-sm"
+                                              >
+                                                {productionEmission.allocation_methodology ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gray-50 p-3 rounded-lg">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-1"
+                                              >
+                                                Component Weight
+                                              </Text>
+                                              <Text strong>
+                                                {
+                                                  productionEmission.component_weight_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gray-50 p-3 rounded-lg">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-1"
+                                              >
+                                                Products Produced
+                                              </Text>
+                                              <Text strong>
+                                                {
+                                                  productionEmission.no_of_products_current_component_produced
+                                                }
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gray-50 p-3 rounded-lg">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-1"
+                                              >
+                                                Total Weight at Factory Level
+                                              </Text>
+                                              <Text strong>
+                                                {
+                                                  productionEmission.total_weight_produced_at_factory_level_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gray-50 p-3 rounded-lg">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-1"
+                                              >
+                                                Component Weight Produced
+                                              </Text>
+                                              <Text strong>
+                                                {
+                                                  productionEmission.total_weight_of_current_component_produced_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                        </Row>
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Waste Emission */}
+                              {wasteEmission && (
+                                <Collapse
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "waste",
+                                      label: (
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                              <span className="text-white text-sm font-bold">
+                                                W
+                                              </span>
+                                            </div>
+                                            <div>
+                                              <Text strong className="block">
+                                                Waste Emission
+                                              </Text>
+                                              <Text
+                                                type="secondary"
+                                                className="text-xs"
+                                              >
+                                                Disposal and treatment
+                                              </Text>
+                                            </div>
+                                          </div>
+                                          <Tag
+                                            color="red"
+                                            className="rounded-full px-3 ml-4"
+                                          >
+                                            {totalEmission?.waste_value?.toFixed(
+                                              4,
+                                            )}{" "}
+                                            kg CO₂e
+                                          </Tag>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Row gutter={[16, 16]}>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Waste per Box
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-red-700"
+                                              >
+                                                {
+                                                  wasteEmission.waste_generated_per_box_kg
+                                                }{" "}
+                                                kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Box Treatment EF
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-red-700"
+                                              >
+                                                {
+                                                  wasteEmission.emission_factor_box_waste_treatment_kg_co2e_kg
+                                                }{" "}
+                                                kg CO₂e/kg
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Packaging Treatment EF
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-red-700"
+                                              >
+                                                {
+                                                  wasteEmission.emission_factor_packaging_waste_treatment_kg_co2e_kwh
+                                                }{" "}
+                                                kg CO₂e/kWh
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                        </Row>
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+
+                              {/* Allocation Methodology */}
+                              {allocation && (
+                                <Collapse
+                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                  expandIconPosition="end"
+                                  items={[
+                                    {
+                                      key: "allocation",
+                                      label: (
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/20">
+                                            <span className="text-white text-sm font-bold">
+                                              A
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <Text strong className="block">
+                                              Allocation Methodology
+                                            </Text>
+                                            <Text
+                                              type="secondary"
+                                              className="text-xs"
+                                            >
+                                              Calculation methods applied
+                                            </Text>
+                                          </div>
+                                        </div>
+                                      ),
+                                      children: (
+                                        <Row gutter={[16, 16]}>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                ER Less Than Five
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-slate-700"
+                                              >
+                                                {allocation.check_er_less_than_five ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Physical Mass
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-slate-700"
+                                              >
+                                                {allocation.phy_mass_allocation_er_less_than_five ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={8}>
+                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Economic (ER &gt; 5)
+                                              </Text>
+                                              <Text
+                                                strong
+                                                className="text-slate-700"
+                                              >
+                                                {allocation.econ_allocation_er_greater_than_five ||
+                                                  "-"}
+                                              </Text>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                Split Allocation
+                                              </Text>
+                                              <Tag
+                                                color={
+                                                  allocation.split_allocation
+                                                    ? "green"
+                                                    : "default"
+                                                }
+                                                className="rounded-full"
+                                              >
+                                                {allocation.split_allocation
+                                                  ? "Enabled"
+                                                  : "Disabled"}
+                                              </Tag>
+                                            </div>
+                                          </Col>
+                                          <Col span={12}>
+                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                              <Text
+                                                type="secondary"
+                                                className="block text-xs mb-2 uppercase tracking-wide"
+                                              >
+                                                System Expansion
+                                              </Text>
+                                              <Tag
+                                                color={
+                                                  allocation.sys_expansion_allocation
+                                                    ? "green"
+                                                    : "default"
+                                                }
+                                                className="rounded-full"
+                                              >
+                                                {allocation.sys_expansion_allocation
+                                                  ? "Enabled"
+                                                  : "Disabled"}
+                                              </Tag>
+                                            </div>
+                                          </Col>
+                                        </Row>
+                                      ),
+                                    },
+                                  ]}
+                                />
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* No own_emission data */}
+              {(!product?.own_emission ||
+                product.own_emission.length === 0) && (
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-8 text-center">
+                  <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Info className="text-emerald-300 w-8 h-8" />
                   </div>
-                </>
-              ) : (
-                <>
-                  {/* Contact Form */}
-                  <Row gutter={24} className="mb-6">
-                    <Col span={12}>
-                      <div>
-                        <Text strong className="block mb-2">
-                          Full Name<span className="text-red-500">*</span>
-                        </Text>
-                        <Input
-                          value={contactFullName}
-                          onChange={(e) => setContactFullName(e.target.value)}
-                          placeholder="John Doe"
-                          size="large"
-                        />
-                      </div>
+                  <Text type="secondary" className="block text-lg">
+                    No PCF data available
+                  </Text>
+                  <Text type="secondary" className="text-sm mt-1 block">
+                    Create a PCF request to start tracking emissions for this
+                    product.
+                  </Text>
+                </div>
+              )}
+            </div>
+
+            {/* Contact Form Card - Only shown when Contact Team is clicked */}
+            {dataEntryMethod === "contact" && (
+              <Card
+                className="shadow-sm rounded-xl"
+                title="Contact Enviguide Team"
+                extra={
+                  <Button
+                    type="text"
+                    icon={<X size={16} />}
+                    onClick={() => setDataEntryMethod("questionnaire")}
+                  />
+                }
+              >
+                <Row gutter={24} className="mb-6">
+                  <Col span={12}>
+                    <div>
+                      <Text strong className="block mb-2">
+                        Full Name<span className="text-red-500">*</span>
+                      </Text>
+                      <Input
+                        value={contactFullName}
+                        onChange={(e) => setContactFullName(e.target.value)}
+                        placeholder="John Doe"
+                        size="large"
+                      />
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div>
+                      <Text strong className="block mb-2">
+                        Phone Number<span className="text-red-500">*</span>
+                      </Text>
+                      <Input
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        placeholder="+1 (555) 123-4567"
+                        size="large"
+                      />
+                    </div>
+                  </Col>
+                  <Col span={24}>
+                    <div className="mb-4 mt-4">
+                      <Text strong className="block mb-2">
+                        Email Address<span className="text-red-500">*</span>
+                      </Text>
+                      <Input
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="john.doe@company.com"
+                        size="large"
+                        type="email"
+                      />
+                    </div>
+                  </Col>
+                  <Col span={24}>
+                    <div className="mb-4">
+                      <Text strong className="block mb-2">
+                        Message
+                      </Text>
+                      <TextArea
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
+                        rows={4}
+                        placeholder="Please provide details about your emission calculation needs and any specific questions you have..."
+                      />
+                    </div>
+                  </Col>
+                </Row>
+
+                {/* Product Info Summary */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <Row gutter={16}>
+                    <Col span={6}>
+                      <Text type="secondary" className="block text-xs">
+                        Product:
+                      </Text>
+                      <Text strong>{product?.product_code || "-"}</Text>
                     </Col>
-                    <Col span={12}>
-                      <div>
-                        <Text strong className="block mb-2">
-                          Phone Number<span className="text-red-500">*</span>
-                        </Text>
-                        <Input
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          placeholder="+1 (555) 123-4567"
-                          size="large"
-                        />
-                      </div>
+                    <Col span={6}>
+                      <Text type="secondary" className="block text-xs">
+                        Category:
+                      </Text>
+                      <Text strong>{product?.category_name || "-"}</Text>
                     </Col>
-                    <Col span={24}>
-                      <div className="mb-4">
-                        <Text strong className="block mb-2">
-                          Email Address<span className="text-red-500">*</span>
-                        </Text>
-                        <Input
-                          value={contactEmail}
-                          onChange={(e) => setContactEmail(e.target.value)}
-                          placeholder="john.doe@company.com"
-                          size="large"
-                          type="email"
-                        />
-                      </div>
+                    <Col span={6}>
+                      <Text type="secondary" className="block text-xs">
+                        Status:
+                      </Text>
+                      <Tag color="orange">Pending</Tag>
                     </Col>
-                    <Col span={24}>
-                      <div className="mb-4">
-                        <Text strong className="block mb-2">
-                          Message
-                        </Text>
-                        <TextArea
-                          value={contactMessage}
-                          onChange={(e) => setContactMessage(e.target.value)}
-                          rows={4}
-                          placeholder="Please provide details about your emission calculation needs and any specific questions you have..."
-                        />
-                      </div>
+                    <Col span={6}>
+                      <Text type="secondary" className="block text-xs">
+                        Date:
+                      </Text>
+                      <Text strong>{dayjs().format("M/D/YYYY")}</Text>
                     </Col>
                   </Row>
+                </div>
 
-                  {/* Product Info Summary */}
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                    <Row gutter={16}>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Product:
-                        </Text>
-                        <Text strong>
-                          {product?.product_code || "CF-10234"}
-                        </Text>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Category:
-                        </Text>
-                        <Text strong>
-                          {product?.category_name || "Chassis"}
-                        </Text>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Status:
-                        </Text>
-                        <Tag color="orange">Data</Tag>
-                      </Col>
-                      <Col span={6}>
-                        <Text type="secondary" className="block text-xs">
-                          Date:
-                        </Text>
-                        <Text strong>{dayjs().format("M/D/YYYY")}</Text>
-                      </Col>
-                    </Row>
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="flex justify-end">
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<SaveOutlined />}
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={handleSubmitContactRequest}
-                      loading={ownEmissionLoading}
-                    >
-                      Submit
-                    </Button>
-                  </div>
-                </>
-              )}
-            </Card>
+                {/* Submit Button */}
+                <div className="flex justify-end">
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<Send size={16} />}
+                    className="bg-emerald-500 hover:bg-emerald-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
+                    onClick={handleSubmitContactRequest}
+                    loading={ownEmissionLoading}
+                  >
+                    Submit Request
+                  </Button>
+                </div>
+              </Card>
+            )}
           </Col>
 
           {/* Sidebar */}
           <Col xs={24} lg={8}>
             <div className="flex flex-col gap-6">
               {/* Product Summary */}
-              <Card className="shadow-sm rounded-xl" title="Product Summary">
-                <div className="space-y-4">
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Product Code:
-                    </Text>
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/20">
+                      <Package className="w-4 h-4 text-white" />
+                    </div>
                     <Text strong className="text-base">
-                      {product?.product_code || "CF-10234"}
+                      Product Summary
                     </Text>
                   </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Name:
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Product Code
                     </Text>
-                    <Text strong className="text-base">
-                      {product?.product_name || "Chassis Frame"}
+                    <Tag className="bg-slate-100 border-0 text-slate-700 font-mono">
+                      {product?.product_code || "-"}
+                    </Tag>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Name
+                    </Text>
+                    <Text strong className="text-sm">
+                      {product?.product_name || "-"}
                     </Text>
                   </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Category:
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Category
                     </Text>
-                    <Text strong className="text-base">
-                      {product?.category_name} › {product?.sub_category_name}
-                    </Text>
-                  </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Manufacturer:
-                    </Text>
-                    <Text strong className="text-base">
-                      {product?.ts_supplier || "Tesla Inc."}
+                    <Text strong className="text-sm">
+                      {product?.category_name || "-"}
                     </Text>
                   </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Weight:
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Sub-Category
                     </Text>
-                    <Text strong className="text-base">
-                      {product?.ts_weight_kg || "125"} kg
-                    </Text>
-                  </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Material:
-                    </Text>
-                    <Text strong className="text-base">
-                      {product?.ts_material || "Aluminum Alloy"}
+                    <Text strong className="text-sm">
+                      {product?.sub_category_name || "-"}
                     </Text>
                   </div>
-                  <div>
-                    <Text type="secondary" className="block text-sm">
-                      Created On:
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Manufacturer
                     </Text>
-                    <Text strong className="text-base">
+                    <Text strong className="text-sm">
+                      {product?.ts_supplier || "-"}
+                    </Text>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Weight
+                    </Text>
+                    <Text strong className="text-sm">
+                      {product?.ts_weight_kg || "-"} kg
+                    </Text>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                    <Text type="secondary" className="text-sm">
+                      Material
+                    </Text>
+                    <Text strong className="text-sm">
+                      {product?.ts_material || "-"}
+                    </Text>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <Text type="secondary" className="text-sm">
+                      Created
+                    </Text>
+                    <Text strong className="text-sm">
                       {product?.created_date
                         ? dayjs(product.created_date).format("DD MMM YYYY")
-                        : "12 Jun 2023"}
+                        : "-"}
                     </Text>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Emission Summary */}
-              <Card
-                className="shadow-sm rounded-xl"
-                title={
-                  <div className="flex justify-between items-center">
-                    <span>Emission Summary</span>
-                    <Tag color="orange">Draft</Tag>
-                  </div>
-                }
-              >
-                <div className="space-y-4">
-                  <div className="text-center mb-6">
-                    <Text type="secondary" className="block text-sm mb-2">
-                      Total Emissions
-                    </Text>
-                    <div className="flex items-baseline justify-center gap-2">
-                      <Text className="text-4xl font-bold">
-                        {calculateTotalEmissions().total}
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <BarChart3 className="text-white w-5 h-5" />
+                      </div>
+                      <Text strong className="text-base text-gray-900">
+                        Emission Summary
                       </Text>
-                      <Text type="secondary">t CO₂e</Text>
                     </div>
-                    <div className="mt-2">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100">
-                        <Text className="text-xl font-semibold text-gray-400">
-                          0%
+                    <Tag
+                      color={
+                        calculateTotalEmissions().hasData ? "green" : "orange"
+                      }
+                      className="rounded-full"
+                    >
+                      {calculateTotalEmissions().hasData
+                        ? "Calculated"
+                        : "Pending"}
+                    </Tag>
+                  </div>
+                </div>
+                <div className="p-5">
+                  {(() => {
+                    const emissions = calculateTotalEmissions();
+
+                    if (emissions.hasData) {
+                      // Show PCF emission breakdown
+                      return (
+                        <div className="space-y-5">
+                          {/* Total PCF Hero */}
+                          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-5 text-white text-center">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                            <Text className="text-white/80 text-xs block mb-1">
+                              Total PCF Value
+                            </Text>
+                            <div className="flex items-baseline justify-center gap-2">
+                              <span className="text-3xl font-bold">
+                                {emissions.total}
+                              </span>
+                              <span className="text-white/70 text-sm">
+                                kg CO₂e
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Emission Bars */}
+                          <div className="space-y-4">
+                            <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                  <Text className="text-sm font-medium">
+                                    Material
+                                  </Text>
+                                </div>
+                                <Text className="text-sm text-blue-600 font-semibold">
+                                  {emissions.materialPercent}%
+                                </Text>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${emissions.materialPercent}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                  <Text className="text-sm font-medium">
+                                    Waste
+                                  </Text>
+                                </div>
+                                <Text className="text-sm text-red-600 font-semibold">
+                                  {emissions.wastePercent}%
+                                </Text>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-red-400 to-red-600 h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${emissions.wastePercent}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                  <Text className="text-sm font-medium">
+                                    Logistics
+                                  </Text>
+                                </div>
+                                <Text className="text-sm text-orange-600 font-semibold">
+                                  {emissions.logisticPercent}%
+                                </Text>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${emissions.logisticPercent}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                  <Text className="text-sm font-medium">
+                                    Packaging
+                                  </Text>
+                                </div>
+                                <Text className="text-sm text-purple-600 font-semibold">
+                                  {emissions.packagingPercent}%
+                                </Text>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${emissions.packagingPercent}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                                  <Text className="text-sm font-medium">
+                                    Production
+                                  </Text>
+                                </div>
+                                <Text className="text-sm text-cyan-600 font-semibold">
+                                  {emissions.productionPercent}%
+                                </Text>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2">
+                                <div
+                                  className="bg-gradient-to-r from-cyan-400 to-cyan-600 h-2 rounded-full transition-all"
+                                  style={{
+                                    width: `${emissions.productionPercent}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Show pending state when no PCF data
+                    return (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+                          <BarChart3 className="text-emerald-300 w-8 h-8" />
+                        </div>
+                        <Text className="block text-gray-500 font-medium">
+                          No emission data yet
+                        </Text>
+                        <Text type="secondary" className="text-xs mt-1 block">
+                          Select a PCF with completed calculations
                         </Text>
                       </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Text className="text-sm">Scope 1 (Direct)</Text>
-                      <Text strong>
-                        {calculateTotalEmissions().scope1} t CO₂e
-                      </Text>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{
-                          width: `${
-                            parseFloat(calculateTotalEmissions().total) > 0
-                              ? (
-                                  (parseFloat(
-                                    calculateTotalEmissions().scope1,
-                                  ) /
-                                    parseFloat(
-                                      calculateTotalEmissions().total,
-                                    )) *
-                                  100
-                                ).toFixed(0)
-                              : 0
-                          }%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Text className="text-sm">Scope 2 (Indirect)</Text>
-                      <Text strong>
-                        {calculateTotalEmissions().scope2} t CO₂e
-                      </Text>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{
-                          width: `${
-                            parseFloat(calculateTotalEmissions().total) > 0
-                              ? (
-                                  (parseFloat(
-                                    calculateTotalEmissions().scope2,
-                                  ) /
-                                    parseFloat(
-                                      calculateTotalEmissions().total,
-                                    )) *
-                                  100
-                                ).toFixed(0)
-                              : 0
-                          }%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Text className="text-sm">Scope 3 (Value Chain)</Text>
-                      <Text strong>
-                        {calculateTotalEmissions().scope3} t CO₂e
-                      </Text>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: "0%" }}
-                      ></div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
-              </Card>
+              </div>
 
               {/* Help & Resources */}
-              <Card className="shadow-sm rounded-xl" title="Help & Resources">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
-                    <div className="bg-blue-500 p-2 rounded-lg">
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                    </div>
+                    <Text strong className="text-base">
+                      Help & Resources
+                    </Text>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="group flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all border border-blue-100 hover:border-blue-200">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <Text strong className="block">
-                        Emission Calculation Guide
+                      <Text
+                        strong
+                        className="block text-blue-800 group-hover:text-blue-900"
+                      >
+                        Calculation Guide
                       </Text>
-                      <Text type="secondary" className="text-xs">
-                        Learn how to calculate emissions
+                      <Text className="text-xs text-blue-600">
+                        Learn emission calculation methods
                       </Text>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors">
-                    <div className="bg-purple-500 p-2 rounded-lg">
-                      <FileText className="w-5 h-5 text-white" />
+                  <div className="group flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl cursor-pointer hover:from-purple-100 hover:to-violet-100 transition-all border border-purple-100 hover:border-purple-200">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                      </svg>
                     </div>
                     <div>
-                      <Text strong className="block">
-                        Emission Factor Database
+                      <Text
+                        strong
+                        className="block text-purple-800 group-hover:text-purple-900"
+                      >
+                        Emission Factors
                       </Text>
-                      <Text type="secondary" className="text-xs">
-                        Find appropriate emission factors
+                      <Text className="text-xs text-purple-600">
+                        Find appropriate factors
                       </Text>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors">
-                    <div className="bg-green-500 p-2 rounded-lg">
-                      <FileText className="w-5 h-5 text-white" />
+                  <div className="group flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl cursor-pointer hover:from-emerald-100 hover:to-teal-100 transition-all border border-emerald-100 hover:border-emerald-200">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                      <Share2 className="text-white w-5 h-5" />
                     </div>
                     <div>
-                      <Text strong className="block">
+                      <Text
+                        strong
+                        className="block text-emerald-800 group-hover:text-emerald-900"
+                      >
                         Contact Support
                       </Text>
-                      <Text type="secondary" className="text-xs">
-                        Get help with your calculations
+                      <Text className="text-xs text-emerald-600">
+                        Get expert assistance
                       </Text>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </div>
           </Col>
         </Row>
@@ -1658,20 +2950,32 @@ const ProductView: React.FC = () => {
     },
     {
       key: "4",
-      label: "PCF",
+      label: (
+        <span className="flex items-center gap-2 px-1">
+          <FileBarChart className="w-4 h-4" />
+          PCF
+        </span>
+      ),
       children: (
-        <div className="flex gap-6">
+        <div className="flex gap-6 p-6">
           {/* Left Sidebar - PCF Management */}
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
-              <Text strong className="text-base block mb-4">
-                PCF Management
-              </Text>
-              <div className="flex flex-col gap-1">
+          <div className="w-72 flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-6">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <Text strong className="text-base text-gray-900">
+                    PCF Management
+                  </Text>
+                </div>
+              </div>
+              <div className="p-3 flex flex-col gap-1">
                 <div
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
                     pcfActiveMenu === "linked-secondary"
-                      ? "bg-emerald-50 text-emerald-600"
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20"
                       : "hover:bg-gray-50 text-gray-600"
                   }`}
                   onClick={() => {
@@ -1692,70 +2996,69 @@ const ProductView: React.FC = () => {
                     }
                   }}
                 >
-                  <LinkOutlined
-                    className={
-                      pcfActiveMenu === "linked-secondary"
-                        ? "text-emerald-600"
-                        : ""
-                    }
+                  <Database
+                    className={`w-4 h-4 ${pcfActiveMenu === "linked-secondary" ? "!text-white" : ""}`}
                   />
-                  <Text
-                    className={
-                      pcfActiveMenu === "linked-secondary"
-                        ? "text-emerald-600 font-medium"
-                        : ""
-                    }
-                  >
-                    Linked Secondary Data Source
-                  </Text>
+                  <div>
+                    <Text
+                      className={`block font-medium ${pcfActiveMenu === "linked-secondary" ? "!text-white" : "text-gray-700"}`}
+                    >
+                      Secondary Data
+                    </Text>
+                    <Text
+                      className={`text-xs ${pcfActiveMenu === "linked-secondary" ? "!text-white/70" : "text-gray-400"}`}
+                    >
+                      Linked data sources
+                    </Text>
+                  </div>
                 </div>
                 <div
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
                     pcfActiveMenu === "manage-pcf"
-                      ? "bg-emerald-50 text-emerald-600"
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 !text-white shadow-lg shadow-emerald-500/20"
                       : "hover:bg-gray-50 text-gray-600"
                   }`}
                   onClick={() => setPcfActiveMenu("manage-pcf")}
                 >
-                  <svg
-                    className={`w-4 h-4 ${pcfActiveMenu === "manage-pcf" ? "text-emerald-600" : ""}`}
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
-                  </svg>
-                  <Text
-                    className={
-                      pcfActiveMenu === "manage-pcf"
-                        ? "text-emerald-600 font-medium"
-                        : ""
-                    }
-                  >
-                    Manage PCF
-                  </Text>
+                  <Settings
+                    className={`w-4 h-4 ${pcfActiveMenu === "manage-pcf" ? "!text-white" : ""}`}
+                  />
+                  <div>
+                    <Text
+                      className={`block font-medium ${pcfActiveMenu === "manage-pcf" ? "!text-white" : "text-gray-700"}`}
+                    >
+                      Manage PCF
+                    </Text>
+                    <Text
+                      className={`text-xs ${pcfActiveMenu === "manage-pcf" ? "!text-white/70" : "text-gray-400"}`}
+                    >
+                      Request management
+                    </Text>
+                  </div>
                 </div>
                 <div
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
                     pcfActiveMenu === "pcf-overview"
-                      ? "bg-emerald-50 text-emerald-600"
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 !text-white shadow-lg shadow-emerald-500/20"
                       : "hover:bg-gray-50 text-gray-600"
                   }`}
                   onClick={() => setPcfActiveMenu("pcf-overview")}
                 >
-                  <BarChartOutlined
-                    className={
-                      pcfActiveMenu === "pcf-overview" ? "text-emerald-600" : ""
-                    }
+                  <BarChart3
+                    className={`w-4 h-4 ${pcfActiveMenu === "pcf-overview" ? "!text-white" : ""}`}
                   />
-                  <Text
-                    className={
-                      pcfActiveMenu === "pcf-overview"
-                        ? "text-emerald-600 font-medium"
-                        : ""
-                    }
-                  >
-                    PCF Overview
-                  </Text>
+                  <div>
+                    <Text
+                      className={`block font-medium ${pcfActiveMenu === "pcf-overview" ? "!text-white" : "text-gray-700"}`}
+                    >
+                      PCF Overview
+                    </Text>
+                    <Text
+                      className={`text-xs ${pcfActiveMenu === "pcf-overview" ? "!text-white/70" : "text-gray-400"}`}
+                    >
+                      Summary & analytics
+                    </Text>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1769,156 +3072,201 @@ const ProductView: React.FC = () => {
                 <Row gutter={24}>
                   {/* Active PCF Card */}
                   <Col xs={24} lg={12}>
-                    <div className="bg-white rounded-xl p-5 shadow-sm h-full">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Text strong className="text-base">
-                          Active PCF
-                        </Text>
-                        <InfoCircleOutlined className="text-gray-400" />
-                        <div className="flex-1"></div>
-                        <Avatar
-                          size="small"
-                          className="bg-amber-400 text-white text-xs"
-                        >
-                          {pcfHistoryData[0]?.request_title
-                            ?.charAt(0)
-                            ?.toUpperCase() || "N"}
-                        </Avatar>
-                        <Text type="secondary" className="text-xs">
-                          Last updated:{" "}
-                          {pcfHistoryData[0]?.created_date
-                            ? dayjs(pcfHistoryData[0].created_date).format(
-                                "DD-MM-YYYY",
-                              )
-                            : "-"}
-                        </Text>
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden h-full">
+                      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                              <Activity className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <Text
+                                strong
+                                className="text-base text-gray-900 block"
+                              >
+                                Active PCF
+                              </Text>
+                              <Text type="secondary" className="text-xs">
+                                Current version
+                              </Text>
+                            </div>
+                          </div>
+                          <Tag color="green" className="rounded-full px-3">
+                            {pcfHistoryData[0]?.model_version || "v1.0"} Active
+                          </Tag>
+                        </div>
                       </div>
-                      <div className="mb-3">
-                        <Text type="secondary" className="block text-xs mb-2">
-                          Version
-                        </Text>
-                        <Tag
-                          color="green"
-                          className="rounded-full px-3 py-0.5 text-xs"
-                        >
-                          {pcfHistoryData[0]?.model_version || "v1.0"} Active
-                        </Tag>
-                      </div>
-                      <div className="bg-emerald-50 rounded-xl p-6 text-center">
-                        <Text className="text-5xl font-bold text-gray-800">
-                          {pcfHistoryData[0]?.overall_pcf?.toFixed(1) || "0.0"}
-                        </Text>
-                        <Text type="secondary" className="block mt-2">
-                          kg CO₂e
-                        </Text>
+                      <div className="p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Avatar
+                              size="small"
+                              className="bg-gradient-to-br from-amber-400 to-orange-500 text-white text-xs"
+                            >
+                              {pcfHistoryData[0]?.request_title
+                                ?.charAt(0)
+                                ?.toUpperCase() || "N"}
+                            </Avatar>
+                            <Text type="secondary" className="text-xs">
+                              Last updated:{" "}
+                              {pcfHistoryData[0]?.created_date
+                                ? dayjs(pcfHistoryData[0].created_date).format(
+                                    "DD MMM YYYY",
+                                  )
+                                : "-"}
+                            </Text>
+                          </div>
+                        </div>
+                        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-8 text-center">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                          <div className="relative z-10">
+                            <span className="text-6xl font-bold text-white block">
+                              {pcfHistoryData[0]?.overall_pcf?.toFixed(1) ||
+                                "0.0"}
+                            </span>
+                            <span className="block mt-2 text-white text-lg">
+                              kg CO₂e
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Col>
 
                   {/* PCF History / Own Emission */}
                   <Col xs={24} lg={12}>
-                    <div className="bg-white rounded-xl p-5 shadow-sm h-full">
-                      <div className="flex gap-4 mb-4 border-b border-gray-100">
-                        <div
-                          className={`pb-3 cursor-pointer ${
-                            pcfHistoryTab === "history"
-                              ? "border-b-2 border-emerald-500 text-emerald-600 font-medium"
-                              : "text-gray-500"
-                          }`}
-                          onClick={() => setPcfHistoryTab("history")}
-                        >
-                          PCF History
-                        </div>
-                        <div
-                          className={`pb-3 cursor-pointer ${
-                            pcfHistoryTab === "own-emission"
-                              ? "border-b-2 border-emerald-500 text-emerald-600 font-medium"
-                              : "text-gray-500"
-                          }`}
-                          onClick={() => setPcfHistoryTab("own-emission")}
-                        >
-                          Own Emission
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden h-full">
+                      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+                        <div className="flex gap-4">
+                          <button
+                            className={`pb-2 px-1 text-sm font-medium transition-all border-b-2 ${
+                              pcfHistoryTab === "history"
+                                ? "border-emerald-500 text-emerald-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
+                            onClick={() => setPcfHistoryTab("history")}
+                          >
+                            PCF History
+                          </button>
+                          <button
+                            className={`pb-2 px-1 text-sm font-medium transition-all border-b-2 ${
+                              pcfHistoryTab === "own-emission"
+                                ? "border-emerald-500 text-emerald-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
+                            onClick={() => setPcfHistoryTab("own-emission")}
+                          >
+                            Own Emission
+                          </button>
                         </div>
                       </div>
 
-                      {pcfHistoryTab === "history" && (
-                        <div>
-                          <Text strong className="block mb-4">
-                            Version History
-                          </Text>
-                          {pcfHistoryLoading ? (
-                            <div className="flex justify-center py-8">
-                              <Spin size="small" />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto">
-                              {pcfHistoryData.map((item, index) => (
-                                <div
-                                  key={item.id}
-                                  className="border border-gray-200 rounded-lg p-4"
-                                >
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <Tag
-                                        color={
-                                          index === 0 ? "green" : "default"
-                                        }
-                                        className="rounded-full px-2 py-0 text-xs m-0"
+                      <div className="p-5">
+                        {pcfHistoryTab === "history" && (
+                          <div>
+                            {pcfHistoryLoading ? (
+                              <div className="flex justify-center py-12">
+                                <Spin size="default" />
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-3 max-h-[280px] overflow-y-auto custom-scrollbar">
+                                {pcfHistoryData.map((item, index) => (
+                                  <div
+                                    key={item.id}
+                                    className={`rounded-xl p-4 border transition-all ${
+                                      index === 0
+                                        ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200"
+                                        : "bg-gray-50 border-gray-100 hover:border-gray-200"
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <Tag
+                                          color={
+                                            index === 0 ? "green" : "default"
+                                          }
+                                          className="rounded-full px-3 text-xs m-0"
+                                        >
+                                          {item.model_version ||
+                                            `v${pcfHistoryData.length - index}.0`}
+                                          {index === 0 && " Active"}
+                                        </Tag>
+                                        <Text
+                                          strong
+                                          className={
+                                            index === 0
+                                              ? "text-emerald-700"
+                                              : ""
+                                          }
+                                        >
+                                          {item.overall_pcf?.toFixed(1) ||
+                                            "0.0"}{" "}
+                                          kg CO₂e
+                                        </Text>
+                                      </div>
+                                      <Text
+                                        type="secondary"
+                                        className="text-xs"
                                       >
-                                        {item.model_version ||
-                                          `v${pcfHistoryData.length - index}.0`}
-                                        {index === 0 && " Active"}
-                                      </Tag>
-                                      <Text strong>
-                                        {item.overall_pcf?.toFixed(1) || "0.0"}{" "}
-                                        kg CO₂e
+                                        {item.created_date
+                                          ? dayjs(item.created_date).format(
+                                              "MMM DD, YYYY",
+                                            )
+                                          : "-"}
                                       </Text>
                                     </div>
-                                    <Text type="secondary" className="text-xs">
-                                      {item.created_date
-                                        ? dayjs(item.created_date).format(
-                                            "MMM DD, YYYY",
-                                          )
-                                        : "-"}
-                                    </Text>
-                                  </div>
-                                  <Text
-                                    type="secondary"
-                                    className="text-sm block mb-2"
-                                  >
-                                    {item.request_description ||
-                                      "PCF calculation update"}
-                                  </Text>
-                                  <div className="flex items-center gap-2">
-                                    <Avatar
-                                      size="small"
-                                      className="bg-gray-300 text-white text-xs"
+                                    <Text
+                                      type="secondary"
+                                      className="text-sm block mb-2"
                                     >
-                                      {item.request_title
-                                        ?.charAt(0)
-                                        ?.toUpperCase() || "U"}
-                                    </Avatar>
-                                    <Text type="secondary" className="text-xs">
-                                      {item.request_title || "User"}
+                                      {item.request_description ||
+                                        "PCF calculation update"}
+                                    </Text>
+                                    <div className="flex items-center gap-2">
+                                      <Avatar
+                                        size="small"
+                                        className={`${index === 0 ? "bg-gradient-to-br from-emerald-400 to-teal-500" : "bg-gray-300"} text-white text-xs`}
+                                      >
+                                        {item.request_title
+                                          ?.charAt(0)
+                                          ?.toUpperCase() || "U"}
+                                      </Avatar>
+                                      <Text
+                                        type="secondary"
+                                        className="text-xs"
+                                      >
+                                        {item.request_title || "User"}
+                                      </Text>
+                                    </div>
+                                  </div>
+                                ))}
+                                {pcfHistoryData.length === 0 && (
+                                  <div className="text-center py-12">
+                                    <div className="w-14 h-14 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
+                                      <History className="w-7 h-7 text-emerald-300" />
+                                    </div>
+                                    <Text className="text-gray-500 font-medium">
+                                      No version history available
                                     </Text>
                                   </div>
-                                </div>
-                              ))}
-                              {pcfHistoryData.length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
-                                  No version history available
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                      {pcfHistoryTab === "own-emission" && (
-                        <div className="text-center py-8 text-gray-500">
-                          Own emission data will be displayed here
-                        </div>
-                      )}
+                        {pcfHistoryTab === "own-emission" && (
+                          <div className="text-center py-12">
+                            <div className="w-14 h-14 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
+                              <Leaf className="w-7 h-7 text-emerald-300" />
+                            </div>
+                            <Text className="text-gray-500 font-medium">
+                              Own emission data will be displayed here
+                            </Text>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </Col>
                 </Row>
@@ -1926,15 +3274,15 @@ const ProductView: React.FC = () => {
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-3">
                   <Button
-                    icon={<ShareAltOutlined />}
-                    className="border-emerald-500 text-emerald-500"
+                    icon={<Share2 size={16} />}
+                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-600 rounded-xl px-5 h-10 font-medium"
                   >
                     Share
                   </Button>
                   <Button
                     type="primary"
-                    icon={<PlusOutlined />}
-                    className="bg-emerald-500 hover:bg-emerald-600 border-0"
+                    icon={<Plus size={16} />}
+                    className="bg-emerald-500 hover:bg-emerald-600 border-0 rounded-xl px-5 h-10 font-medium shadow-lg shadow-emerald-500/25"
                     onClick={() => navigate("/pcf-request/new")}
                   >
                     Create PCF
@@ -2171,7 +3519,7 @@ const ProductView: React.FC = () => {
                     </Text>
                     <Input
                       placeholder="Search by keyword..."
-                      prefix={<SearchOutlined className="text-gray-400" />}
+                      prefix={<Search size={16} className="text-gray-400" />}
                       value={secondaryDataSearch}
                       onChange={(e) => {
                         setSecondaryDataSearch(e.target.value);
@@ -2288,7 +3636,7 @@ const ProductView: React.FC = () => {
                                 <td className="px-4 py-3 text-center">
                                   <Button
                                     type="text"
-                                    icon={<EyeOutlined />}
+                                    icon={<Eye size={16} />}
                                     onClick={() =>
                                       handleViewSecondaryDataDetails(item)
                                     }
@@ -2603,13 +3951,16 @@ const ProductView: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 mt-4">
-                  <Button icon={<DownloadOutlined />} className="flex-1">
+                  <Button
+                    icon={<Download size={16} />}
+                    className="flex-1 rounded-xl"
+                  >
                     Download
                   </Button>
                   <Button
                     type="primary"
-                    icon={<LinkOutlined />}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 border-0"
+                    icon={<Link2 size={16} />}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
                   >
                     Link to Component
                   </Button>
@@ -2623,38 +3974,158 @@ const ProductView: React.FC = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen p-6">
-      <div className="mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            type="text"
-            icon={<LeftOutlined />}
-            onClick={() => navigate("/product-portfolio/all-products")}
-            className="p-0 text-gray-600 hover:text-gray-900 mb-4 font-normal"
-          >
-            Product Portfolio
-          </Button>
-          <div className="flex items-center gap-4 mt-2">
-            <div className="bg-emerald-500 p-3 rounded-xl">
-              <Package className="w-7 h-7 text-white" />
-            </div>
-            <Title level={3} style={{ margin: 0, fontWeight: 600 }}>
-              {product.product_name}
-            </Title>
-          </div>
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Hero Header Section */}
+      <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 pt-6 pb-8 px-6 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
         </div>
 
-        {/* Tabs and Content */}
-        <Tabs
-          defaultActiveKey="1"
-          items={items}
-          className="product-view-tabs"
-          tabBarStyle={{
-            marginBottom: 24,
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        />
+        <div className="relative z-10 mx-auto">
+          {/* Breadcrumb */}
+          <button
+            onClick={() => navigate("/product-portfolio/all-products")}
+            className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10 px-3 py-1.5 -ml-3 rounded-lg mb-4 transition-all cursor-pointer"
+          >
+            <ArrowLeft size={16} />
+            <span className="text-sm font-medium">
+              Back to Product Portfolio
+            </span>
+          </button>
+
+          {/* Product Header */}
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
+                <Package className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-2xl font-bold text-white">
+                    {product.product_name}
+                  </h1>
+                  <Tag className="bg-white/20 text-white border-0 rounded-full px-3 py-0.5 backdrop-blur-sm">
+                    {product.product_code}
+                  </Tag>
+                </div>
+                <div className="flex items-center gap-4 text-white/80 text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-emerald-300 rounded-full"></span>
+                    {product.category_name || "General Category"}
+                  </span>
+                  <span>•</span>
+                  <span>{product.sub_category_name || "Sub Category"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              {canUpdate("Product Portfolio") && (
+                <button
+                  onClick={() =>
+                    navigate(`/product-portfolio/edit/${product.id}`)
+                  }
+                  className="flex items-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl px-5 h-11 font-medium shadow-lg transition-all"
+                >
+                  <Edit size={16} />
+                  Edit Product
+                </button>
+              )}
+              {canDelete("Product Portfolio") && (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 bg-white/15 border border-white/30 text-white hover:bg-red-500 hover:border-red-500 rounded-xl px-5 h-11 font-medium transition-all"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats Bar */}
+          <div className="flex items-center gap-8 mt-6 pt-5 border-t border-white/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Leaf className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-white">
+                <div className="text-xs text-white/70 font-medium">
+                  Est. PCF
+                </div>
+                <div className="font-bold text-lg">
+                  {product.ed_estimated_pcf
+                    ? `${product.ed_estimated_pcf} kg`
+                    : "N/A"}
+                </div>
+              </div>
+            </div>
+            <div className="w-px h-10 bg-white/30"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Puzzle className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-white">
+                <div className="text-xs text-white/70 font-medium">
+                  Components
+                </div>
+                <div className="font-bold text-lg">
+                  {totalComponentsLinked || 0}
+                </div>
+              </div>
+            </div>
+            <div className="w-px h-10 bg-white/30"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Link2 className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-white">
+                <div className="text-xs text-white/70 font-medium">
+                  Linked PCFs
+                </div>
+                <div className="font-bold text-lg">{linkedPCFs.length}</div>
+              </div>
+            </div>
+            {/* <div className="w-px h-10 bg-white/30"></div>
+            <div className="flex items-center gap-3">
+              <Tag
+                color={
+                  product.pcf_status === "Available"
+                    ? "green"
+                    : product.pcf_status === "In Progress"
+                    ? "blue"
+                    : "default"
+                }
+                className="rounded-full px-4 py-1 text-sm font-semibold"
+              >
+                {product.pcf_status || "Not Available"}
+              </Tag>
+            </div> */}
+          </div>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="px-6 -mt-4 relative z-20">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Tabs and Content */}
+          <Tabs
+            defaultActiveKey="1"
+            items={items}
+            className="product-view-tabs"
+            tabBarStyle={{
+              marginBottom: 0,
+              paddingLeft: 24,
+              paddingRight: 24,
+              paddingTop: 16,
+              background: "#fff",
+              borderBottom: "1px solid #e5e7eb",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
