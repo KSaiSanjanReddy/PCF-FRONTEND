@@ -340,7 +340,7 @@ const PCFRequest: React.FC = () => {
         const isDraft = record.status?.toLowerCase() === "draft";
         return (
           <Space>
-            {isDraft && (
+            {isDraft ? (
               <Button
                 type="text"
                 onClick={() => navigate(`/pcf-request/${record.id}/edit`)}
@@ -353,19 +353,20 @@ const PCFRequest: React.FC = () => {
               >
                 Edit
               </Button>
+            ) : (
+              <Button
+                type="text"
+                onClick={() => navigate(`/pcf-request/${record.id}`)}
+                icon={
+                  <Eye
+                    size={16}
+                    className="flex items-center justify-center mt-[5px]"
+                  />
+                }
+              >
+                View
+              </Button>
             )}
-            <Button
-              type="text"
-              onClick={() => navigate(`/pcf-request/${record.id}`)}
-              icon={
-                <Eye
-                  size={16}
-                  className="flex items-center justify-center mt-[5px]"
-                />
-              }
-            >
-              View
-            </Button>
           </Space>
         );
       },
@@ -472,14 +473,14 @@ const PCFRequest: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pending Card */}
+              {/* Open Card */}
               <div className="bg-orange-50 rounded-xl p-4 min-w-[120px] border border-orange-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-orange-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <Clock className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-orange-600 font-medium">Pending</div>
+                    <div className="text-xs text-orange-600 font-medium">Open</div>
                     <div className="text-xl font-bold text-orange-700">
                       {statusCounts.pending}
                     </div>
@@ -526,7 +527,7 @@ const PCFRequest: React.FC = () => {
                   { label: "In Progress", value: "In Progress" },
                   { label: "Open", value: "Open" },
                   { label: "Draft", value: "Draft" },
-                  { label: "Completed", value: "Completed" },
+                  { label: "Approved", value: "Approved" },
                   { label: "Rejected", value: "Rejected" },
                 ]}
               />

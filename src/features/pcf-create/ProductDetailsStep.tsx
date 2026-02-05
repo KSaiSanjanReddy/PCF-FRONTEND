@@ -36,6 +36,7 @@ interface ProductDetailsStepProps {
   onSave: (values: any) => void;
   onBack?: () => void;
   onSaveAsDraft?: (values: any) => void;
+  onFormChange?: (values: any) => void;
 }
 
 const { Option } = Select;
@@ -45,6 +46,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   onSave,
   onBack,
   onSaveAsDraft,
+  onFormChange,
 }) => {
   const [form] = Form.useForm();
   const [isBomModalVisible, setIsBomModalVisible] = useState(false);
@@ -61,6 +63,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
   const [products, setProducts] = useState<ProductDropdownItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [rawCsvData, setRawCsvData] = useState<string>("");
+  const [productCodeSelected, setProductCodeSelected] = useState<boolean>(Boolean(initialValues.productCode));
 
   const fieldDefinitions = [
     { key: "materialNumber", label: "Material Number / MPN", required: false },
@@ -459,6 +462,10 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
                       const label = typeof option?.label === "string" ? option.label : String(option?.children || "");
                       return label.toLowerCase().includes(input.toLowerCase());
                     }}
+                    onChange={(value) => {
+                      setProductCodeSelected(Boolean(value));
+                      onFormChange?.({ productCode: value });
+                    }}
                   >
                     {products.map((product) => (
                       <Option key={product.id} value={product.product_code}>
@@ -669,7 +676,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
                 Back
               </Button>
             )}
-            {onSaveAsDraft && (
+            {onSaveAsDraft && productCodeSelected && (
               <Button
                 size="large"
                 onClick={handleSaveAsDraft}

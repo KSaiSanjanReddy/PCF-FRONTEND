@@ -19,6 +19,9 @@ const PCFRequestEdit: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pcfData, setPcfData] = useState<any>(null);
 
+  // Check if product code is selected (required for Save as Draft)
+  const canSaveAsDraft = Boolean(formData.productCode);
+
   const steps = [
     {
       title: "Basic Information",
@@ -72,7 +75,8 @@ const PCFRequestEdit: React.FC = () => {
         const result = await pcfService.getPCFBOMById(id);
 
         if (result.success && result.data) {
-          const data = result.data;
+          // API returns data as array, get first item
+          const data = Array.isArray(result.data) ? result.data[0] : result.data;
           setPcfData(data);
 
           // Transform API data to form data format
@@ -92,30 +96,30 @@ const PCFRequestEdit: React.FC = () => {
             manufacture: data.manufacturer_id || data.manufacturer?.id || null,
             modelVersion: data.model_version || "",
 
-            // Specifications
-            specifications: (data.bom_pcf_request_product_specification || []).map((spec: any) => ({
+            // Specifications (API returns product_specifications)
+            specifications: (data.product_specifications || []).map((spec: any) => ({
               name: spec.specification_name,
               value: spec.specification_value,
               unit: spec.specification_unit,
             })),
 
-            // BOM Data
-            bomData: (data.bom || []).map((item: any, index: number) => ({
+            // BOM Data (API returns bom_list)
+            bomData: (data.bom_list || []).map((item: any, index: number) => ({
               key: `bom-${index}-${Date.now()}`,
               materialNumber: item.material_number || "",
               componentName: item.component_name || "",
-              quantity: item.qunatity?.toString() || item.quantity?.toString() || "1",
+              quantity: item.quantity?.toString() || "1",
               productionLocation: item.production_location || "",
               manufacturer: item.manufacturer || "",
               detailedDescription: item.detail_description || "",
               weight: item.weight_gms?.toString() || "0",
-              totalWeight: item.weight_gms?.toString() || "0",
+              totalWeight: item.total_weight_gms?.toString() || item.weight_gms?.toString() || "0",
               category: item.component_category || "",
               price: item.price?.toString() || "0",
-              totalPrice: item.price?.toString() || "0",
-              supplierEmail: item.supplier_email || "",
-              supplierName: item.supplier_name || "",
-              supplierNumber: item.supplier_phone_number || "",
+              totalPrice: item.total_price?.toString() || item.price?.toString() || "0",
+              supplierEmail: item.supplier?.supplier_email || "",
+              supplierName: item.supplier?.supplier_name || "",
+              supplierNumber: item.supplier?.supplier_phone_number || "",
             })),
 
             // Documentation
@@ -326,7 +330,7 @@ const PCFRequestEdit: React.FC = () => {
           <BasicInformationStep
             initialValues={formData}
             onSave={handleStepSave}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       case 1:
@@ -336,6 +340,7 @@ const PCFRequestEdit: React.FC = () => {
             onSave={handleStepSave}
             onBack={() => setCurrentStep(0)}
             onSaveAsDraft={handleSaveAsDraft}
+            onFormChange={(values: any) => setFormData((prev: any) => ({ ...prev, ...values }))}
           />
         );
       case 2:
@@ -343,7 +348,7 @@ const PCFRequestEdit: React.FC = () => {
           <DocumentationStep
             initialValues={formData}
             onSave={handleStepSave}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       case 3:
@@ -352,7 +357,7 @@ const PCFRequestEdit: React.FC = () => {
             formData={formData}
             onEditStep={setCurrentStep}
             onSubmit={handleSubmit}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       default:

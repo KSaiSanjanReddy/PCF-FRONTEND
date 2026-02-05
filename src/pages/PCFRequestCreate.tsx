@@ -15,6 +15,9 @@ const PCFRequestCreate: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
+  // Check if product code is selected (required for Save as Draft)
+  const canSaveAsDraft = Boolean(formData.productCode);
+
   const steps = [
     {
       title: "Basic Information",
@@ -227,7 +230,7 @@ const PCFRequestCreate: React.FC = () => {
           <BasicInformationStep
             initialValues={formData}
             onSave={handleStepSave}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       case 1:
@@ -237,6 +240,7 @@ const PCFRequestCreate: React.FC = () => {
             onSave={handleStepSave}
             onBack={() => setCurrentStep(0)}
             onSaveAsDraft={handleSaveAsDraft}
+            onFormChange={(values: any) => setFormData((prev: any) => ({ ...prev, ...values }))}
           />
         );
       case 2:
@@ -244,7 +248,7 @@ const PCFRequestCreate: React.FC = () => {
           <DocumentationStep
             initialValues={formData}
             onSave={handleStepSave}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       case 3:
@@ -253,7 +257,7 @@ const PCFRequestCreate: React.FC = () => {
             formData={formData}
             onEditStep={setCurrentStep}
             onSubmit={handleSubmit}
-            onSaveAsDraft={handleSaveAsDraft}
+            onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />
         );
       default:

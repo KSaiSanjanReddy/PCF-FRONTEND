@@ -104,6 +104,53 @@ export interface ModulePermission {
   read: boolean;
 }
 
+// Hierarchical Permission Types (from /api/user/permission/getById)
+export interface SubmodulePermission {
+  submodule_id: string;
+  submodule_name: string;
+  permission_id: string;
+  user_id: string;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+  print: boolean;
+  export: boolean;
+  send: boolean;
+  read: boolean;
+  all: boolean;
+}
+
+export interface ModuleWithSubmodules {
+  module_name: string;
+  permission_id: string;
+  user_id: string;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+  print: boolean;
+  export: boolean;
+  send: boolean;
+  read: boolean;
+  all: boolean;
+  submodules: SubmodulePermission[];
+}
+
+export interface MainModulePermission {
+  main_module_id: string;
+  main_module_name: string;
+  permission_id: string;
+  user_id: string;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+  print: boolean;
+  export: boolean;
+  send: boolean;
+  read: boolean;
+  all: boolean;
+  modules: ModuleWithSubmodules[];
+}
+
 export interface MainModule {
   main_module_id: string;
   main_module_name: string;
