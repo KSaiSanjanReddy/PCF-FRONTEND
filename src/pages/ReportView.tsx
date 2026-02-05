@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import {
     ArrowLeft,
     FileText,
@@ -14,16 +16,20 @@ import {
     Search as SearchIcon,
     X,
     Settings,
+    LayoutGrid,
+    RotateCcw,
 } from "lucide-react";
-import { reportsData } from "./Reports";
+import { reportsConfig, type ReportConfig } from "../config/reportsConfig";
 import { reportService } from "../lib/reportService";
+import { authService } from "../lib/authService";
+import { message } from "antd";
 
 const ReportView: React.FC = () => {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const report = reportsData.find((r) => r.id === id);
+    const report = reportsConfig.find((r) => r.id === id);
 
-    const [visibleColumns, setVisibleColumns] = useState<string[]>(report?.columns || []);
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(report?.columns.map(c => c.header) || []);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -34,24 +40,142 @@ const ReportView: React.FC = () => {
         total_pages: 1,
         total_count: 0
     });
+    const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [allFavorites, setAllFavorites] = useState<any>({
+        is_product_footprint: false,
+        is_supplier_footprint: false,
+        is_material_footprint: false,
+        is_electricity_footprint: false,
+        is_transportation_footprint: false,
+        is_packaging_footprint: false,
+        is_dqr_rating_footprint: false
+    });
+
+    const currentUser = authService.getCurrentUser();
+    const userId = currentUser?.userId || currentUser?.id || "";
+
+    useEffect(() => {
+        if (id) {
+            fetchData();
+            fetchFavoriteStatus();
+        }
+    }, [id]);
+
+    const fetchFavoriteStatus = async () => {
+        try {
+            const resp = await reportService.fetchFavoriteReports(userId);
+            if (resp && resp.data) {
+                setAllFavorites(resp.data);
+                const favMap: Record<string, boolean> = {
+                    "product-footprint": !!resp.data.is_product_footprint,
+                    "supplier-footprint": !!resp.data.is_supplier_footprint,
+                    "material-footprint": !!resp.data.is_material_footprint,
+                    "electricity-footprint": !!resp.data.is_electricity_footprint,
+                    "transportation-footprint": !!resp.data.is_transportation_footprint,
+                    "packaging-footprint": !!resp.data.is_packaging_footprint,
+                    "dqr-rating": !!resp.data.is_dqr_rating_footprint,
+                };
+                setIsFavorite(!!favMap[id || ""]);
+            }
+        } catch (error) {
+            console.error("Error fetching favorite status:", error);
+        }
+    };
+
+    const toggleFavorite = async () => {
+        if (!id) return;
+
+        const newStatus = !isFavorite;
+        setIsFavorite(newStatus); // Optimistic update
+
+        try {
+            const currentFavs = allFavorites || {
+                is_product_footprint: false,
+                is_supplier_footprint: false,
+                is_material_footprint: false,
+                is_electricity_footprint: false,
+                is_transportation_footprint: false,
+                is_packaging_footprint: false,
+                is_dqr_rating_footprint: false
+            };
+
+            const updatedFavs = {
+                "is_product_footprint": id === "product-footprint" ? newStatus : !!currentFavs.is_product_footprint,
+                "is_supplier_footprint": id === "supplier-footprint" ? newStatus : !!currentFavs.is_supplier_footprint,
+                "is_material_footprint": id === "material-footprint" ? newStatus : !!currentFavs.is_material_footprint,
+                "is_electricity_footprint": id === "electricity-footprint" ? newStatus : !!currentFavs.is_electricity_footprint,
+                "is_transportation_footprint": id === "transportation-footprint" ? newStatus : !!currentFavs.is_transportation_footprint,
+                "is_packaging_footprint": id === "packaging-footprint" ? newStatus : !!currentFavs.is_packaging_footprint,
+                "is_dqr_rating_footprint": id === "dqr-rating" ? newStatus : !!currentFavs.is_dqr_rating_footprint,
+            };
+
+            const payload = {
+                user_id: userId,
+                ...updatedFavs
+            };
+
+            const resp = await reportService.upsertFavoriteReport(payload);
+            if (resp && (resp.status || resp.success)) {
+                message.success(newStatus ? "Added to favorites" : "Removed from favorites");
+                // Refresh full favorites state
+                setAllFavorites({ ...allFavorites, ...updatedFavs });
+            } else {
+                setIsFavorite(!newStatus);
+                message.error("Failed to update favorite");
+            }
+        } catch (error) {
+            setIsFavorite(!newStatus);
+            message.error("Network error");
+        }
+    };
+
+    const handleDateRangeChange = (
+        dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null,
+    ) => {
+        setDateRange(dates);
+        fetchData(1);
+    };
 
     const fetchData = async (page = 1) => {
-        if (!report?.apiType) return;
+        if (!report?.endpoint) return;
 
         setLoading(true);
         try {
-            let response;
-            switch (report.apiType) {
-                case "product":
-                    response = await reportService.getProductFootprintList(page);
-                    break;
-                case "supplier":
-                    response = await reportService.getSupplierFootprintList(page);
-                    break;
-                case "packaging":
-                    response = await reportService.getPackagingFootprintList(page);
-                    break;
+            // Collect all filters
+            const filters: Record<string, any> = {};
+
+            // 1. Date Range Filter
+            if (dateRange && dateRange[0] && dateRange[1]) {
+                filters.from_date = dateRange[0].format("YYYY-MM-DD");
+                filters.to_date = dateRange[1].format("YYYY-MM-DD");
             }
+
+            // 2. Global Search / General Filter (mapping depends on API, but using 'search' as common)
+            if (searchQuery) {
+                filters.search = searchQuery;
+            }
+
+            // 3. "More Filters" Rows
+            filterRows.forEach(row => {
+                if (row.column && row.value1) {
+                    const colConfig = report.columns.find(c => c.header === row.column);
+                    const filterKey = colConfig?.filterKey || row.column.toLowerCase().replace(/\s+/g, '_');
+
+                    if (row.condition === "Range") {
+                        filters[`${filterKey}_from`] = row.value1;
+                        filters[`${filterKey}_to`] = row.value2;
+                    } else if (row.condition === "Greater than") {
+                        filters[`${filterKey}_gt`] = row.value1;
+                    } else if (row.condition === "Less than") {
+                        filters[`${filterKey}_lt`] = row.value1;
+                    } else {
+                        filters[filterKey] = row.value1;
+                    }
+                }
+            });
+
+            const response = await reportService.getReportData(report.endpoint, page, 20, filters);
 
             if (response?.success) {
                 setReportData(response.data);
@@ -71,16 +195,16 @@ const ReportView: React.FC = () => {
     // Update visible columns if report changes
     React.useEffect(() => {
         if (report?.columns) {
-            setVisibleColumns(report.columns);
+            setVisibleColumns(report.columns.map(c => c.header));
             fetchData(1);
         }
     }, [report]);
 
-    const toggleColumn = (column: string) => {
+    const toggleColumn = (columnHeader: string) => {
         setVisibleColumns(prev =>
-            prev.includes(column)
-                ? prev.filter(c => c !== column)
-                : [...prev, column]
+            prev.includes(columnHeader)
+                ? prev.filter(c => c !== columnHeader)
+                : [...prev, columnHeader]
         );
     };
 
@@ -95,10 +219,36 @@ const ReportView: React.FC = () => {
         return "string";
     };
 
-    const resolvePath = (obj: any, path: string) => {
-        return path?.split('.').reduce((prev, curr) => {
-            return prev ? prev[curr] : undefined;
-        }, obj);
+    const resolvePath = (obj: any, path: string): any => {
+        if (!path) return undefined;
+
+        // Convert [n] to .n for consistent splitting
+        const cleanPath = path.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '');
+        const segments = cleanPath.split('.');
+
+        let current = obj;
+        for (let i = 0; i < segments.length; i++) {
+            if (current === undefined || current === null) return undefined;
+
+            const segment = segments[i];
+
+            // If we hit an array but the current segment is not a numeric index,
+            // it means we should map the remaining path over all elements in the array.
+            if (Array.isArray(current) && isNaN(Number(segment))) {
+                const remainingPath = segments.slice(i).join('.');
+                const results = current.map(item => resolvePath(item, remainingPath));
+
+                // Flatten, filter out empty values, and get unique results
+                const flattened = results.flat().filter(r => r !== undefined && r !== null && r !== "");
+                const uniqueResults = [...new Set(flattened)];
+
+                return uniqueResults.length > 0 ? uniqueResults : "-";
+            }
+
+            current = current[segment];
+        }
+
+        return current;
     };
 
     const addFilterRow = () => {
@@ -125,8 +275,75 @@ const ReportView: React.FC = () => {
         }));
     };
 
+    const hasActiveFilters = dateRange !== null || filterRows.some(row => row.column && row.value1) || searchQuery !== "";
+
+    const handleClearAll = () => {
+        setDateRange(null);
+        setFilterRows([]);
+        setSearchQuery("");
+        setSearchQuery(""); // For good measure if there was another search state
+        setShowMoreFilters(false);
+        setIsReportVisible(true);
+        // We need to fetch data with cleared filters
+        setLoading(true);
+        reportService.getReportData(report?.endpoint || "", 1, 20, {}).then(response => {
+            if (response?.success) {
+                setReportData(response.data);
+                setPagination({
+                    current_page: response.current_page || 1,
+                    total_pages: response.total_pages || 1,
+                    total_count: response.total_count || 0
+                });
+            }
+        }).finally(() => setLoading(false));
+    };
+
+    const handleDownloadCSV = () => {
+        if (!reportData || reportData.length === 0 || !report) return;
+
+        // 1. Prepare Headers (skipping SL.NO if it's just an index)
+        const csvHeaders = report.columns
+            .filter(col => col.key !== 'index')
+            .map(col => `"${col.header.replace(/"/g, '""')}"`);
+
+        // 2. Prepare Rows
+        const csvRows = reportData.map(row => {
+            return report.columns
+                .filter(col => col.key !== 'index')
+                .map(col => {
+                    let val = resolvePath(row, col.key);
+
+                    // Format value for CSV
+                    if (Array.isArray(val)) {
+                        val = val.join('; '); // Semicolon as internal separator for arrays
+                    } else if (val === undefined || val === null) {
+                        val = "-";
+                    }
+
+                    // Escape quotes and wrap in quotes
+                    return `"${String(val).replace(/"/g, '""')}"`;
+                })
+                .join(',');
+        });
+
+        // 3. Combine and Download
+        const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        const fileName = `${report.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const filteredColumns = report?.columns?.filter(c =>
-        c.toLowerCase().includes(searchQuery.toLowerCase())
+        c.header.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
 
     return (
@@ -155,14 +372,20 @@ const ReportView: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 border border-gray-100 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                            <Star className="w-4 h-4 text-orange-400 fill-orange-400" />
-                            Add to Favorites
+                        <button
+                            onClick={toggleFavorite}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors cursor-pointer ${isFavorite
+                                ? "bg-orange-50 border-orange-200 text-orange-600 font-bold"
+                                : "border-gray-100 text-gray-600 hover:bg-gray-50"
+                                }`}
+                        >
+                            <Star className={`w-4 h-4 ${isFavorite ? "text-orange-400 fill-orange-400" : "text-gray-400"}`} />
+                            {isFavorite ? "Favorited" : "Add to Favorites"}
                         </button>
-                        <button className="px-4 py-2 border border-gray-100 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                            Clear All
-                        </button>
-                        <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                        <button
+                            onClick={handleDownloadCSV}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                        >
                             <Download className="w-5 h-5" />
                         </button>
                     </div>
@@ -170,16 +393,20 @@ const ReportView: React.FC = () => {
 
                 {/* Filters Bar */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-wrap items-center gap-4 shadow-sm">
-                    <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600">
+                    <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 cursor-pointer">
                         <Filter className="w-3.5 h-3.5" />
                         Filters
                     </button>
 
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs font-medium text-gray-600 min-w-[200px]">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                        <span>Jan 01, 2024 - Dec 31, 2024</span>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-auto" />
-                    </div>
+                    <DatePicker.RangePicker
+                        size="large"
+                        format="DD MMM YYYY"
+                        placeholder={["Start Date", "End Date"]}
+                        value={dateRange}
+                        onChange={handleDateRangeChange}
+                        className="w-[260px] !border-gray-100 !rounded-lg !text-xs !font-medium cursor-pointer"
+                        allowClear
+                    />
 
                     <button
                         onClick={() => {
@@ -187,25 +414,45 @@ const ReportView: React.FC = () => {
                             setShowMoreFilters(newState);
                             setIsReportVisible(!newState);
                         }}
-                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors ${showMoreFilters ? "bg-green-50 border-green-200 text-green-600" : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"}`}
+                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors cursor-pointer ${filterRows.some(row => row.column && row.value1)
+                            ? "bg-green-600 border-green-600 text-white shadow-lg shadow-green-200"
+                            : showMoreFilters
+                                ? "bg-green-50 border-green-200 text-green-600"
+                                : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
+                            }`}
                     >
                         <Plus className={`w-3.5 h-3.5 ${showMoreFilters ? "rotate-45" : ""} transition-transform`} />
                         More Filters
+                        {filterRows.filter(row => row.column && row.value1).length > 0 && (
+                            <span className="ml-1 bg-white text-green-600 w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                                {filterRows.filter(row => row.column && row.value1).length}
+                            </span>
+                        )}
                     </button>
 
                     <button
                         onClick={() => {
                             setShowMoreFilters(false);
                             setIsReportVisible(true);
+                            fetchData(1);
                         }}
-                        className="bg-blue-600 text-white px-8 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 ml-2"
+                        className="bg-blue-600 text-white px-8 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100 ml-2 cursor-pointer"
                     >
                         Apply
                     </button>
 
+                    {hasActiveFilters && (
+                        <button
+                            onClick={handleClearAll}
+                            className="text-red-400 hover:text-red-500 text-xs font-bold px-4 py-1.5 transition-colors border border-red-200 bg-red-50 hover:border-red-200 hover:bg-red-100 rounded-lg ml-1 cursor-pointer"
+                        >
+                            Clear All
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="ml-auto flex items-center gap-2 px-4 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="ml-auto flex items-center gap-2 px-4 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                         <Settings className="w-3.5 h-3.5" />
                         Select Columns
@@ -226,8 +473,8 @@ const ReportView: React.FC = () => {
                                             className="w-full appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/10 focus:border-green-500 cursor-pointer transition-all hover:border-gray-300"
                                         >
                                             <option value="" disabled>Select Column</option>
-                                            {report?.columns?.filter(col => !["SL.NO", "SL. No.", "Sl.No", "Sl. No", "SL NO"].includes(col.toUpperCase())).map(col => (
-                                                <option key={col} value={col}>{col}</option>
+                                            {report?.columns?.filter(col => !["SL.NO", "SL. No.", "Sl.No", "Sl. No", "SL NO"].includes(col.header.toUpperCase())).map(col => (
+                                                <option key={col.header} value={col.header}>{col.header}</option>
                                             ))}
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none group-focus-within:text-green-500 transition-colors" />
@@ -313,24 +560,11 @@ const ReportView: React.FC = () => {
                             <table className="w-full text-left min-w-max">
                                 <thead>
                                     <tr className="bg-[#1EB564] text-white">
-                                        {report?.columns?.filter(col => visibleColumns.includes(col)).map((column, index) => (
+                                        {report?.columns?.filter(col => visibleColumns.includes(col.header)).map((column, index) => (
                                             <th key={index} className="px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                                                {column}
+                                                {column.header}
                                             </th>
                                         ))}
-                                        {!report?.columns && (
-                                            <>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">SL.NO</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product ID</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Name</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Product Category</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Manufacturing Location</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Supplier Name</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Carbon Footprint (KgCO2e)</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Footprint Per Unit (KgCO2e)</th>
-                                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Calculation Date</th>
-                                            </>
-                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -346,48 +580,8 @@ const ReportView: React.FC = () => {
                                     ) : reportData.length > 0 ? (
                                         reportData.map((row, rowIdx) => (
                                             <tr key={rowIdx} className="hover:bg-gray-50/50 transition-colors">
-                                                {report?.columns?.filter(col => visibleColumns.includes(col)).map((col, colIdx) => {
-                                                    // Map column names to common data keys
-                                                    const keyMap: { [key: string]: string } = {
-                                                        "SL.NO": "index",
-                                                        "SL. No.": "index",
-                                                        "Sl.No": "index",
-                                                        "Sl. No": "index",
-                                                        "Supplier ID/Code": "supplier_details.code",
-                                                        "Supplier name": "supplier_details.supplier_name",
-                                                        "Supplier Name": "supplier_details.supplier_name",
-                                                        "Manufacturer": "manufacturer",
-                                                        "Manufacturer name": "manufacturer",
-                                                        "Component or Parts Name": "component_name",
-                                                        "Component / Part Supplied": "component_name",
-                                                        "Weight (gms) /unit": "weight_gms",
-                                                        "Total Weight (gms)": "total_weight_gms",
-                                                        "Component Category": "component_category",
-                                                        "Transport Mode": "transport_mode",
-                                                        "Economic Ratio": "economic_ratio",
-                                                        "Allocation Methodology": "allocation_methodology",
-                                                        "Raw Materials Emissions": "material_emission.0.material_emission",
-                                                        "Production Emissions": "production_emission_calculation.0.manufacturing_emission",
-                                                        "Packaging Emissions": "packaging_emissions",
-                                                        "Waste Emissions": "waste_emissions",
-                                                        "Transportation Emissions": "transportation_emissions",
-                                                        "PCF [kg CO2e / kg Material]": "pcf_value",
-                                                        "Manufacturing Region": "manufacturing_region",
-                                                        "Material Type": "material_type",
-                                                        "Energy Type Used in Manufacturing": "energy_type",
-                                                        "Energy Quantity (kWh/kg)": "energy_quantity",
-                                                        "Recycled Content (%)": "recycled_content",
-                                                        "Emission Factor": "emission_factor",
-                                                        "Supplier Emission": "supplier_emission",
-                                                        "Packaging Material / Type": "packaging_material",
-                                                        "Type of energy used": "energy_type",
-                                                        "Recyclability (%)": "recyclability_percentage",
-                                                        "Emission Factor (kg CO₂e / kg)": "emission_factor",
-                                                        "Emission @ 0.25 kg (kg CO₂e)": "emission_0_25",
-                                                        "Emission @ 0.5 kg (kg CO₂e)": "emission_0_5",
-                                                    };
-
-                                                    const dataKey = keyMap[col] || col.toLowerCase().replace(/ /g, "_");
+                                                {report?.columns?.filter(col => visibleColumns.includes(col.header)).map((col, colIdx) => {
+                                                    const dataKey = col.key;
                                                     let displayValue = resolvePath(row, dataKey);
 
                                                     if (dataKey === "index") {
@@ -395,8 +589,20 @@ const ReportView: React.FC = () => {
                                                     }
 
                                                     return (
-                                                        <td key={colIdx} className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                                                            {displayValue !== undefined ? String(displayValue) : "-"}
+                                                        <td key={colIdx} className="px-6 py-4 text-sm text-gray-600">
+                                                            {Array.isArray(displayValue) ? (
+                                                                <div className="flex flex-wrap gap-1.5 min-w-[150px]">
+                                                                    {displayValue.map((val, i) => (
+                                                                        <span key={i} className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded-full text-[10px] font-bold whitespace-nowrap">
+                                                                            {String(val)}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="whitespace-nowrap">
+                                                                    {displayValue !== undefined && displayValue !== null ? String(displayValue) : "-"}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                     );
                                                 })}
@@ -453,25 +659,25 @@ const ReportView: React.FC = () => {
                             <div className="max-h-[400px] overflow-y-auto space-y-1 scrollbar-hide">
                                 {filteredColumns.map((column) => (
                                     <label
-                                        key={column}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${visibleColumns.includes(column)
+                                        key={column.header}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${visibleColumns.includes(column.header)
                                             ? "bg-green-50"
                                             : "hover:bg-gray-50"
                                             }`}
                                     >
                                         <div
-                                            onClick={() => toggleColumn(column)}
-                                            className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${visibleColumns.includes(column)
+                                            onClick={() => toggleColumn(column.header)}
+                                            className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${visibleColumns.includes(column.header)
                                                 ? "bg-purple-600 border-purple-600"
                                                 : "bg-white border-gray-300"
                                                 }`}
                                         >
-                                            {visibleColumns.includes(column) && (
+                                            {visibleColumns.includes(column.header) && (
                                                 <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
                                             )}
                                         </div>
                                         <span className="text-sm font-bold text-gray-700 uppercase tracking-tight">
-                                            {column}
+                                            {column.header}
                                         </span>
                                     </label>
                                 ))}
@@ -493,5 +699,5 @@ const ReportView: React.FC = () => {
     );
 };
 
-
 export default ReportView;
+
