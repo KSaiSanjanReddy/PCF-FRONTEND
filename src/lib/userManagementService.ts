@@ -24,6 +24,7 @@ class UserManagementService {
     success: boolean;
     data: ManufacturerOnboarding[];
     totalCount: number;
+    pagination?: { total: number; page: number; limit: number; totalPages: number };
     message: string;
   }> {
     try {
@@ -39,12 +40,14 @@ class UserManagementService {
         await response.json();
 
       if (data.status && data.data) {
-        // API returns { data: { page, pageSize, totalCount, data: [...] } }
+        // API returns { data: { data: [...], pagination: { total, page, limit, totalPages } } }
         const rows = data.data.data || data.data.rows || [];
+        const paginationData = (data.data as any).pagination;
         return {
           success: true,
           data: Array.isArray(rows) ? rows : [],
-          totalCount: data.data.totalCount || 0,
+          totalCount: paginationData?.total || data.data.totalCount || 0,
+          pagination: paginationData,
           message: data.message,
         };
       }
@@ -206,6 +209,7 @@ class UserManagementService {
     success: boolean;
     data: SupplierOnboarding[];
     totalCount: number;
+    pagination?: { total: number; page: number; limit: number; totalPages: number };
     message: string;
   }> {
     try {
@@ -221,12 +225,14 @@ class UserManagementService {
         await response.json();
 
       if (data.status && data.data) {
-        // API returns { data: { page, pageSize, totalCount, data: [...] } }
+        // API returns { data: { data: [...], pagination: { total, page, limit, totalPages } } }
         const rows = data.data.data || data.data.rows || [];
+        const paginationData = (data.data as any).pagination;
         return {
           success: true,
           data: Array.isArray(rows) ? rows : [],
-          totalCount: data.data.totalCount || 0,
+          totalCount: paginationData?.total || data.data.totalCount || 0,
+          pagination: paginationData,
           message: data.message,
         };
       }

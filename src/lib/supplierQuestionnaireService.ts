@@ -1575,6 +1575,50 @@ class SupplierQuestionnaireService {
   }
 
   /**
+   * Check if questionnaire is already submitted for a supplier and BOM
+   */
+  async checkQuestionnaireStatus(
+    bom_pcf_id: string,
+    sup_id: string
+  ): Promise<{ success: boolean; message: string; data?: { is_submitted: boolean; sgiq_id?: string } }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/supplier/questionnaire-status?bom_pcf_id=${encodeURIComponent(bom_pcf_id)}&sup_id=${encodeURIComponent(sup_id)}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "Status fetched successfully",
+          data: {
+            is_submitted: result.data?.is_submitted ?? false,
+            sgiq_id: result.data?.sgiq_id,
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch status",
+          data: { is_submitted: false },
+        };
+      }
+    } catch (error) {
+      console.error("Check questionnaire status error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+        data: { is_submitted: false },
+      };
+    }
+  }
+
+  /**
    * Get PCF BOM list for auto-population
    */
   async getPCFBOMListToAutoPopulate(
@@ -1837,17 +1881,22 @@ class SupplierQuestionnaireService {
   async listDQRRatings(
     pageNumber: number = 1,
     pageSize: number = 20,
-    bomPcfId?: string
+    bomPcfId?: string,
+    search?: string
   ): Promise<{
     success: boolean;
     message: string;
     data?: any[];
-    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number };
+    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number; totalCount: number };
+    dqr_summary?: { total_dqr_count: number; pending_dqr_count: number; completed_dqr_count: number };
   }> {
     try {
       let url = `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`;
       if (bomPcfId) {
-        url += `&bom_pcf_id=${bomPcfId}`;
+        url += `&bom_pcf_id=${encodeURIComponent(bomPcfId)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
       }
       const response = await fetch(
         url,
@@ -1857,7 +1906,7 @@ class SupplierQuestionnaireService {
         }
       );
 
-      const result: ApiResponse & { pagination?: any } = await response.json();
+      const result: ApiResponse & { pagination?: any; dqr_summary?: any } = await response.json();
 
       if (result.status || result.success) {
         return {
@@ -1865,6 +1914,7 @@ class SupplierQuestionnaireService {
           message: result.message || "DQR ratings fetched successfully",
           data: result.data,
           pagination: result.pagination,
+          dqr_summary: result.dqr_summary,
         };
       } else {
         return {

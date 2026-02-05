@@ -689,6 +689,45 @@ class PCFService {
       };
     }
   }
+
+  /**
+   * Get DQR list by BOM PCF ID
+   * Returns list of DQR entries with sgiq_id for each supplier
+   */
+  async getDQRListByBomPcfId(
+    bom_pcf_id: string
+  ): Promise<{ success: boolean; message: string; data?: any[] }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/dqr-rating/list?bom_pcf_id=${encodeURIComponent(bom_pcf_id)}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "DQR list fetched successfully",
+          data: result.data || [],
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch DQR list",
+        };
+      }
+    } catch (error) {
+      console.error("Get DQR list error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+      };
+    }
+  }
 }
 
 export const pcfService = new PCFService();

@@ -92,6 +92,7 @@ const PCFRequestView: React.FC = () => {
   const [expandedTransportRow, setExpandedTransportRow] = useState<
     string | null
   >(null);
+  const [dqrList, setDqrList] = useState<any[]>([]);
   // DQR stages now come from pcf_data_dqr_rating_stage in getById response
 
   useEffect(() => {
@@ -99,6 +100,40 @@ const PCFRequestView: React.FC = () => {
       fetchData(id);
     }
   }, [id]);
+
+  // Fetch DQR list when in DQR stage to get sgiq_id for each supplier
+  useEffect(() => {
+    const stages = requestData?.pcf_request_stages;
+    const dataCollectionStages = requestData?.pcf_data_collection_stage || [];
+    const isDataCollectionDone =
+      stages?.is_data_collected ||
+      (dataCollectionStages.length > 0 &&
+        dataCollectionStages.every(
+          (stage: any) =>
+            stage.is_submitted === true && stage.completed_date !== null,
+        ));
+
+    if (id && isDataCollectionDone) {
+      fetchDqrList(id);
+    }
+  }, [id, requestData?.pcf_request_stages, requestData?.pcf_data_collection_stage]);
+
+  const fetchDqrList = async (pcfId: string) => {
+    try {
+      const result = await pcfService.getDQRListByBomPcfId(pcfId);
+      if (result.success && result.data) {
+        setDqrList(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching DQR list:", error);
+    }
+  };
+
+  // Helper to get sgiq_id by supplier id
+  const getSgiqIdBySupplier = (sup_id: string): string | null => {
+    const dqrItem = dqrList.find((item) => item.sup_id === sup_id);
+    return dqrItem?.sgiq_id || null;
+  };
 
   // Fetch tasks only when in Data Collection stage (step 3)
   useEffect(() => {
@@ -1092,11 +1127,17 @@ const PCFRequestView: React.FC = () => {
                         type="link"
                         size="small"
                         icon={<ExternalLink size={14} />}
-                        onClick={() =>
-                          navigate(
-                            `/data-quality-rating/view/${item.id}?bom_pcf_id=${id}`,
-                          )
-                        }
+                        onClick={() => {
+                          const sgiq_id = getSgiqIdBySupplier(item.supplier?.sup_id);
+                          if (sgiq_id) {
+                            navigate(
+                              `/data-quality-rating/view?sgiq_id=${sgiq_id}&bom_pcf_id=${id}`,
+                            );
+                          } else {
+                            message.warning("DQR data not found for this supplier");
+                          }
+                        }}
+                        disabled={!getSgiqIdBySupplier(item.supplier?.sup_id)}
                       >
                         {item.is_submitted && item.completed_date
                           ? "View"

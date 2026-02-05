@@ -90,6 +90,7 @@ const UsersPage: React.FC = () => {
     current: 1,
     pageSize: 10,
     total: 0,
+    totalPages: 0,
   });
 
   // Supplier State
@@ -101,6 +102,7 @@ const UsersPage: React.FC = () => {
     current: 1,
     pageSize: 10,
     total: 0,
+    totalPages: 0,
   });
 
   // Pagination state
@@ -203,6 +205,7 @@ const UsersPage: React.FC = () => {
       );
 
       if (result.success) {
+        // Client-side filtering for search (API doesn't support search yet)
         let filteredData = result.data;
         if (manufacturerSearch) {
           const search = manufacturerSearch.toLowerCase();
@@ -216,7 +219,8 @@ const UsersPage: React.FC = () => {
         setManufacturers(filteredData);
         setManufacturerPagination((prev) => ({
           ...prev,
-          total: result.totalCount,
+          total: result.pagination?.total || result.totalCount,
+          totalPages: result.pagination?.totalPages || Math.ceil((result.pagination?.total || result.totalCount) / prev.pageSize),
         }));
       } else {
         setManufacturers([]);
@@ -239,6 +243,7 @@ const UsersPage: React.FC = () => {
       );
 
       if (result.success) {
+        // Client-side filtering for search (API doesn't support search yet)
         let filteredData = result.data;
         if (supplierSearch) {
           const search = supplierSearch.toLowerCase();
@@ -252,7 +257,8 @@ const UsersPage: React.FC = () => {
         setSuppliers(filteredData);
         setSupplierPagination((prev) => ({
           ...prev,
-          total: result.totalCount,
+          total: result.pagination?.total || result.totalCount,
+          totalPages: result.pagination?.totalPages || Math.ceil((result.pagination?.total || result.totalCount) / prev.pageSize),
         }));
       } else {
         setSuppliers([]);
@@ -466,8 +472,10 @@ const UsersPage: React.FC = () => {
     return supplierPagination;
   };
 
-  const renderPagination = (paginationData: typeof pagination) => {
+  const renderPagination = (paginationData: typeof pagination & { totalPages?: number }) => {
     if (paginationData.total === 0) return null;
+
+    const totalPages = paginationData.totalPages || Math.ceil(paginationData.total / paginationData.pageSize);
 
     return (
       <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
@@ -511,15 +519,9 @@ const UsersPage: React.FC = () => {
           </button>
           {Array.from(
             {
-              length: Math.min(
-                Math.ceil(paginationData.total / paginationData.pageSize),
-                5
-              ),
+              length: Math.min(totalPages, 5),
             },
             (_, i) => {
-              const totalPages = Math.ceil(
-                paginationData.total / paginationData.pageSize
-              );
               let pageNum: number;
               if (totalPages <= 5) {
                 pageNum = i + 1;
@@ -547,10 +549,7 @@ const UsersPage: React.FC = () => {
           ))}
           <button
             onClick={() => handlePageChange(paginationData.current + 1)}
-            disabled={
-              paginationData.current >=
-              Math.ceil(paginationData.total / paginationData.pageSize)
-            }
+            disabled={paginationData.current >= totalPages}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight className="h-4 w-4" />

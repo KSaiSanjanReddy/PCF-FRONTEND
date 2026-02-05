@@ -22,6 +22,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   InfoCircleOutlined,
+  SmileOutlined,
 } from "@ant-design/icons";
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import authService from "../../lib/authService";
@@ -87,6 +88,7 @@ const SupplierQuestionnaire: React.FC = () => {
   const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(
     new Set(),
   );
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -218,6 +220,17 @@ const SupplierQuestionnaire: React.FC = () => {
         else if (sup_id && bom_pcf_id) {
           setIsLoading(true);
           try {
+            // First check if questionnaire is already submitted
+            const statusResult = await supplierQuestionnaireService.checkQuestionnaireStatus(
+              bom_pcf_id,
+              sup_id,
+            );
+            if (statusResult.success && statusResult.data?.is_submitted) {
+              setIsCompleted(true);
+              setIsLoading(false);
+              return; // Don't load the form if already completed
+            }
+
             const result =
               await supplierQuestionnaireService.getPCFBOMListToAutoPopulate(
                 bom_pcf_id,
@@ -739,20 +752,26 @@ const SupplierQuestionnaire: React.FC = () => {
 
       if (result.success) {
         supplierQuestionnaireService.clearDraft(sup_id, bom_pcf_id);
-        message.success({
-          content:
-            "Questionnaire submitted successfully! Thank you for completing the form.",
-          duration: 4,
-        });
 
-        // Navigate to DQR or list
-        const newId =
-          result.data?.general_info?.sgiq_id ||
-          result.data?.sgiq_id ||
-          questionnaireId;
-        if (newId) {
-          // Optional: Redirect to view or DQR
-          navigate("/supplier-questionnaire");
+        // For supplier mode (public route), show thank you page instead of navigating
+        if (isPublicRoute) {
+          setIsCompleted(true);
+        } else {
+          message.success({
+            content:
+              "Questionnaire submitted successfully! Thank you for completing the form.",
+            duration: 4,
+          });
+
+          // Navigate to DQR or list
+          const newId =
+            result.data?.general_info?.sgiq_id ||
+            result.data?.sgiq_id ||
+            questionnaireId;
+          if (newId) {
+            // Optional: Redirect to view or DQR
+            navigate("/supplier-questionnaire");
+          }
         }
       } else {
         message.error({
@@ -834,6 +853,37 @@ const SupplierQuestionnaire: React.FC = () => {
     return (
       <div className="flex justify-center items-center h-screen">
         <Spin size="large" tip="Loading questionnaire..." />
+      </div>
+    );
+  }
+
+  // Thank You UI for completed questionnaires
+  if (isCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-lg w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircleOutlined className="text-4xl text-green-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+            Thank You!
+          </h1>
+          <p className="text-lg text-gray-600 mb-6">
+            Your questionnaire has been successfully submitted.
+          </p>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-center gap-2 text-green-700">
+              <SmileOutlined className="text-xl" />
+              <span className="font-medium">
+                We appreciate your time and effort in completing this questionnaire.
+              </span>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500">
+            Your responses have been recorded and will be used for the Product Carbon Footprint calculation.
+            You may now close this window.
+          </p>
+        </div>
       </div>
     );
   }
