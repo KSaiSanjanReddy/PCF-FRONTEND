@@ -131,9 +131,62 @@ const PCFRequestCreate: React.FC = () => {
     };
   };
 
-  const handleSaveAsDraft = async () => {
+  const handleSaveAsDraft = async (stepValues?: any) => {
     try {
-      const payload = buildPayload(true);
+      // Merge current step values with existing formData
+      const mergedData = stepValues ? { ...formData, ...stepValues } : formData;
+
+      // Temporarily set formData for buildPayload to use
+      const originalFormData = formData;
+      setFormData(mergedData);
+
+      // Build payload with merged data
+      const payload = {
+        bom_pcf_request: {
+          request_title: mergedData.title || "",
+          priority: mergedData.priority || "Medium",
+          request_organization: mergedData.organization || "",
+          due_date: mergedData.dueDate || null,
+          request_description: mergedData.description || "",
+          product_category_id: mergedData.productCategory || null,
+          component_category_id: mergedData.componentCategory || null,
+          component_type_id: mergedData.componentType || null,
+          product_code: mergedData.productCode || "",
+          manufacturer_id: mergedData.manufacture || null,
+          model_version: mergedData.modelVersion || "",
+          technical_specification_file: (mergedData.technicalSpecifications || [])
+            .filter((f: any) => f.fileKey)
+            .map((f: any) => f.fileKey),
+          product_images: (mergedData.productImages || [])
+            .filter((f: any) => f.fileKey)
+            .map((f: any) => f.fileKey),
+          is_draft: true,
+          is_client: true,
+          client_id: authService.getCurrentUser()?.id || null,
+        },
+        bom_pcf_request_product_specification: (
+          mergedData.specifications || []
+        ).map((spec: any) => ({
+          specification_name: spec.name,
+          specification_value: spec.value,
+          specification_unit: spec.unit,
+        })),
+        bom: (mergedData.bomData || []).map((item: any) => ({
+          material_number: item.materialNumber,
+          component_name: item.componentName,
+          qunatity: parseInt(item.quantity || "0"),
+          production_location: item.productionLocation,
+          manufacturer: item.manufacturer,
+          detail_description: item.detailedDescription,
+          weight_gms: parseFloat(item.totalWeight || item.weight || "0"),
+          component_category: item.category,
+          price: parseFloat(item.totalPrice || item.price || "0"),
+          supplier_email: item.supplierEmail,
+          supplier_name: item.supplierName || null,
+          supplier_phone_number: item.supplierNumber || null,
+        })),
+      };
+
       console.log("Saving PCF Request as Draft:", payload);
       const response = await pcfService.createPCFRequest(payload);
 

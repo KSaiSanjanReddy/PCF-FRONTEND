@@ -15,6 +15,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  XCircle,
   Eye,
   Plus,
   Car,
@@ -22,6 +23,7 @@ import {
   Lightbulb,
   Microchip,
   Search,
+  Pencil,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -35,18 +37,16 @@ interface PCFRequestItem {
   requestNumber: string;
   productName: string;
   productIcon: React.ReactNode;
-  status: "in-progress" | "completed" | "draft" | "rejected" | "open";
+  status: string;
   submittedBy: string;
   submittedOn: string;
 }
 
 interface PCFFilters {
-  is_approved?: boolean;
-  is_rejected?: boolean;
-  is_draft?: boolean | null;
   search?: string;
   from_date?: string;
   to_date?: string;
+  pcf_status?: string;
 }
 
 const PCFRequest: React.FC = () => {
@@ -66,6 +66,16 @@ const PCFRequest: React.FC = () => {
   const [dateRange, setDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
+
+  // API Stats
+  const [apiStats, setApiStats] = useState<{
+    total_pcf_count?: string;
+    approved_count?: string;
+    in_progress_count?: string;
+    rejected_count?: string;
+    draft_count?: string;
+    pending_count?: string;
+  } | null>(null);
 
   // Debounce search term - waits 500ms after user stops typing
   useEffect(() => {
@@ -92,44 +102,14 @@ const PCFRequest: React.FC = () => {
     return <Car className="text-indigo-600" size={20} />;
   };
 
-  // Helper function to determine status from API response
-  const getStatus = (
-    item: any,
-  ): "in-progress" | "completed" | "draft" | "rejected" | "open" => {
-    const status = item.status?.toLowerCase() || "";
-
-    if (status === "rejected") return "rejected";
-    if (status === "approved" || status === "completed") return "completed";
-    if (status === "draft" || item.is_draft) return "draft";
-    if (
-      status === "in-progress" ||
-      status === "in progress" ||
-      status === "pending"
-    )
-      return "in-progress";
-
-    // Default to draft if status is unclear
-    return "open";
-  };
-
   // Build filters object based on current state
   const buildFilters = useCallback((): PCFFilters => {
     const filters: PCFFilters = {};
 
-    // Status filter - map to API params
-    if (statusFilter === "completed") {
-      filters.is_approved = true;
-    } else if (statusFilter === "rejected") {
-      filters.is_rejected = true;
-    } else if (statusFilter === "draft") {
-      filters.is_draft = true;
-    } else if (statusFilter === "in-progress") {
-      // In-progress means not approved, not rejected, not draft (pending)
-      filters.is_approved = false;
-      filters.is_rejected = false;
-      filters.is_draft = false;
+    // Status filter - use pcf_status param
+    if (statusFilter !== "all") {
+      filters.pcf_status = statusFilter;
     }
-    // "all" - no status filters
 
     // Search filter (using debounced value)
     if (debouncedSearchTerm.trim()) {
@@ -217,7 +197,7 @@ const PCFRequest: React.FC = () => {
               requestNumber: item.code || item.request_number || "N/A",
               productName: productCategoryName,
               productIcon: getProductIcon(productCategoryName),
-              status: getStatus(item),
+              status: item.status || "Unknown",
               submittedBy: submittedBy,
               submittedOn: createdDate ? formatDate(createdDate) : "N/A",
             };
@@ -228,11 +208,17 @@ const PCFRequest: React.FC = () => {
         setTotalCount(result.total_count || transformedData.length);
         setTotalPages(result.total_pages || 1);
 
+        // Set API stats
+        if (result.stats) {
+          setApiStats(result.stats);
+        }
+
         // Debug logging
         console.log("PCF List fetched:", {
           totalItems: transformedData.length,
           totalCount: result.total_count,
           totalPages: result.total_pages,
+          stats: result.stats,
           sampleItem: transformedData[0],
         });
       } else {
@@ -282,23 +268,30 @@ const PCFRequest: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Calculate status counts from current data
+  // Use stats from API response for KPI cards
   const statusCounts = {
-    inProgress: pcfRequests.filter((item) => item.status === "in-progress")
-      .length,
-    completed: pcfRequests.filter((item) => item.status === "completed").length,
-    pending: pcfRequests.filter((item) => item.status === "draft").length,
+    total: parseInt(apiStats?.total_pcf_count || "0", 10),
+    inProgress: parseInt(apiStats?.in_progress_count || "0", 10),
+    approved: parseInt(apiStats?.approved_count || "0", 10),
+    rejected: parseInt(apiStats?.rejected_count || "0", 10),
+    draft: parseInt(apiStats?.draft_count || "0", 10),
+    pending: parseInt(apiStats?.pending_count || "0", 10),
   };
 
   const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { color: string; label: string }> = {
-      "in-progress": { color: "blue", label: "In Progress" },
-      completed: { color: "green", label: "Completed" },
-      draft: { color: "gold", label: "Draft" },
-      rejected: { color: "red", label: "Rejected" },
+    const statusLower = status?.toLowerCase() || "";
+    const colorConfig: Record<string, string> = {
+      "in-progress": "blue",
+      "in progress": "blue",
+      completed: "green",
+      draft: "gold",
+      rejected: "red",
+      open: "cyan",
+      approved: "green",
+      pending: "orange",
     };
-    const config = statusConfig[status] || { color: "default", label: status || "Unknown" };
-    return <Tag color={config.color}>{config.label}</Tag>;
+    const color = colorConfig[statusLower] || "default";
+    return <Tag color={color}>{status || "Unknown"}</Tag>;
   };
 
   const columns: ColumnsType<PCFRequestItem> = [
@@ -342,21 +335,40 @@ const PCFRequest: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 100,
-      render: (_, record) => (
-        <Button
-          type="text"
-          onClick={() => navigate(`/pcf-request/${record.id}`)}
-          icon={
-            <Eye
-              size={16}
-              className="flex items-center justify-center mt-[5px]"
-            />
-          }
-        >
-          View
-        </Button>
-      ),
+      width: 150,
+      render: (_, record) => {
+        const isDraft = record.status?.toLowerCase() === "draft";
+        return (
+          <Space>
+            {isDraft && (
+              <Button
+                type="text"
+                onClick={() => navigate(`/pcf-request/${record.id}/edit`)}
+                icon={
+                  <Pencil
+                    size={16}
+                    className="flex items-center justify-center mt-[5px]"
+                  />
+                }
+              >
+                Edit
+              </Button>
+            )}
+            <Button
+              type="text"
+              onClick={() => navigate(`/pcf-request/${record.id}`)}
+              icon={
+                <Eye
+                  size={16}
+                  className="flex items-center justify-center mt-[5px]"
+                />
+              }
+            >
+              View
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -384,52 +396,91 @@ const PCFRequest: React.FC = () => {
             </div>
 
             {/* Right Section - Summary Cards */}
-            <div className="flex gap-4 flex-wrap">
-              {/* In Progress Card */}
-              <div className="bg-blue-50 rounded-xl p-4 min-w-[180px] border border-blue-100 hover:shadow-md transition-shadow">
+            <div className="flex gap-3 flex-wrap">
+              {/* Total Card */}
+              <div className="bg-purple-50 rounded-xl p-4 min-w-[120px] border border-purple-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 w-11 h-11 rounded-xl flex items-center justify-center">
+                  <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <ClipboardList className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-purple-600 font-medium">Total</div>
+                    <div className="text-xl font-bold text-purple-700">
+                      {statusCounts.total}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* In Progress Card */}
+              <div className="bg-blue-50 rounded-xl p-4 min-w-[120px] border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <Clock className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-sm text-blue-600 font-medium">
-                      In Progress
-                    </div>
-                    <div className="text-2xl font-bold text-blue-700">
+                    <div className="text-xs text-blue-600 font-medium">In Progress</div>
+                    <div className="text-xl font-bold text-blue-700">
                       {statusCounts.inProgress}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Completed Card */}
-              <div className="bg-green-50 rounded-xl p-4 min-w-[180px] border border-green-100 hover:shadow-md transition-shadow">
+              {/* Approved Card */}
+              <div className="bg-green-50 rounded-xl p-4 min-w-[120px] border border-green-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="bg-green-100 w-11 h-11 rounded-xl flex items-center justify-center">
+                  <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <div className="text-sm text-green-600 font-medium">
-                      Completed
+                    <div className="text-xs text-green-600 font-medium">Approved</div>
+                    <div className="text-xl font-bold text-green-700">
+                      {statusCounts.approved}
                     </div>
-                    <div className="text-2xl font-bold text-green-700">
-                      {statusCounts.completed}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rejected Card */}
+              <div className="bg-red-50 rounded-xl p-4 min-w-[120px] border border-red-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-red-600 font-medium">Rejected</div>
+                    <div className="text-xl font-bold text-red-700">
+                      {statusCounts.rejected}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Draft Card */}
+              <div className="bg-amber-50 rounded-xl p-4 min-w-[120px] border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-amber-600 font-medium">Draft</div>
+                    <div className="text-xl font-bold text-amber-700">
+                      {statusCounts.draft}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Pending Card */}
-              <div className="bg-amber-50 rounded-xl p-4 min-w-[180px] border border-amber-100 hover:shadow-md transition-shadow">
+              <div className="bg-orange-50 rounded-xl p-4 min-w-[120px] border border-orange-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 w-11 h-11 rounded-xl flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <div className="bg-orange-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-orange-600" />
                   </div>
                   <div>
-                    <div className="text-sm text-amber-600 font-medium">
-                      Pending
-                    </div>
-                    <div className="text-2xl font-bold text-amber-700">
+                    <div className="text-xs text-orange-600 font-medium">Pending</div>
+                    <div className="text-xl font-bold text-orange-700">
                       {statusCounts.pending}
                     </div>
                   </div>
@@ -472,10 +523,11 @@ const PCFRequest: React.FC = () => {
                 onChange={handleStatusFilterChange}
                 options={[
                   { label: "All Status", value: "all" },
-                  { label: "In Progress", value: "in-progress" },
-                  { label: "Completed", value: "completed" },
-                  { label: "Pending", value: "pending" },
-                  { label: "Rejected", value: "rejected" },
+                  { label: "In Progress", value: "In Progress" },
+                  { label: "Open", value: "Open" },
+                  { label: "Draft", value: "Draft" },
+                  { label: "Completed", value: "Completed" },
+                  { label: "Rejected", value: "Rejected" },
                 ]}
               />
               {canCreate("PCF Request") && (

@@ -53,6 +53,7 @@ import DataQualityRating from "../pages/DataQualityRating";
 import DataQualityRatingList from "../pages/DataQualityRatingList";
 import PCFRequestCreate from "../pages/PCFRequestCreate";
 import PCFRequestView from "../pages/PCFRequestView";
+import PCFRequestEdit from "../pages/PCFRequestEdit";
 import TaskView from "../pages/TaskView";
 import ReportView from "../pages/ReportView";
 
@@ -171,6 +172,10 @@ export const router = createBrowserRouter([
       {
         path: "pcf-request/:id",
         element: <PCFRequestView />,
+      },
+      {
+        path: "pcf-request/:id/edit",
+        element: <PCFRequestEdit />,
       },
       {
         path: "product-portfolio",

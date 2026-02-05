@@ -210,6 +210,25 @@ export interface OwnEmissionPcfDetails {
   [key: string]: any;
 }
 
+// DQR Data Collection Stage item
+export interface DqrDataCollectionStage {
+  id: string;
+  client: {
+    user_id: string | null;
+    user_name: string | null;
+    user_role: string | null;
+  };
+  update_date: string;
+  created_date: string;
+  is_submitted: boolean;
+  submitted_by: {
+    user_id: string | null;
+    user_name: string | null;
+    user_role: string | null;
+  };
+  completed_date: string | null;
+}
+
 // Own Emission Item from product response
 export interface OwnEmissionItem {
   id?: string;
@@ -225,6 +244,7 @@ export interface OwnEmissionItem {
   own_emission_status?: string;
   additional_notes?: string;
   pcf_details?: OwnEmissionPcfDetails;
+  pcf_dqr_data_collection_stage?: DqrDataCollectionStage[];
 }
 
 export interface BomPcfDropdownResponse {

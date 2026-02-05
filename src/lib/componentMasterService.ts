@@ -51,6 +51,14 @@ export interface ComponentItem {
   bom_details?: any[];
 }
 
+export interface ComponentStats {
+  total_pcf_count: string;
+  approved_count: string;
+  rejected_count: string;
+  draft_count: string;
+  pending_count: string;
+}
+
 export interface ComponentListResponse {
   success: boolean;
   message: string;
@@ -59,6 +67,7 @@ export interface ComponentListResponse {
     pageSize: number;
     data: ComponentItem[];
     totalCount?: number;
+    stats?: ComponentStats;
   };
 }
 
@@ -182,6 +191,7 @@ class ComponentMasterService {
             pageSize: result.data?.pageSize || 20,
             data: transformedData,
             totalCount: result.data?.totalCount || transformedData.length,
+            stats: result.data?.stats,
           },
         };
       } else {

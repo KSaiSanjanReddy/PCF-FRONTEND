@@ -17,7 +17,7 @@ const { TextArea } = Input;
 interface BasicInformationStepProps {
   initialValues: any;
   onSave: (values: any) => void;
-  onSaveAsDraft?: () => void;
+  onSaveAsDraft?: (values: any) => void;
 }
 
 const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValues, onSave, onSaveAsDraft }) => {
@@ -27,6 +27,12 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
     form.validateFields().then((values) => {
       onSave(values);
     });
+  };
+
+  const handleSaveAsDraft = () => {
+    // Get current form values without validation for draft
+    const values = form.getFieldsValue();
+    onSaveAsDraft?.(values);
   };
 
   const priorityOptions = [
@@ -211,7 +217,7 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
             {onSaveAsDraft && (
               <Button
                 size="large"
-                onClick={onSaveAsDraft}
+                onClick={handleSaveAsDraft}
                 icon={<Save className="w-4 h-4" />}
               >
                 Save as Draft

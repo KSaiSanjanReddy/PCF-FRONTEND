@@ -49,6 +49,14 @@ export interface PCFDocumentItem {
   }[];
 }
 
+export interface DocumentStats {
+  total_pcf_count: string;
+  approved_count: string;
+  rejected_count: string;
+  draft_count: string;
+  pending_count: string;
+}
+
 export interface DocumentListResponse {
   status: boolean;
   message: string;
@@ -58,6 +66,7 @@ export interface DocumentListResponse {
     pageSize: number;
     totalCount: number;
     data: PCFDocumentItem[];
+    stats?: DocumentStats;
   };
 }
 

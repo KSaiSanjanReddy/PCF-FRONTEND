@@ -16,13 +16,16 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  XCircle,
   Eye,
   Search,
+  File,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
 import componentMasterService, {
   type ComponentItem,
+  type ComponentStats,
 } from "../lib/componentMasterService";
 
 // Helper function to safely format numbers
@@ -93,6 +96,7 @@ const ComponentsMaster: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState<ComponentStats | null>(null);
 
   // Debounce search term - waits 500ms after user stops typing
   useEffect(() => {
@@ -239,6 +243,10 @@ const ComponentsMaster: React.FC = () => {
         setTotalPages(
           Math.ceil((data.totalCount || data.data.length || 0) / pageSize),
         );
+        // Set stats from API response
+        if (data.stats) {
+          setStats(data.stats);
+        }
       } else {
         message.error(result.message || "Failed to fetch components");
         setComponents([]);
@@ -258,23 +266,13 @@ const ComponentsMaster: React.FC = () => {
     fetchComponents();
   }, [fetchComponents]);
 
+  // Use stats from API response for KPI cards
   const statusCounts = {
-    inProgress: components.filter((item) => {
-      const status = item.status?.toLowerCase() || "";
-      return (
-        status === "in-progress" ||
-        status === "in progress" ||
-        status === "pending"
-      );
-    }).length,
-    approved: components.filter((item) => {
-      const status = item.status?.toLowerCase() || "";
-      return status === "approved" || status === "completed";
-    }).length,
-    draft: components.filter((item) => {
-      const status = item.status?.toLowerCase() || "";
-      return !item.status || status === "draft" || status === "null";
-    }).length,
+    total: parseInt(stats?.total_pcf_count || "0", 10),
+    approved: parseInt(stats?.approved_count || "0", 10),
+    rejected: parseInt(stats?.rejected_count || "0", 10),
+    draft: parseInt(stats?.draft_count || "0", 10),
+    pending: parseInt(stats?.pending_count || "0", 10),
   };
 
   const formatDate = (dateString: string) => {
@@ -606,23 +604,25 @@ const ComponentsMaster: React.FC = () => {
             </div>
 
             <div className="flex gap-3 flex-wrap">
-              <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
+              {/* Total */}
+              <div className="bg-purple-50 rounded-xl p-4 min-w-[120px] border border-purple-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-blue-600" />
+                  <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <File className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">
-                      In Progress
+                    <div className="text-xs text-purple-600 font-medium">
+                      Total
                     </div>
-                    <div className="text-xl font-bold text-blue-700">
-                      {statusCounts.inProgress}
+                    <div className="text-xl font-bold text-purple-700">
+                      {statusCounts.total}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
+              {/* Approved */}
+              <div className="bg-green-50 rounded-xl p-4 min-w-[120px] border border-green-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
@@ -638,7 +638,25 @@ const ComponentsMaster: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
+              {/* Rejected */}
+              <div className="bg-red-50 rounded-xl p-4 min-w-[120px] border border-red-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-red-600 font-medium">
+                      Rejected
+                    </div>
+                    <div className="text-xl font-bold text-red-700">
+                      {statusCounts.rejected}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Draft */}
+              <div className="bg-amber-50 rounded-xl p-4 min-w-[120px] border border-amber-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <AlertCircle className="w-5 h-5 text-amber-600" />
@@ -649,6 +667,23 @@ const ComponentsMaster: React.FC = () => {
                     </div>
                     <div className="text-xl font-bold text-amber-700">
                       {statusCounts.draft}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending */}
+              <div className="bg-blue-50 rounded-xl p-4 min-w-[120px] border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-blue-600 font-medium">
+                      Pending
+                    </div>
+                    <div className="text-xl font-bold text-blue-700">
+                      {statusCounts.pending}
                     </div>
                   </div>
                 </div>

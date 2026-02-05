@@ -20,7 +20,7 @@ import pcfService from '../../lib/pcfService';
 interface DocumentationStepProps {
   initialValues: any;
   onSave: (values: any) => void;
-  onSaveAsDraft?: () => void;
+  onSaveAsDraft?: (values: any) => void;
 }
 
 interface ExtendedUploadFile extends UploadFile {
@@ -105,7 +105,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, on
     setProductImageFiles(newFileList);
   };
 
-  const handleSave = () => {
+  const getDocumentValues = () => {
     const uploadedTechSpecs = techSpecFiles
       .filter(f => f.status === 'done' && (f.fileKey || f.url))
       .map(f => ({
@@ -128,11 +128,19 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, on
         status: f.status,
       }));
 
-    onSave({
+    return {
       technicalSpecifications: uploadedTechSpecs,
       productImages: uploadedProductImages,
       documents: [...uploadedTechSpecs, ...uploadedProductImages],
-    });
+    };
+  };
+
+  const handleSave = () => {
+    onSave(getDocumentValues());
+  };
+
+  const handleSaveAsDraft = () => {
+    onSaveAsDraft?.(getDocumentValues());
   };
 
   const techSpecUploadProps: UploadProps = {
@@ -401,7 +409,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ initialValues, on
             {onSaveAsDraft && (
               <Button
                 size="large"
-                onClick={onSaveAsDraft}
+                onClick={handleSaveAsDraft}
                 icon={<Save className="w-4 h-4" />}
               >
                 Save as Draft

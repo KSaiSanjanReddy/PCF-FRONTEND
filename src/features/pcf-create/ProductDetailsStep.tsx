@@ -35,7 +35,7 @@ interface ProductDetailsStepProps {
   initialValues: any;
   onSave: (values: any) => void;
   onBack?: () => void;
-  onSaveAsDraft?: () => void;
+  onSaveAsDraft?: (values: any) => void;
 }
 
 const { Option } = Select;
@@ -124,6 +124,12 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     form.validateFields().then((values) => {
       onSave({ ...values, bomData });
     });
+  };
+
+  const handleSaveAsDraft = () => {
+    // Get current form values without validation for draft
+    const values = form.getFieldsValue();
+    onSaveAsDraft?.({ ...values, bomData });
   };
 
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
@@ -666,7 +672,7 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
             {onSaveAsDraft && (
               <Button
                 size="large"
-                onClick={onSaveAsDraft}
+                onClick={handleSaveAsDraft}
                 icon={<Save className="w-4 h-4" />}
               >
                 Save as Draft
