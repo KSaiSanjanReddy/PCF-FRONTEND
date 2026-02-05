@@ -62,9 +62,20 @@ const PCFRequest: React.FC = () => {
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
+
+  // Debounce search term - waits 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Helper function to get product icon based on category
   const getProductIcon = (categoryName: string): React.ReactNode => {
@@ -120,9 +131,9 @@ const PCFRequest: React.FC = () => {
     }
     // "all" - no status filters
 
-    // Search filter
-    if (searchTerm.trim()) {
-      filters.search = searchTerm.trim();
+    // Search filter (using debounced value)
+    if (debouncedSearchTerm.trim()) {
+      filters.search = debouncedSearchTerm.trim();
     }
 
     // Date range filter
@@ -132,7 +143,7 @@ const PCFRequest: React.FC = () => {
     }
 
     return filters;
-  }, [statusFilter, searchTerm, dateRange]);
+  }, [statusFilter, debouncedSearchTerm, dateRange]);
 
   // Fetch PCF BOM list from API
   const fetchPCFList = useCallback(async () => {
@@ -259,8 +270,9 @@ const PCFRequest: React.FC = () => {
   };
 
   const handleSearch = () => {
+    // Immediately trigger search on Enter without waiting for debounce
+    setDebouncedSearchTerm(searchTerm);
     setCurrentPage(1);
-    fetchPCFList();
   };
 
   const handleDateRangeChange = (

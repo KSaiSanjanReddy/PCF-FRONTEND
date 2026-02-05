@@ -1,4 +1,10 @@
 import type { SetupEntity } from "../lib/dataSetupService";
+import type { MasterDataEntity } from "../lib/masterDataSetupService";
+import type { EcoInventEntity } from "../lib/ecoInventService";
+
+// ============================================================================
+// DATA SETUP GROUPS - Uses /api/data-setup/... with {code, name, description}
+// ============================================================================
 
 export interface DataSetupGroup {
   key: string;
@@ -26,11 +32,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
         key: "fuel-combustion",
         label: "Fuel Combustion",
         entity: "fuel-combustion",
-      },
-      {
-        key: "fuel-type",
-        label: "Fuel Type",
-        entity: "fuel-type",
       },
       {
         key: "process-emission",
@@ -67,9 +68,186 @@ export const dataSetupGroups: DataSetupGroup[] = [
     ],
   },
   {
+    key: "materials",
+    title: "Materials Configuration",
+    description: "Configure material types and compositions",
+    tabs: [
+      {
+        key: "material-type",
+        label: "Material Type",
+        entity: "material-type",
+      },
+      {
+        key: "aluminium-type",
+        label: "Aluminium Type",
+        entity: "aluminium-type",
+      },
+      {
+        key: "silicon-type",
+        label: "Silicon Type",
+        entity: "silicon-type",
+      },
+      {
+        key: "magnesium-type",
+        label: "Magnesium Type",
+        entity: "magnesium-type",
+      },
+      {
+        key: "iron-type",
+        label: "Iron Type",
+        entity: "iron-type",
+      },
+      {
+        key: "material-composition-metal",
+        label: "Composition Metal",
+        entity: "material-composition-metal",
+      },
+      {
+        key: "material-composition-metal-type",
+        label: "Composition Metal Type",
+        entity: "material-composition-metal-type",
+      },
+    ],
+  },
+  {
+    key: "transport",
+    title: "Transport Configuration",
+    description: "Configure transport modes and vehicles",
+    tabs: [
+      {
+        key: "transport-mode",
+        label: "Transport Mode",
+        entity: "transport-mode",
+      },
+      {
+        key: "fuel-type",
+        label: "Fuel Type",
+        entity: "fuel-type",
+      },
+      {
+        key: "vehicle-detail",
+        label: "Vehicle Detail",
+        entity: "vehicle-detail",
+      },
+    ],
+  },
+  {
+    key: "components",
+    title: "Components Configuration",
+    description: "Configure component types and categories",
+    tabs: [
+      {
+        key: "component-type",
+        label: "Component Type",
+        entity: "component-type",
+      },
+      {
+        key: "component-category",
+        label: "Component Category",
+        entity: "component-category",
+      },
+    ],
+  },
+  {
+    key: "products",
+    title: "Products Configuration",
+    description: "Configure product types and categories",
+    tabs: [
+      {
+        key: "product-type",
+        label: "Product Type",
+        entity: "product-type",
+      },
+      {
+        key: "product-category",
+        label: "Product Category",
+        entity: "product-category",
+      },
+      {
+        key: "product-sub-category",
+        label: "Product Sub Category",
+        entity: "product-sub-category",
+      },
+    ],
+  },
+  {
+    key: "manufacturing",
+    title: "Manufacturing Configuration",
+    description: "Configure manufacturing processes and stages",
+    tabs: [
+      {
+        key: "manufacturing-process",
+        label: "Manufacturing Process",
+        entity: "manufacturing-process",
+      },
+      {
+        key: "life-cycle-stage",
+        label: "Life Cycle Stage",
+        entity: "life-cycle-stage",
+      },
+    ],
+  },
+  {
+    key: "organization",
+    title: "Organization Configuration",
+    description: "Configure organizational entities and tags",
+    tabs: [
+      {
+        key: "industry",
+        label: "Industry",
+        entity: "industry",
+      },
+      {
+        key: "manufacturer",
+        label: "Manufacturer",
+        entity: "manufacturer",
+      },
+      {
+        key: "category",
+        label: "Category",
+        entity: "category",
+      },
+      {
+        key: "tag",
+        label: "Tag",
+        entity: "tag",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// MASTER DATA SETUP GROUPS - Uses /api/master-data-setup/... with {name} only
+// ============================================================================
+
+export interface MasterDataSetupGroup {
+  key: string;
+  title: string;
+  description: string;
+  tabs: {
+    key: string;
+    label: string;
+    entity: MasterDataEntity;
+  }[];
+}
+
+export const masterDataSetupGroups: MasterDataSetupGroup[] = [
+  {
+    key: "materials",
+    title: "Materials Configuration",
+    description: "Configure material compositions",
+    tabs: [
+      {
+        key: "material-composition-metal",
+        label: "Composition Metal",
+        entity: "material-composition-metal",
+      },
+    ],
+  },
+  {
     key: "energy",
     title: "Energy Configuration",
-    description: "Configure energy sources, types, and units",
+    description: "Configure energy sources, types, and fuels",
     tabs: [
       {
         key: "energy-source",
@@ -91,54 +269,27 @@ export const dataSetupGroups: DataSetupGroup[] = [
         label: "Scope Two Method",
         entity: "scope-two-method",
       },
-    ],
-  },
-  {
-    key: "materials",
-    title: "Materials Configuration",
-    description: "Configure material types and metal classifications",
-    tabs: [
       {
-        key: "material-type",
-        label: "Material Type",
-        entity: "material-type",
+        key: "fuel-type",
+        label: "Fuel Type",
+        entity: "fuel-type",
       },
       {
-        key: "material-composition-metal",
-        label: "Material Composition Metal",
-        entity: "material-composition-metal",
+        key: "sub-fuel-type",
+        label: "Sub Fuel Type",
+        entity: "sub-fuel-type",
       },
       {
-        key: "material-composition-metal-type",
-        label: "Material Composition Metal Type",
-        entity: "material-composition-metal-type",
-      },
-      {
-        key: "aluminium-type",
-        label: "Aluminium Type",
-        entity: "aluminium-type",
-      },
-      {
-        key: "iron-type",
-        label: "Iron Type",
-        entity: "iron-type",
-      },
-      {
-        key: "silicon-type",
-        label: "Silicon Type",
-        entity: "silicon-type",
-      },
-      {
-        key: "magnesium-type",
-        label: "Magnesium Type",
-        entity: "magnesium-type",
+        key: "refrigerent-type",
+        label: "Refrigerant Type",
+        entity: "refrigerent-type",
       },
     ],
   },
   {
     key: "transport",
     title: "Transport Configuration",
-    description: "Configure transport modes, vehicles, and routes",
+    description: "Configure transport modes, routes, and vehicles",
     tabs: [
       {
         key: "transport-modes",
@@ -149,11 +300,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
         key: "transport-routes",
         label: "Transport Routes",
         entity: "transport-routes",
-      },
-      {
-        key: "vehicle-detail",
-        label: "Vehicle Detail",
-        entity: "vehicle-detail",
       },
       {
         key: "vehicle-type",
@@ -229,8 +375,7 @@ export const dataSetupGroups: DataSetupGroup[] = [
   {
     key: "standards",
     title: "Standards & Compliance",
-    description:
-      "Configure reporting standards, certificates, and verification",
+    description: "Configure reporting standards, certificates, and verification",
     tabs: [
       {
         key: "reporting-standard",
@@ -284,18 +429,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
         label: "Packaging Level",
         entity: "packaging-level",
       },
-    ],
-  },
-  {
-    key: "manufacturing",
-    title: "Manufacturing Configuration",
-    description: "Configure manufacturing processes and energy",
-    tabs: [
-      {
-        key: "manufacturing-process",
-        label: "Manufacturing Process",
-        entity: "manufacturing-process",
-      },
       {
         key: "process-specific-energy",
         label: "Process Specific Energy",
@@ -303,70 +436,150 @@ export const dataSetupGroups: DataSetupGroup[] = [
       },
     ],
   },
+  {
+    key: "geography",
+    title: "Geography & Time",
+    description: "Configure country codes and time zones",
+    tabs: [
+      {
+        key: "country-iso-two",
+        label: "Country ISO Two",
+        entity: "country-iso-two",
+      },
+      {
+        key: "country-iso-three",
+        label: "Country ISO Three",
+        entity: "country-iso-three",
+      },
+      {
+        key: "time-zone",
+        label: "Time Zone",
+        entity: "time-zone",
+      },
+    ],
+  },
+  {
+    key: "organization",
+    title: "Organization Configuration",
+    description: "Configure supplier tiers",
+    tabs: [
+      {
+        key: "supplier-tier",
+        label: "Supplier Tier",
+        entity: "supplier-tier",
+      },
+    ],
+  },
 ];
 
-// Single entity pages (not grouped)
+// ============================================================================
+// ECOINVENT EMISSION FACTOR GROUPS - Uses /api/ecoinvent-emission-factor-data-setup/...
+// ============================================================================
+
+export interface EcoInventSetupGroup {
+  key: string;
+  title: string;
+  description: string;
+  tabs: {
+    key: string;
+    label: string;
+    entity: EcoInventEntity;
+  }[];
+}
+
+export const ecoInventSetupGroups: EcoInventSetupGroup[] = [
+  {
+    key: "materials-ef",
+    title: "Materials Emission Factors",
+    description: "Configure emission factors for various materials",
+    tabs: [
+      {
+        key: "materials-emission-factor",
+        label: "Materials",
+        entity: "materials-emission-factor",
+      },
+    ],
+  },
+  {
+    key: "electricity-ef",
+    title: "Electricity Emission Factors",
+    description: "Configure emission factors for electricity sources",
+    tabs: [
+      {
+        key: "electricity-emission-factor",
+        label: "Electricity",
+        entity: "electricity-emission-factor",
+      },
+    ],
+  },
+  {
+    key: "fuel-ef",
+    title: "Fuel Emission Factors",
+    description: "Configure emission factors for fuel types",
+    tabs: [
+      {
+        key: "fuel-emission-factor",
+        label: "Fuel",
+        entity: "fuel-emission-factor",
+      },
+    ],
+  },
+  {
+    key: "packaging-ef",
+    title: "Packaging Emission Factors",
+    description: "Configure emission factors for packaging",
+    tabs: [
+      {
+        key: "packaging-emission-factor",
+        label: "Packaging EF",
+        entity: "packaging-emission-factor",
+      },
+      {
+        key: "packaging-treatment-type",
+        label: "Treatment Type",
+        entity: "packaging-treatment-type",
+      },
+    ],
+  },
+  {
+    key: "vehicle-ef",
+    title: "Vehicle Emission Factors",
+    description: "Configure emission factors for vehicle types",
+    tabs: [
+      {
+        key: "vehicle-type-emission-factor",
+        label: "Vehicle Types",
+        entity: "vehicle-type-emission-factor",
+      },
+    ],
+  },
+  {
+    key: "waste-ef",
+    title: "Waste Emission Factors",
+    description: "Configure emission factors for waste materials and treatment",
+    tabs: [
+      {
+        key: "waste-material-type-emission-factor",
+        label: "Waste Materials",
+        entity: "waste-material-type-emission-factor",
+      },
+      {
+        key: "waste-treatment-type",
+        label: "Treatment Types",
+        entity: "waste-treatment-type",
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// SINGLE ENTITY PAGES (kept for backward compatibility, but mostly empty now)
+// ============================================================================
+
 export const singleEntityPages: Array<{
   key: string;
   title: string;
   description: string;
   entity: SetupEntity;
   path: string;
-}> = [
-  {
-    key: "manufacturer",
-    title: "Manufacturer",
-    description: "Manage manufacturer information and details",
-    entity: "manufacturer",
-    path: "/settings/data-setup/manufacturer",
-  },
-  {
-    key: "category",
-    title: "Category",
-    description: "Manage general categories and classifications",
-    entity: "category",
-    path: "/settings/data-setup/category",
-  },
-  {
-    key: "tag",
-    title: "Tag",
-    description: "Manage tag configurations",
-    entity: "tag",
-    path: "/settings/data-setup/tag",
-  },
-  {
-    key: "supplier-tier",
-    title: "Supplier Tier",
-    description: "Configure supplier tier classifications",
-    entity: "supplier-tier",
-    path: "/settings/data-setup/supplier-tier",
-  },
-  {
-    key: "refrigerent-type",
-    title: "Refrigerant Type",
-    description: "Manage refrigerant type classifications",
-    entity: "refrigerent-type",
-    path: "/settings/data-setup/refrigerent-type",
-  },
-  {
-    key: "country-iso-two",
-    title: "Country ISO Two",
-    description: "Manage ISO 2-letter country codes",
-    entity: "country-iso-two",
-    path: "/settings/data-setup/country-iso-two",
-  },
-  {
-    key: "country-iso-three",
-    title: "Country ISO Three",
-    description: "Manage ISO 3-letter country codes",
-    entity: "country-iso-three",
-    path: "/settings/data-setup/country-iso-three",
-  },
-  {
-    key: "time-zone",
-    title: "Time Zone",
-    description: "Configure time zone settings",
-    entity: "time-zone",
-    path: "/settings/data-setup/time-zone",
-  },
-];
+}> = [];

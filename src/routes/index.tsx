@@ -25,7 +25,13 @@ import Components from "../pages/settings/Components";
 import Industry from "../pages/settings/Industry";
 import DataSetup from "../pages/settings/DataSetup";
 import DataSetupTabs from "../pages/settings/DataSetupTabs";
-import { dataSetupGroups } from "../config/dataSetupGroups";
+import MasterDataSetupTabs from "../pages/settings/MasterDataSetupTabs";
+import EcoInventSetupTabs from "../pages/settings/EcoInventSetupTabs";
+import {
+  dataSetupGroups,
+  masterDataSetupGroups,
+  ecoInventSetupGroups,
+} from "../config/dataSetupGroups";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 // New pages
@@ -291,11 +297,35 @@ export const router = createBrowserRouter([
         path: "settings/data-setup/:entity",
         element: <DataSetup />,
       },
-      // Tabbed data setup pages
+      // Tabbed data setup pages (uses /api/data-setup)
       ...dataSetupGroups.map((group) => ({
         path: `settings/data-setup/${group.key}/:tab?`,
         element: (
           <DataSetupTabs
+            title={group.title}
+            description={group.description}
+            tabs={group.tabs}
+            defaultTab={group.tabs[0]?.key || ""}
+          />
+        ),
+      })),
+      // Master Data Setup pages (uses /api/master-data-setup)
+      ...masterDataSetupGroups.map((group) => ({
+        path: `settings/master-data-setup/${group.key}/:tab?`,
+        element: (
+          <MasterDataSetupTabs
+            title={group.title}
+            description={group.description}
+            tabs={group.tabs}
+            defaultTab={group.tabs[0]?.key || ""}
+          />
+        ),
+      })),
+      // ECOInvent Emission Factor pages (uses /api/ecoinvent-emission-factor-data-setup)
+      ...ecoInventSetupGroups.map((group) => ({
+        path: `settings/ecoinvent-setup/${group.key}/:tab?`,
+        element: (
+          <EcoInventSetupTabs
             title={group.title}
             description={group.description}
             tabs={group.tabs}
