@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Shield,
   Users,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Tabs, Select, message, Checkbox, Modal, Input, Form } from "antd";
 import type { BackendUser } from "../../types";
-import type { ModulePermission } from "../../types/userManagement";
+import type { ModulePermission, MainModulePermission } from "../../types/userManagement";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import authorizationService, { DEFAULT_MODULES } from "../../lib/authorizationService";
 
@@ -71,6 +71,11 @@ const AuthorizationsPage: React.FC = () => {
   const [modules, setModules] = useState<ModuleWithPermissions[]>([]);
   const [originalPermissions, setOriginalPermissions] = useState<ModulePermission[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // User-specific hierarchical permissions
+  const [userPermissions, setUserPermissions] = useState<MainModulePermission[]>([]);
+  const [expandedMainModules, setExpandedMainModules] = useState<Set<string>>(new Set());
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   // Load roles
   const loadRoles = useCallback(async () => {
@@ -145,20 +150,22 @@ const AuthorizationsPage: React.FC = () => {
     setModules(defaultModulesWithPermissions);
   }, []);
 
-  // Load permissions for user
+  // Load permissions for user (hierarchical structure)
   const loadUserPermissions = useCallback(async (userId: string) => {
     try {
       setLoading(true);
       const result = await authorizationService.getPermissionsByUserId(userId);
 
       if (result.success) {
+        // Store hierarchical permissions directly from API
+        setUserPermissions(result.data as unknown as MainModulePermission[]);
         setOriginalPermissions(result.data);
 
-        // Apply permissions to modules
+        // Also update the old modules structure for backwards compatibility
         setModules((prevModules) =>
           prevModules.map((mod) => {
             const permission = result.data.find(
-              (p) => p.module_name.toLowerCase() === mod.module_name.toLowerCase()
+              (p) => p.module_name?.toLowerCase() === mod.module_name.toLowerCase()
             );
 
             return {
@@ -169,7 +176,7 @@ const AuthorizationsPage: React.FC = () => {
               delete: permission?.delete || false,
               subModules: mod.subModules?.map((sub) => {
                 const subPermission = result.data.find(
-                  (p) => p.module_name.toLowerCase() === sub.module_name.toLowerCase()
+                  (p) => p.module_name?.toLowerCase() === sub.module_name.toLowerCase()
                 );
                 return {
                   ...sub,
@@ -346,6 +353,274 @@ const AuthorizationsPage: React.FC = () => {
         })),
       }))
     );
+  };
+
+  // Toggle main module expansion
+  const toggleMainModuleExpand = (mainModuleId: string) => {
+    setExpandedMainModules((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(mainModuleId)) {
+        newSet.delete(mainModuleId);
+      } else {
+        newSet.add(mainModuleId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle module expansion (hierarchical) - using composite key: mainModuleId + modulePermissionId
+  const toggleHierarchyModuleExpand = (compositeKey: string) => {
+    setExpandedModules((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(compositeKey)) {
+        newSet.delete(compositeKey);
+      } else {
+        newSet.add(compositeKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Expand all modules
+  const expandAllModules = () => {
+    const allMainModuleIds = new Set(userPermissions.map((m) => m.main_module_id));
+    const allModuleKeys = new Set<string>();
+    userPermissions.forEach((main) => {
+      main.modules.forEach((_, modIndex) => {
+        // Use same key format as rendering: mainModuleId-mod-index
+        allModuleKeys.add(`${main.main_module_id}-mod-${modIndex}`);
+      });
+    });
+    setExpandedMainModules(allMainModuleIds);
+    setExpandedModules(allModuleKeys);
+  };
+
+  // Collapse all modules
+  const collapseAllModules = () => {
+    setExpandedMainModules(new Set());
+    setExpandedModules(new Set());
+  };
+
+  // Handle permission change for hierarchical structure - NO cascading for individual fields
+  const handleHierarchicalPermissionChange = (
+    permissionId: string,
+    field: "create" | "read" | "update" | "delete" | "print" | "export" | "send" | "all",
+    value: boolean,
+    level: "main" | "module" | "submodule",
+    mainModuleId?: string,
+    modulePermissionId?: string
+  ) => {
+    setHasChanges(true);
+
+    setUserPermissions((prevPermissions) =>
+      prevPermissions.map((mainModule) => {
+        // Main module level
+        if (level === "main" && mainModule.main_module_id === mainModuleId) {
+          const updatedMain = { ...mainModule };
+
+          if (field === "all") {
+            // "All" checkbox - set all permissions including children
+            updatedMain.create = value;
+            updatedMain.read = value;
+            updatedMain.update = value;
+            updatedMain.delete = value;
+            updatedMain.print = value;
+            updatedMain.export = value;
+            updatedMain.send = value;
+            updatedMain.all = value;
+            updatedMain.modules = mainModule.modules.map((mod) => ({
+              ...mod,
+              create: value,
+              read: value,
+              update: value,
+              delete: value,
+              print: value,
+              export: value,
+              send: value,
+              all: value,
+              submodules: mod.submodules.map((sub) => ({
+                ...sub,
+                create: value,
+                read: value,
+                update: value,
+                delete: value,
+                print: value,
+                export: value,
+                send: value,
+                all: value,
+              })),
+            }));
+          } else {
+            // Individual field - only update this module, no cascading
+            updatedMain[field] = value;
+            // Check if all individual permissions are true to set "all"
+            updatedMain.all = updatedMain.create && updatedMain.read && updatedMain.update && updatedMain.delete;
+          }
+          return updatedMain;
+        }
+
+        // Module level (under a main module)
+        if (level === "module" && mainModule.main_module_id === mainModuleId) {
+          return {
+            ...mainModule,
+            modules: mainModule.modules.map((mod) => {
+              if (mod.permission_id === permissionId) {
+                const updatedMod = { ...mod };
+
+                if (field === "all") {
+                  // "All" checkbox - set all permissions including children
+                  updatedMod.create = value;
+                  updatedMod.read = value;
+                  updatedMod.update = value;
+                  updatedMod.delete = value;
+                  updatedMod.print = value;
+                  updatedMod.export = value;
+                  updatedMod.send = value;
+                  updatedMod.all = value;
+                  updatedMod.submodules = mod.submodules.map((sub) => ({
+                    ...sub,
+                    create: value,
+                    read: value,
+                    update: value,
+                    delete: value,
+                    print: value,
+                    export: value,
+                    send: value,
+                    all: value,
+                  }));
+                } else {
+                  // Individual field - only update this module
+                  updatedMod[field] = value;
+                  updatedMod.all = updatedMod.create && updatedMod.read && updatedMod.update && updatedMod.delete;
+                }
+                return updatedMod;
+              }
+              return mod;
+            }),
+          };
+        }
+
+        // Submodule level
+        if (level === "submodule" && mainModule.main_module_id === mainModuleId) {
+          return {
+            ...mainModule,
+            modules: mainModule.modules.map((mod) => {
+              if (mod.permission_id === modulePermissionId) {
+                return {
+                  ...mod,
+                  submodules: mod.submodules.map((sub) => {
+                    if (sub.permission_id === permissionId) {
+                      const updatedSub = { ...sub };
+
+                      if (field === "all") {
+                        updatedSub.create = value;
+                        updatedSub.read = value;
+                        updatedSub.update = value;
+                        updatedSub.delete = value;
+                        updatedSub.print = value;
+                        updatedSub.export = value;
+                        updatedSub.send = value;
+                        updatedSub.all = value;
+                      } else {
+                        updatedSub[field] = value;
+                        updatedSub.all = updatedSub.create && updatedSub.read && updatedSub.update && updatedSub.delete;
+                      }
+                      return updatedSub;
+                    }
+                    return sub;
+                  }),
+                };
+              }
+              return mod;
+            }),
+          };
+        }
+
+        return mainModule;
+      })
+    );
+  };
+
+  // Save hierarchical permissions
+  const handleSaveHierarchicalPermissions = async () => {
+    if (!selectedUser) {
+      message.warning("Please select a user first");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // Flatten all permissions into array for update API
+      const permissionsToUpdate: any[] = [];
+
+      userPermissions.forEach((mainModule) => {
+        // Add main module permission
+        permissionsToUpdate.push({
+          permission_id: mainModule.permission_id,
+          user_id: mainModule.user_id,
+          module_name: mainModule.main_module_name,
+          create: mainModule.create,
+          update: mainModule.update,
+          delete: mainModule.delete,
+          read: mainModule.read,
+          print: mainModule.print,
+          export: mainModule.export,
+          send: mainModule.send,
+          all: mainModule.all,
+        });
+
+        // Add module permissions
+        mainModule.modules.forEach((mod) => {
+          permissionsToUpdate.push({
+            permission_id: mod.permission_id,
+            user_id: mod.user_id,
+            module_name: mod.module_name,
+            create: mod.create,
+            update: mod.update,
+            delete: mod.delete,
+            read: mod.read,
+            print: mod.print,
+            export: mod.export,
+            send: mod.send,
+            all: mod.all,
+          });
+
+          // Add submodule permissions
+          mod.submodules.forEach((sub) => {
+            permissionsToUpdate.push({
+              permission_id: sub.permission_id,
+              user_id: sub.user_id,
+              module_name: sub.submodule_name,
+              create: sub.create,
+              update: sub.update,
+              delete: sub.delete,
+              read: sub.read,
+              print: sub.print,
+              export: sub.export,
+              send: sub.send,
+              all: sub.all,
+            });
+          });
+        });
+      });
+
+      const result = await authorizationService.updatePermissions(permissionsToUpdate);
+
+      if (result.success) {
+        message.success("Permissions saved successfully");
+        setHasChanges(false);
+        // Reload permissions
+        await loadUserPermissions(selectedUser);
+      } else {
+        message.error(result.message || "Failed to save permissions");
+      }
+    } catch (error) {
+      console.error("Error saving permissions:", error);
+      message.error("Failed to save permissions");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSavePermissions = async () => {
@@ -627,14 +902,14 @@ const AuthorizationsPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Search roles..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
                 value={roleSearch}
                 onChange={(e) => setRoleSearch(e.target.value)}
               />
             </div>
             <button
               onClick={() => openRoleModal("create")}
-              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span>Add Role</span>
@@ -671,8 +946,8 @@ const AuthorizationsPage: React.FC = () => {
                     <tr key={role.role_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <UserCog className="h-4 w-4 text-purple-600" />
+                          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                            <UserCog className="h-4 w-4 text-green-600" />
                           </div>
                           <span className="text-sm font-medium text-gray-900">{role.role_name}</span>
                         </div>
@@ -687,7 +962,7 @@ const AuthorizationsPage: React.FC = () => {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openRoleModal("edit", role)}
-                            className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -773,10 +1048,384 @@ const AuthorizationsPage: React.FC = () => {
     );
   };
 
+  // Render hierarchical permission matrix with improved UI
+  const renderHierarchicalPermissionMatrix = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      );
+    }
+
+    if (userPermissions.length === 0) {
+      return (
+        <div className="p-12 text-center">
+          <Shield className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Permissions Found</h3>
+          <p className="text-gray-500">No permissions have been configured for this user yet.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50 sticky top-0 z-10">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-2/5">
+                Module
+              </th>
+              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+                Create
+              </th>
+              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+                Read
+              </th>
+              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+                Update
+              </th>
+              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+                Delete
+              </th>
+              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+                <span className="text-green-600">All</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {userPermissions.map((mainModule) => {
+              const isMainExpanded = expandedMainModules.has(mainModule.main_module_id);
+              const hasModules = mainModule.modules.length > 0;
+
+              return (
+                <React.Fragment key={`main-${mainModule.main_module_id}`}>
+                  {/* Main Module Row */}
+                  <tr className="bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {hasModules ? (
+                          <button
+                            onClick={() => toggleMainModuleExpand(mainModule.main_module_id)}
+                            className="p-1.5 hover:bg-green-200 rounded-lg transition-colors"
+                          >
+                            {isMainExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-green-600" />
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-7" />
+                        )}
+                        <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                          <Shield className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {mainModule.main_module_name}
+                        </span>
+                        {hasModules && (
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                            {mainModule.modules.length} modules
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.create}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "create",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.read}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "read",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.update}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "update",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.delete}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "delete",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.all}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "all",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                        className="[&_.ant-checkbox-checked_.ant-checkbox-inner]:bg-green-600 [&_.ant-checkbox-checked_.ant-checkbox-inner]:border-green-600"
+                      />
+                    </td>
+                  </tr>
+
+                  {/* Module Rows */}
+                  {isMainExpanded &&
+                    mainModule.modules.map((mod, modIndex) => {
+                      // Use module index for guaranteed uniqueness - permission_id might not be unique
+                      const moduleCompositeKey = `${mainModule.main_module_id}-mod-${modIndex}`;
+                      const isModuleExpanded = expandedModules.has(moduleCompositeKey);
+                      const hasSubmodules = mod.submodules.length > 0;
+
+                      return (
+                        <React.Fragment key={`mod-${moduleCompositeKey}`}>
+                          <tr className="bg-white hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-3">
+                              <div className="flex items-center gap-3 pl-10">
+                                {hasSubmodules ? (
+                                  <button
+                                    onClick={() => toggleHierarchyModuleExpand(moduleCompositeKey)}
+                                    className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                                  >
+                                    {isModuleExpanded ? (
+                                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <div className="w-7" />
+                                )}
+                                <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {mod.module_name}
+                                </span>
+                                {hasSubmodules && (
+                                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                    {mod.submodules.length}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Checkbox
+                                checked={mod.create}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "create",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Checkbox
+                                checked={mod.read}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "read",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Checkbox
+                                checked={mod.update}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "update",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Checkbox
+                                checked={mod.delete}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "delete",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Checkbox
+                                checked={mod.all}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "all",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Submodule Rows */}
+                          {isModuleExpanded &&
+                            mod.submodules.map((sub) => (
+                              <tr
+                                key={`sub-${mainModule.main_module_id}-${mod.permission_id}-${sub.permission_id}`}
+                                className="bg-gray-50/50 hover:bg-gray-100 transition-colors"
+                              >
+                                <td className="px-6 py-2.5">
+                                  <div className="flex items-center gap-3 pl-20">
+                                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                                    <span className="text-sm text-gray-600">
+                                      {sub.submodule_name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.create}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "create",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.read}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "read",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.update}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "update",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.delete}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "delete",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.all}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "all",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                        </React.Fragment>
+                      );
+                    })}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const renderByUserTab = () => {
+    const selectedUserData = users.find((u) => u.user_id === selectedUser);
+
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">Search & Select User</label>
@@ -787,7 +1436,11 @@ const AuthorizationsPage: React.FC = () => {
                 size="large"
                 loading={usersLoading}
                 value={selectedUser || undefined}
-                onChange={(value) => setSelectedUser(value)}
+                onChange={(value) => {
+                  setSelectedUser(value);
+                  setExpandedMainModules(new Set());
+                  setExpandedModules(new Set());
+                }}
                 filterOption={(input, option) => {
                   const user = users.find((u) => u.user_id === option?.value);
                   return (
@@ -800,7 +1453,7 @@ const AuthorizationsPage: React.FC = () => {
                 {users.map((user) => (
                   <Option key={user.user_id} value={user.user_id}>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xs font-medium text-white">
                         {user.user_name?.charAt(0)?.toUpperCase() || "U"}
                       </div>
                       <div>
@@ -817,27 +1470,65 @@ const AuthorizationsPage: React.FC = () => {
 
         {selectedUser ? (
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">User Permissions</h3>
-                <p className="text-sm text-gray-500">
-                  Configure individual permissions for this user (overrides role defaults)
-                </p>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-lg font-semibold text-white">
+                    {selectedUserData?.user_name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {selectedUserData?.user_name || "User"} Permissions
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedUserData?.user_email || "Configure module permissions"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {hasChanges && (
+                    <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full font-medium">
+                      Unsaved changes
+                    </span>
+                  )}
+                  <button
+                    onClick={expandAllModules}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    Expand All
+                  </button>
+                  <button
+                    onClick={collapseAllModules}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                    Collapse All
+                  </button>
+                </div>
               </div>
-              {hasChanges && (
-                <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                  Unsaved changes
-                </span>
-              )}
             </div>
-            {renderPermissionMatrix()}
+
+            {/* Permission Legend */}
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-6 text-xs text-gray-500">
+              <span className="font-medium">Permission Types:</span>
+              <span><strong>Create</strong> - Add new items</span>
+              <span><strong>Read</strong> - View items</span>
+              <span><strong>Update</strong> - Modify items</span>
+              <span><strong>Delete</strong> - Remove items</span>
+              <span className="text-green-600"><strong>All</strong> - Grant all permissions (cascades to children)</span>
+            </div>
+
+            {renderHierarchicalPermissionMatrix()}
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-            <User className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Select a User</h3>
-            <p className="text-gray-500">
-              Choose a user from the dropdown above to configure their individual permissions
+            <div className="w-16 h-16 mx-auto bg-green-100 rounded-2xl flex items-center justify-center mb-4">
+              <User className="h-8 w-8 text-green-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a User</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              Choose a user from the dropdown above to view and configure their individual module permissions
             </p>
           </div>
         )}
@@ -885,7 +1576,7 @@ const AuthorizationsPage: React.FC = () => {
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -906,9 +1597,9 @@ const AuthorizationsPage: React.FC = () => {
               </button>
               {(activeTab === "by-role" || activeTab === "by-user") && (
                 <button
-                  onClick={handleSavePermissions}
+                  onClick={activeTab === "by-user" ? handleSaveHierarchicalPermissions : handleSavePermissions}
                   disabled={saving || !hasChanges || (!selectedRole && !selectedUser)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-600/20 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20 transition-colors"
                 >
                   {saving ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -951,7 +1642,7 @@ const AuthorizationsPage: React.FC = () => {
             key="submit"
             onClick={handleRoleSubmit}
             disabled={saving}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : roleModalMode === "create" ? "Create Role" : "Update Role"}
           </button>,
