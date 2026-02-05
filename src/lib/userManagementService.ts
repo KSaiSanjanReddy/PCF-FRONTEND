@@ -385,6 +385,86 @@ class UserManagementService {
     }
   }
 
+  async checkSupplierOnboardingStatus(supplierId: string): Promise<{
+    isOnboarded: boolean;
+    supplierData: SupplierOnboarding | null;
+    message: string;
+  }> {
+    try {
+      const result = await this.getSupplierById(supplierId);
+
+      if (result.success && result.data) {
+        // Check if supplier has completed onboarding (has required fields filled)
+        const supplier = result.data;
+        const isOnboarded = !!(
+          supplier.supplier_company_name &&
+          supplier.supplier_email &&
+          supplier.supplier_city &&
+          supplier.supplier_country
+        );
+
+        return {
+          isOnboarded,
+          supplierData: supplier,
+          message: isOnboarded ? "Supplier is onboarded" : "Supplier onboarding incomplete",
+        };
+      }
+
+      // If supplier not found, they need to onboard
+      return {
+        isOnboarded: false,
+        supplierData: null,
+        message: "Supplier not found - onboarding required",
+      };
+    } catch (error) {
+      console.error("Error checking supplier onboarding status:", error);
+      return {
+        isOnboarded: false,
+        supplierData: null,
+        message: "Error checking onboarding status",
+      };
+    }
+  }
+
+  async onboardSupplierPublic(
+    supplier: Partial<SupplierOnboarding> & { sup_id: string }
+  ): Promise<{ success: boolean; data: SupplierOnboarding | null; message: string }> {
+    try {
+      // Try to update existing supplier record
+      const response = await fetch(
+        `${API_BASE_URL}/api/supplier/onboarding/update`,
+        {
+          method: "POST",
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify(supplier),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status) {
+        return {
+          success: true,
+          data: data.data || supplier as SupplierOnboarding,
+          message: data.message || "Supplier onboarded successfully",
+        };
+      }
+
+      return {
+        success: false,
+        data: null,
+        message: data.message || "Failed to onboard supplier",
+      };
+    } catch (error) {
+      console.error("Error onboarding supplier:", error);
+      return {
+        success: false,
+        data: null,
+        message: "Network error occurred",
+      };
+    }
+  }
+
   // ==================== FILE UPLOAD ====================
 
   async uploadOnboardingFile(file: File): Promise<{

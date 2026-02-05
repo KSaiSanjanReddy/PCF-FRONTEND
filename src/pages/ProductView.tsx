@@ -346,6 +346,33 @@ const ProductView: React.FC = () => {
     return `${baseUrl}/supplier-questionnaire?is_client=true&product_id=${id}&bom_pcf_id=${selectedOwnEmissionPcf}`;
   };
 
+  // Check if DQR is submitted for an own emission item
+  const isDqrSubmitted = (item: OwnEmissionItem | null): boolean => {
+    if (!item?.pcf_dqr_data_collection_stage?.length) return false;
+    return item.pcf_dqr_data_collection_stage.some(
+      (stage) => stage.is_submitted === true,
+    );
+  };
+
+  // Get own emission status for display
+  const getOwnEmissionStatus = (
+    item: OwnEmissionItem | null,
+  ): { label: string; color: string; dotColor: string } => {
+    if (!item)
+      return { label: "Pending", color: "orange", dotColor: "bg-orange-500" };
+    if (item.is_own_emission_calculated)
+      return { label: "Calculated", color: "green", dotColor: "bg-green-500" };
+    if (item.is_quetions_filled && isDqrSubmitted(item))
+      return { label: "Ready", color: "blue", dotColor: "bg-blue-500" };
+    if (item.is_quetions_filled && !isDqrSubmitted(item))
+      return {
+        label: "DQR Pending",
+        color: "purple",
+        dotColor: "bg-purple-500",
+      };
+    return { label: "Pending", color: "orange", dotColor: "bg-orange-500" };
+  };
+
   const fetchPcfHistoryData = async (productCode: string) => {
     try {
       setPcfHistoryLoading(true);
@@ -918,7 +945,7 @@ const ProductView: React.FC = () => {
                     <div className="relative z-10">
                       <div className="flex items-center justify-between">
                         <div>
-                          <Text className="text-white/90 text-sm font-medium block mb-2">
+                          <Text className="!text-white/90 text-sm font-medium block mb-2">
                             Total Emission
                           </Text>
                           <div className="flex items-baseline gap-2">
@@ -947,7 +974,7 @@ const ProductView: React.FC = () => {
                     <div className="relative z-10">
                       <div className="flex items-center justify-between">
                         <div>
-                          <Text className="text-white/90 text-sm font-medium block mb-2">
+                          <Text className="!text-white/90 text-sm font-medium block mb-2">
                             Total Components
                           </Text>
                           <div className="flex items-baseline gap-2">
@@ -1184,7 +1211,7 @@ const ProductView: React.FC = () => {
                     setBomComponentSearch(e.target.value);
                     setBomCurrentPage(1);
                   }}
-                  className="w-72 rounded-lg"
+                  className="rounded-lg !w-fit"
                   size="large"
                   allowClear
                 />
@@ -1432,19 +1459,11 @@ const ProductView: React.FC = () => {
                   {selectedOwnEmissionItem && (
                     <Tag
                       color={
-                        selectedOwnEmissionItem.is_own_emission_calculated
-                          ? "green"
-                          : selectedOwnEmissionItem.is_quetions_filled
-                            ? "blue"
-                            : "orange"
+                        getOwnEmissionStatus(selectedOwnEmissionItem).color
                       }
                       className="rounded-full px-4 py-1"
                     >
-                      {selectedOwnEmissionItem.is_own_emission_calculated
-                        ? "Calculated"
-                        : selectedOwnEmissionItem.is_quetions_filled
-                          ? "Ready"
-                          : "Pending"}
+                      {getOwnEmissionStatus(selectedOwnEmissionItem).label}
                     </Tag>
                   )}
                 </div>
@@ -1472,7 +1491,7 @@ const ProductView: React.FC = () => {
                     >
                       <div className="flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${item.is_own_emission_calculated ? "bg-green-500" : item.is_quetions_filled ? "bg-blue-500" : "bg-orange-500"}`}
+                          className={`w-2 h-2 rounded-full ${getOwnEmissionStatus(item).dotColor}`}
                         ></div>
                         {item.pcf_details?.code || item.code || item.bom_pcf_id}{" "}
                         -{" "}
@@ -1584,8 +1603,41 @@ const ProductView: React.FC = () => {
                     </Row>
                   )}
 
-                  {/* Questionnaire filled but not calculated */}
+                  {/* Questionnaire filled but DQR not submitted */}
                   {selectedOwnEmissionItem.is_quetions_filled &&
+                    !isDqrSubmitted(selectedOwnEmissionItem) &&
+                    !selectedOwnEmissionItem.is_own_emission_calculated && (
+                      <div className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-purple-600 to-violet-600 rounded-2xl p-6 text-white">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                              <Clock className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <Text className="block text-lg font-semibold text-white">
+                                DQR Submission Pending
+                              </Text>
+                              <Text className="text-purple-100 text-sm">
+                                Questionnaire completed. Please submit the Data
+                                Quality Rating to proceed with calculation.
+                              </Text>
+                            </div>
+                          </div>
+                          <Tag
+                            color="white"
+                            className="text-purple-600 font-semibold rounded-xl px-4 py-1"
+                          >
+                            Awaiting DQR
+                          </Tag>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Questionnaire filled and DQR submitted but not calculated */}
+                  {selectedOwnEmissionItem.is_quetions_filled &&
+                    isDqrSubmitted(selectedOwnEmissionItem) &&
                     !selectedOwnEmissionItem.is_own_emission_calculated && (
                       <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -1600,8 +1652,8 @@ const ProductView: React.FC = () => {
                                 Ready for Calculation
                               </Text>
                               <Text className="text-emerald-100 text-sm">
-                                Questionnaire submitted. Calculate emissions
-                                now.
+                                Questionnaire and DQR submitted. Calculate
+                                emissions now.
                               </Text>
                             </div>
                           </div>
@@ -1769,730 +1821,734 @@ const ProductView: React.FC = () => {
                                 </div>
                               </div>
 
-                              {/* Material Emissions */}
-                              {materialEmissions.length > 0 && (
-                                <Collapse
-                                  defaultActiveKey={["material"]}
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "material",
-                                      label: (
-                                        <div className="flex items-center justify-between w-full pr-4">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                              <span className="text-white text-sm font-bold">
-                                                M
-                                              </span>
-                                            </div>
-                                            <div>
-                                              <Text strong className="block">
-                                                Material Emissions
-                                              </Text>
-                                              <Text
-                                                type="secondary"
-                                                className="text-xs"
-                                              >
-                                                {materialEmissions.length}{" "}
-                                                materials analyzed
-                                              </Text>
-                                            </div>
-                                          </div>
-                                          <Tag
-                                            color="blue"
-                                            className="rounded-full px-3 ml-4"
-                                          >
-                                            {totalEmission?.material_value?.toFixed(
-                                              4,
-                                            )}{" "}
-                                            kg CO₂e
-                                          </Tag>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Table
-                                          dataSource={materialEmissions}
-                                          rowKey="id"
-                                          size="middle"
-                                          pagination={false}
-                                          className="rounded-lg overflow-hidden"
-                                          columns={[
-                                            {
-                                              title: "Material Type",
-                                              dataIndex: "material_type",
-                                              key: "material_type",
-                                              render: (text: string) => (
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                                                    <span className="text-blue-600 text-xs font-semibold">
-                                                      {text?.charAt(0)}
-                                                    </span>
-                                                  </div>
-                                                  <Text strong>{text}</Text>
-                                                </div>
-                                              ),
-                                            },
-                                            {
-                                              title: "Composition",
-                                              dataIndex: "material_composition",
-                                              key: "material_composition",
-                                              align: "center" as const,
-                                              render: (val: number) => (
-                                                <Tag className="rounded-full">
-                                                  {val}%
-                                                </Tag>
-                                              ),
-                                            },
-                                            {
-                                              title: "Weight (kg)",
-                                              dataIndex:
-                                                "material_composition_weight",
-                                              key: "material_composition_weight",
-                                              align: "right" as const,
-                                              render: (val: number) => (
-                                                <Text className="font-mono">
-                                                  {val?.toFixed(6)}
-                                                </Text>
-                                              ),
-                                            },
-                                            {
-                                              title: "Emission Factor",
-                                              dataIndex:
-                                                "material_emission_factor",
-                                              key: "material_emission_factor",
-                                              align: "right" as const,
-                                              render: (val: number) => (
-                                                <Text className="font-mono">
-                                                  {val?.toFixed(2)}
-                                                </Text>
-                                              ),
-                                            },
-                                            {
-                                              title: "Emission",
-                                              dataIndex: "material_emission",
-                                              key: "material_emission",
-                                              align: "right" as const,
-                                              render: (val: number) => (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-semibold text-sm">
-                                                  {val?.toFixed(6)}
-                                                  <span className="text-blue-400 text-xs font-normal">
-                                                    kg CO₂e
-                                                  </span>
+                              {/* Emission Categories */}
+                              <div className="!space-y-4">
+                                {/* Material Emissions */}
+                                {materialEmissions.length > 0 && (
+                                  <Collapse
+                                    defaultActiveKey={["material"]}
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "material",
+                                        label: (
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                                <span className="text-white text-sm font-bold">
+                                                  M
                                                 </span>
-                                              ),
-                                            },
-                                          ]}
-                                        />
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
+                                              </div>
+                                              <div>
+                                                <Text strong className="block">
+                                                  Material Emissions
+                                                </Text>
+                                                <Text
+                                                  type="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  {materialEmissions.length}{" "}
+                                                  materials analyzed
+                                                </Text>
+                                              </div>
+                                            </div>
+                                            <Tag
+                                              color="blue"
+                                              className="rounded-full px-3 ml-4"
+                                            >
+                                              {totalEmission?.material_value?.toFixed(
+                                                4,
+                                              )}{" "}
+                                              kg CO₂e
+                                            </Tag>
+                                          </div>
+                                        ),
+                                        children: (
+                                          <Table
+                                            dataSource={materialEmissions}
+                                            rowKey="id"
+                                            size="middle"
+                                            pagination={false}
+                                            className="rounded-lg overflow-hidden"
+                                            columns={[
+                                              {
+                                                title: "Material Type",
+                                                dataIndex: "material_type",
+                                                key: "material_type",
+                                                render: (text: string) => (
+                                                  <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                                      <span className="text-blue-600 text-xs font-semibold">
+                                                        {text?.charAt(0)}
+                                                      </span>
+                                                    </div>
+                                                    <Text strong>{text}</Text>
+                                                  </div>
+                                                ),
+                                              },
+                                              {
+                                                title: "Composition",
+                                                dataIndex:
+                                                  "material_composition",
+                                                key: "material_composition",
+                                                align: "center" as const,
+                                                render: (val: number) => (
+                                                  <Tag className="rounded-full">
+                                                    {val}%
+                                                  </Tag>
+                                                ),
+                                              },
+                                              {
+                                                title: "Weight (kg)",
+                                                dataIndex:
+                                                  "material_composition_weight",
+                                                key: "material_composition_weight",
+                                                align: "right" as const,
+                                                render: (val: number) => (
+                                                  <Text className="font-mono">
+                                                    {val?.toFixed(6)}
+                                                  </Text>
+                                                ),
+                                              },
+                                              {
+                                                title: "Emission Factor",
+                                                dataIndex:
+                                                  "material_emission_factor",
+                                                key: "material_emission_factor",
+                                                align: "right" as const,
+                                                render: (val: number) => (
+                                                  <Text className="font-mono">
+                                                    {val?.toFixed(2)}
+                                                  </Text>
+                                                ),
+                                              },
+                                              {
+                                                title: "Emission",
+                                                dataIndex: "material_emission",
+                                                key: "material_emission",
+                                                align: "right" as const,
+                                                render: (val: number) => (
+                                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-semibold text-sm">
+                                                    {val?.toFixed(6)}
+                                                    <span className="text-blue-400 text-xs font-normal">
+                                                      kg CO₂e
+                                                    </span>
+                                                  </span>
+                                                ),
+                                              },
+                                            ]}
+                                          />
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
 
-                              {/* Logistics Emission */}
-                              {logisticEmission && (
-                                <Collapse
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "logistics",
-                                      label: (
-                                        <div className="flex items-center justify-between w-full pr-4">
+                                {/* Logistics Emission */}
+                                {logisticEmission && (
+                                  <Collapse
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "logistics",
+                                        label: (
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                                <span className="text-white text-sm font-bold">
+                                                  L
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <Text strong className="block">
+                                                  Logistics Emission
+                                                </Text>
+                                                <Text
+                                                  type="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  Transport and distribution
+                                                </Text>
+                                              </div>
+                                            </div>
+                                            <Tag
+                                              color="orange"
+                                              className="rounded-full px-3 ml-4"
+                                            >
+                                              {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
+                                                4,
+                                              )}{" "}
+                                              kg CO₂e
+                                            </Tag>
+                                          </div>
+                                        ),
+                                        children: (
+                                          <Row gutter={[16, 16]}>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Mode of Transport
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-orange-700"
+                                                >
+                                                  {logisticEmission.mode_of_transport ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Distance
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-orange-700"
+                                                >
+                                                  {logisticEmission.distance_km}{" "}
+                                                  km
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Mass Transported
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-orange-700"
+                                                >
+                                                  {
+                                                    logisticEmission.mass_transported_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Emission Factor
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-orange-700"
+                                                >
+                                                  {
+                                                    logisticEmission.transport_mode_emission_factor_value_kg_co2e_t_km
+                                                  }{" "}
+                                                  kg CO₂e/t·km
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 rounded-xl text-white">
+                                                <Text className="block text-xs mb-2 uppercase tracking-wide text-white/80">
+                                                  Transport Emission
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-white text-lg"
+                                                >
+                                                  {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
+                                                    6,
+                                                  )}{" "}
+                                                  kg CO₂e
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                          </Row>
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
+
+                                {/* Packaging Emission */}
+                                {packagingEmission && (
+                                  <Collapse
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "packaging",
+                                        label: (
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                                                <span className="text-white text-sm font-bold">
+                                                  P
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <Text strong className="block">
+                                                  Packaging Emission
+                                                </Text>
+                                                <Text
+                                                  type="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  Materials and processes
+                                                </Text>
+                                              </div>
+                                            </div>
+                                            <Tag
+                                              color="purple"
+                                              className="rounded-full px-3 ml-4"
+                                            >
+                                              {totalEmission?.packaging_value?.toFixed(
+                                                4,
+                                              )}{" "}
+                                              kg CO₂e
+                                            </Tag>
+                                          </div>
+                                        ),
+                                        children: (
+                                          <Row gutter={[16, 16]}>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Packaging Type
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-purple-700"
+                                                >
+                                                  {packagingEmission.packaging_type ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Pack Weight
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-purple-700"
+                                                >
+                                                  {
+                                                    packagingEmission.pack_weight_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Emission Factor
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-purple-700"
+                                                >
+                                                  {
+                                                    packagingEmission.emission_factor_box_kg
+                                                  }{" "}
+                                                  kg CO₂e/kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                          </Row>
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
+
+                                {/* Production Emission */}
+                                {productionEmission && (
+                                  <Collapse
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "production",
+                                        label: (
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                                                <span className="text-white text-sm font-bold">
+                                                  Pr
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <Text strong className="block">
+                                                  Production Emission
+                                                </Text>
+                                                <Text
+                                                  type="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  Manufacturing processes
+                                                </Text>
+                                              </div>
+                                            </div>
+                                            <Tag
+                                              color="cyan"
+                                              className="rounded-full px-3 ml-4"
+                                            >
+                                              {totalEmission?.production_value?.toFixed(
+                                                4,
+                                              )}{" "}
+                                              kg CO₂e
+                                            </Tag>
+                                          </div>
+                                        ),
+                                        children: (
+                                          <Row gutter={[16, 16]}>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-cyan-50 to-teal-50 p-4 rounded-xl border border-cyan-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Allocation Methodology
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-cyan-700 text-sm"
+                                                >
+                                                  {productionEmission.allocation_methodology ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gray-50 p-3 rounded-lg">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-1"
+                                                >
+                                                  Component Weight
+                                                </Text>
+                                                <Text strong>
+                                                  {
+                                                    productionEmission.component_weight_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gray-50 p-3 rounded-lg">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-1"
+                                                >
+                                                  Products Produced
+                                                </Text>
+                                                <Text strong>
+                                                  {
+                                                    productionEmission.no_of_products_current_component_produced
+                                                  }
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gray-50 p-3 rounded-lg">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-1"
+                                                >
+                                                  Total Weight at Factory Level
+                                                </Text>
+                                                <Text strong>
+                                                  {
+                                                    productionEmission.total_weight_produced_at_factory_level_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gray-50 p-3 rounded-lg">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-1"
+                                                >
+                                                  Component Weight Produced
+                                                </Text>
+                                                <Text strong>
+                                                  {
+                                                    productionEmission.total_weight_of_current_component_produced_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                          </Row>
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
+
+                                {/* Waste Emission */}
+                                {wasteEmission && (
+                                  <Collapse
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "waste",
+                                        label: (
+                                          <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                                <span className="text-white text-sm font-bold">
+                                                  W
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <Text strong className="block">
+                                                  Waste Emission
+                                                </Text>
+                                                <Text
+                                                  type="secondary"
+                                                  className="text-xs"
+                                                >
+                                                  Disposal and treatment
+                                                </Text>
+                                              </div>
+                                            </div>
+                                            <Tag
+                                              color="red"
+                                              className="rounded-full px-3 ml-4"
+                                            >
+                                              {totalEmission?.waste_value?.toFixed(
+                                                4,
+                                              )}{" "}
+                                              kg CO₂e
+                                            </Tag>
+                                          </div>
+                                        ),
+                                        children: (
+                                          <Row gutter={[16, 16]}>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Waste per Box
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-red-700"
+                                                >
+                                                  {
+                                                    wasteEmission.waste_generated_per_box_kg
+                                                  }{" "}
+                                                  kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Box Treatment EF
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-red-700"
+                                                >
+                                                  {
+                                                    wasteEmission.emission_factor_box_waste_treatment_kg_co2e_kg
+                                                  }{" "}
+                                                  kg CO₂e/kg
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Packaging Treatment EF
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-red-700"
+                                                >
+                                                  {
+                                                    wasteEmission.emission_factor_packaging_waste_treatment_kg_co2e_kwh
+                                                  }{" "}
+                                                  kg CO₂e/kWh
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                          </Row>
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
+
+                                {/* Allocation Methodology */}
+                                {allocation && (
+                                  <Collapse
+                                    className="bg-white rounded-xl border border-gray-100 shadow-sm"
+                                    expandIconPosition="end"
+                                    items={[
+                                      {
+                                        key: "allocation",
+                                        label: (
                                           <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/20">
                                               <span className="text-white text-sm font-bold">
-                                                L
+                                                A
                                               </span>
                                             </div>
                                             <div>
                                               <Text strong className="block">
-                                                Logistics Emission
-                                              </Text>
-                                              <Text
-                                                type="secondary"
-                                                className="text-xs"
-                                              >
-                                                Transport and distribution
-                                              </Text>
-                                            </div>
-                                          </div>
-                                          <Tag
-                                            color="orange"
-                                            className="rounded-full px-3 ml-4"
-                                          >
-                                            {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
-                                              4,
-                                            )}{" "}
-                                            kg CO₂e
-                                          </Tag>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Row gutter={[16, 16]}>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Mode of Transport
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-orange-700"
-                                              >
-                                                {logisticEmission.mode_of_transport ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Distance
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-orange-700"
-                                              >
-                                                {logisticEmission.distance_km}{" "}
-                                                km
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Mass Transported
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-orange-700"
-                                              >
-                                                {
-                                                  logisticEmission.mass_transported_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Emission Factor
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-orange-700"
-                                              >
-                                                {
-                                                  logisticEmission.transport_mode_emission_factor_value_kg_co2e_t_km
-                                                }{" "}
-                                                kg CO₂e/t·km
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 rounded-xl text-white">
-                                              <Text className="block text-xs mb-2 uppercase tracking-wide text-white/80">
-                                                Transport Emission
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-white text-lg"
-                                              >
-                                                {logisticEmission.leg_wise_transport_emissions_per_unit_kg_co2e?.toFixed(
-                                                  6,
-                                                )}{" "}
-                                                kg CO₂e
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                        </Row>
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
-
-                              {/* Packaging Emission */}
-                              {packagingEmission && (
-                                <Collapse
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "packaging",
-                                      label: (
-                                        <div className="flex items-center justify-between w-full pr-4">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                                              <span className="text-white text-sm font-bold">
-                                                P
-                                              </span>
-                                            </div>
-                                            <div>
-                                              <Text strong className="block">
-                                                Packaging Emission
-                                              </Text>
-                                              <Text
-                                                type="secondary"
-                                                className="text-xs"
-                                              >
-                                                Materials and processes
-                                              </Text>
-                                            </div>
-                                          </div>
-                                          <Tag
-                                            color="purple"
-                                            className="rounded-full px-3 ml-4"
-                                          >
-                                            {totalEmission?.packaging_value?.toFixed(
-                                              4,
-                                            )}{" "}
-                                            kg CO₂e
-                                          </Tag>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Row gutter={[16, 16]}>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Packaging Type
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-purple-700"
-                                              >
-                                                {packagingEmission.packaging_type ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Pack Weight
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-purple-700"
-                                              >
-                                                {
-                                                  packagingEmission.pack_weight_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Emission Factor
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-purple-700"
-                                              >
-                                                {
-                                                  packagingEmission.emission_factor_box_kg
-                                                }{" "}
-                                                kg CO₂e/kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                        </Row>
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
-
-                              {/* Production Emission */}
-                              {productionEmission && (
-                                <Collapse
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "production",
-                                      label: (
-                                        <div className="flex items-center justify-between w-full pr-4">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                                              <span className="text-white text-sm font-bold">
-                                                Pr
-                                              </span>
-                                            </div>
-                                            <div>
-                                              <Text strong className="block">
-                                                Production Emission
-                                              </Text>
-                                              <Text
-                                                type="secondary"
-                                                className="text-xs"
-                                              >
-                                                Manufacturing processes
-                                              </Text>
-                                            </div>
-                                          </div>
-                                          <Tag
-                                            color="cyan"
-                                            className="rounded-full px-3 ml-4"
-                                          >
-                                            {totalEmission?.production_value?.toFixed(
-                                              4,
-                                            )}{" "}
-                                            kg CO₂e
-                                          </Tag>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Row gutter={[16, 16]}>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-cyan-50 to-teal-50 p-4 rounded-xl border border-cyan-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
                                                 Allocation Methodology
                                               </Text>
                                               <Text
-                                                strong
-                                                className="text-cyan-700 text-sm"
-                                              >
-                                                {productionEmission.allocation_methodology ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gray-50 p-3 rounded-lg">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-1"
-                                              >
-                                                Component Weight
-                                              </Text>
-                                              <Text strong>
-                                                {
-                                                  productionEmission.component_weight_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gray-50 p-3 rounded-lg">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-1"
-                                              >
-                                                Products Produced
-                                              </Text>
-                                              <Text strong>
-                                                {
-                                                  productionEmission.no_of_products_current_component_produced
-                                                }
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gray-50 p-3 rounded-lg">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-1"
-                                              >
-                                                Total Weight at Factory Level
-                                              </Text>
-                                              <Text strong>
-                                                {
-                                                  productionEmission.total_weight_produced_at_factory_level_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gray-50 p-3 rounded-lg">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-1"
-                                              >
-                                                Component Weight Produced
-                                              </Text>
-                                              <Text strong>
-                                                {
-                                                  productionEmission.total_weight_of_current_component_produced_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                        </Row>
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
-
-                              {/* Waste Emission */}
-                              {wasteEmission && (
-                                <Collapse
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "waste",
-                                      label: (
-                                        <div className="flex items-center justify-between w-full pr-4">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-                                              <span className="text-white text-sm font-bold">
-                                                W
-                                              </span>
-                                            </div>
-                                            <div>
-                                              <Text strong className="block">
-                                                Waste Emission
-                                              </Text>
-                                              <Text
                                                 type="secondary"
                                                 className="text-xs"
                                               >
-                                                Disposal and treatment
+                                                Calculation methods applied
                                               </Text>
                                             </div>
                                           </div>
-                                          <Tag
-                                            color="red"
-                                            className="rounded-full px-3 ml-4"
-                                          >
-                                            {totalEmission?.waste_value?.toFixed(
-                                              4,
-                                            )}{" "}
-                                            kg CO₂e
-                                          </Tag>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Row gutter={[16, 16]}>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Waste per Box
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-red-700"
-                                              >
-                                                {
-                                                  wasteEmission.waste_generated_per_box_kg
-                                                }{" "}
-                                                kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Box Treatment EF
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-red-700"
-                                              >
-                                                {
-                                                  wasteEmission.emission_factor_box_waste_treatment_kg_co2e_kg
-                                                }{" "}
-                                                kg CO₂e/kg
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Packaging Treatment EF
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-red-700"
-                                              >
-                                                {
-                                                  wasteEmission.emission_factor_packaging_waste_treatment_kg_co2e_kwh
-                                                }{" "}
-                                                kg CO₂e/kWh
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                        </Row>
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
-
-                              {/* Allocation Methodology */}
-                              {allocation && (
-                                <Collapse
-                                  className="bg-white rounded-xl border border-gray-100 shadow-sm"
-                                  expandIconPosition="end"
-                                  items={[
-                                    {
-                                      key: "allocation",
-                                      label: (
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-500/20">
-                                            <span className="text-white text-sm font-bold">
-                                              A
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <Text strong className="block">
-                                              Allocation Methodology
-                                            </Text>
-                                            <Text
-                                              type="secondary"
-                                              className="text-xs"
-                                            >
-                                              Calculation methods applied
-                                            </Text>
-                                          </div>
-                                        </div>
-                                      ),
-                                      children: (
-                                        <Row gutter={[16, 16]}>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                ER Less Than Five
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-slate-700"
-                                              >
-                                                {allocation.check_er_less_than_five ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Physical Mass
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-slate-700"
-                                              >
-                                                {allocation.phy_mass_allocation_er_less_than_five ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={8}>
-                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Economic (ER &gt; 5)
-                                              </Text>
-                                              <Text
-                                                strong
-                                                className="text-slate-700"
-                                              >
-                                                {allocation.econ_allocation_er_greater_than_five ||
-                                                  "-"}
-                                              </Text>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                Split Allocation
-                                              </Text>
-                                              <Tag
-                                                color={
-                                                  allocation.split_allocation
-                                                    ? "green"
-                                                    : "default"
-                                                }
-                                                className="rounded-full"
-                                              >
-                                                {allocation.split_allocation
-                                                  ? "Enabled"
-                                                  : "Disabled"}
-                                              </Tag>
-                                            </div>
-                                          </Col>
-                                          <Col span={12}>
-                                            <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
-                                              <Text
-                                                type="secondary"
-                                                className="block text-xs mb-2 uppercase tracking-wide"
-                                              >
-                                                System Expansion
-                                              </Text>
-                                              <Tag
-                                                color={
-                                                  allocation.sys_expansion_allocation
-                                                    ? "green"
-                                                    : "default"
-                                                }
-                                                className="rounded-full"
-                                              >
-                                                {allocation.sys_expansion_allocation
-                                                  ? "Enabled"
-                                                  : "Disabled"}
-                                              </Tag>
-                                            </div>
-                                          </Col>
-                                        </Row>
-                                      ),
-                                    },
-                                  ]}
-                                />
-                              )}
+                                        ),
+                                        children: (
+                                          <Row gutter={[16, 16]}>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  ER Less Than Five
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-slate-700"
+                                                >
+                                                  {allocation.check_er_less_than_five ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Physical Mass
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-slate-700"
+                                                >
+                                                  {allocation.phy_mass_allocation_er_less_than_five ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={8}>
+                                              <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Economic (ER &gt; 5)
+                                                </Text>
+                                                <Text
+                                                  strong
+                                                  className="text-slate-700"
+                                                >
+                                                  {allocation.econ_allocation_er_greater_than_five ||
+                                                    "-"}
+                                                </Text>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  Split Allocation
+                                                </Text>
+                                                <Tag
+                                                  color={
+                                                    allocation.split_allocation
+                                                      ? "green"
+                                                      : "default"
+                                                  }
+                                                  className="rounded-full"
+                                                >
+                                                  {allocation.split_allocation
+                                                    ? "Enabled"
+                                                    : "Disabled"}
+                                                </Tag>
+                                              </div>
+                                            </Col>
+                                            <Col span={12}>
+                                              <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 rounded-xl border border-slate-100">
+                                                <Text
+                                                  type="secondary"
+                                                  className="block text-xs mb-2 uppercase tracking-wide"
+                                                >
+                                                  System Expansion
+                                                </Text>
+                                                <Tag
+                                                  color={
+                                                    allocation.sys_expansion_allocation
+                                                      ? "green"
+                                                      : "default"
+                                                  }
+                                                  className="rounded-full"
+                                                >
+                                                  {allocation.sys_expansion_allocation
+                                                    ? "Enabled"
+                                                    : "Disabled"}
+                                                </Tag>
+                                              </div>
+                                            </Col>
+                                          </Row>
+                                        ),
+                                      },
+                                    ]}
+                                  />
+                                )}
+                              </div>
                             </>
                           );
                         })()}
@@ -2543,7 +2599,10 @@ const ProductView: React.FC = () => {
                         onChange={(e) => {
                           setContactFullName(e.target.value);
                           if (contactErrors.fullName) {
-                            setContactErrors((prev) => ({ ...prev, fullName: undefined }));
+                            setContactErrors((prev) => ({
+                              ...prev,
+                              fullName: undefined,
+                            }));
                           }
                         }}
                         placeholder="John Doe"
@@ -2567,7 +2626,10 @@ const ProductView: React.FC = () => {
                         onChange={(e) => {
                           setContactPhone(e.target.value);
                           if (contactErrors.phone) {
-                            setContactErrors((prev) => ({ ...prev, phone: undefined }));
+                            setContactErrors((prev) => ({
+                              ...prev,
+                              phone: undefined,
+                            }));
                           }
                         }}
                         placeholder="+1 (555) 123-4567"
@@ -2591,7 +2653,10 @@ const ProductView: React.FC = () => {
                         onChange={(e) => {
                           setContactEmail(e.target.value);
                           if (contactErrors.email) {
-                            setContactErrors((prev) => ({ ...prev, email: undefined }));
+                            setContactErrors((prev) => ({
+                              ...prev,
+                              email: undefined,
+                            }));
                           }
                         }}
                         placeholder="john.doe@company.com"
@@ -2788,7 +2853,7 @@ const ProductView: React.FC = () => {
                           {/* Total PCF Hero */}
                           <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-5 text-white text-center">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                            <Text className="text-white/80 text-xs block mb-1">
+                            <Text className="!text-white/80 text-xs block mb-1">
                               Total PCF Value
                             </Text>
                             <div className="flex items-baseline justify-center gap-2">

@@ -12,6 +12,11 @@ import {
   Badge,
   Tooltip,
   Alert,
+  Input,
+  Select,
+  Row,
+  Col,
+  Divider,
 } from "antd";
 import {
   SaveOutlined,
@@ -27,6 +32,8 @@ import {
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import authService from "../../lib/authService";
 import productService from "../../lib/productService";
+import userManagementService from "../../lib/userManagementService";
+import type { SupplierOnboarding } from "../../types/userManagement";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import DynamicQuestionnaireForm from "./DynamicQuestionnaireForm";
 
@@ -90,9 +97,58 @@ const SupplierQuestionnaire: React.FC = () => {
   );
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // Supplier onboarding state
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
+  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
+  const [showOnboardingForm, setShowOnboardingForm] = useState(false);
+  const [onboardingForm] = Form.useForm();
+  const [isSubmittingOnboarding, setIsSubmittingOnboarding] = useState(false);
+
+  // Check supplier onboarding status first (only for supplier mode with sup_id)
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (sup_id && !isClientMode && isCreateMode) {
+        setIsCheckingOnboarding(true);
+        try {
+          const result = await userManagementService.checkSupplierOnboardingStatus(sup_id);
+          setIsOnboarded(result.isOnboarded);
+          if (!result.isOnboarded) {
+            setShowOnboardingForm(true);
+            // Pre-fill form if we have partial data
+            if (result.supplierData) {
+              onboardingForm.setFieldsValue(result.supplierData);
+            }
+          }
+        } catch (error) {
+          console.error("Error checking onboarding status:", error);
+          // If error, assume not onboarded and show form
+          setIsOnboarded(false);
+          setShowOnboardingForm(true);
+        } finally {
+          setIsCheckingOnboarding(false);
+        }
+      } else {
+        // For non-supplier routes or client mode, skip onboarding check
+        setIsOnboarded(true);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [sup_id, isClientMode, isCreateMode, onboardingForm]);
+
   // Load data
   useEffect(() => {
     const loadData = async () => {
+      // Wait for onboarding check to complete for supplier mode
+      if (sup_id && !isClientMode && isCreateMode && isOnboarded === null) {
+        return; // Wait for onboarding check
+      }
+
+      // If not onboarded, don't load questionnaire data yet
+      if (showOnboardingForm) {
+        return;
+      }
+
       if ((isViewMode || isEditMode) && sgiq_id) {
         setIsLoading(true);
         try {
@@ -401,6 +457,9 @@ const SupplierQuestionnaire: React.FC = () => {
     isEditMode,
     isCreateMode,
     form,
+    isOnboarded,
+    showOnboardingForm,
+    isClientMode,
   ]);
 
   // Update form values when step changes or data loads
@@ -820,6 +879,37 @@ const SupplierQuestionnaire: React.FC = () => {
     }
   };
 
+  // Handle supplier onboarding form submission
+  const handleOnboardingSubmit = async (values: any) => {
+    if (!sup_id) return;
+
+    setIsSubmittingOnboarding(true);
+    try {
+      const payload = {
+        ...values,
+        sup_id,
+        supplier_supplied_categories: values.supplier_supplied_categories
+          ? values.supplier_supplied_categories.split(",").map((s: string) => s.trim()).filter(Boolean)
+          : [],
+      };
+
+      const result = await userManagementService.onboardSupplierPublic(payload);
+
+      if (result.success) {
+        message.success("Onboarding completed successfully! Proceeding to questionnaire...");
+        setIsOnboarded(true);
+        setShowOnboardingForm(false);
+      } else {
+        message.error(result.message || "Failed to complete onboarding");
+      }
+    } catch (error) {
+      console.error("Error submitting onboarding:", error);
+      message.error("An error occurred while submitting onboarding");
+    } finally {
+      setIsSubmittingOnboarding(false);
+    }
+  };
+
   // Keyboard shortcuts - using refs to avoid dependency issues
   const handleNextRef = useRef(handleNext);
   const handleSubmitRef = useRef(handleSubmit);
@@ -849,10 +939,225 @@ const SupplierQuestionnaire: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [currentStep, sidebarVisible]);
 
-  if (isLoading) {
+  if (isLoading || isCheckingOnboarding) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Spin size="large" tip="Loading questionnaire..." />
+        <Spin size="large" tip={isCheckingOnboarding ? "Checking supplier status..." : "Loading questionnaire..."} />
+      </div>
+    );
+  }
+
+  // Supplier Onboarding Form - Show before questionnaire if not onboarded
+  if (showOnboardingForm && sup_id && !isClientMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-8 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <InfoCircleOutlined className="text-2xl text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Supplier Registration Required
+                </h1>
+                <p className="text-gray-500">
+                  Please complete your company registration before proceeding to the questionnaire
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Onboarding Form */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg">
+            <Form
+              form={onboardingForm}
+              layout="vertical"
+              onFinish={handleOnboardingSubmit}
+              className="space-y-6"
+            >
+              {/* Company Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Information</h3>
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_company_name"
+                      label="Company Name"
+                      rules={[{ required: true, message: "Please enter company name" }]}
+                    >
+                      <Input placeholder="Enter company name" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_name"
+                      label="Contact Name"
+                      rules={[{ required: true, message: "Please enter contact name" }]}
+                    >
+                      <Input placeholder="Enter contact name" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_email"
+                      label="Email"
+                      rules={[
+                        { required: true, message: "Please enter email" },
+                        { type: "email", message: "Please enter a valid email" },
+                      ]}
+                    >
+                      <Input placeholder="Enter email" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_phone_number"
+                      label="Phone Number"
+                      rules={[{ required: true, message: "Please enter phone number" }]}
+                    >
+                      <Input placeholder="Enter phone number" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_alternate_phone_number" label="Alternate Phone">
+                      <Input placeholder="Enter alternate phone" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_company_website" label="Website">
+                      <Input placeholder="Enter website URL" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              {/* Business Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Details</h3>
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_business_type" label="Business Type">
+                      <Select placeholder="Select business type">
+                        <Select.Option value="Manufacturer">Manufacturer</Select.Option>
+                        <Select.Option value="Distributor">Distributor</Select.Option>
+                        <Select.Option value="Wholesaler">Wholesaler</Select.Option>
+                        <Select.Option value="Retailer">Retailer</Select.Option>
+                        <Select.Option value="Other">Other</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_years_in_business" label="Years in Business">
+                      <Input placeholder="Enter years" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_number_of_employees" label="Number of Employees">
+                      <Input placeholder="Enter number" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <Form.Item
+                      name="supplier_supplied_categories"
+                      label="Supplied Categories"
+                      extra="Enter comma-separated values"
+                    >
+                      <Input.TextArea rows={2} placeholder="e.g., Electronics, Mechanical Parts, Raw Materials" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              {/* Location */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Location</h3>
+                <Row gutter={16}>
+                  <Col xs={24}>
+                    <Form.Item name="supplier_registered_address" label="Registered Address">
+                      <Input.TextArea rows={2} placeholder="Enter registered address" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_city"
+                      label="City"
+                      rules={[{ required: true, message: "Please enter city" }]}
+                    >
+                      <Input placeholder="Enter city" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_state"
+                      label="State"
+                      rules={[{ required: true, message: "Please enter state" }]}
+                    >
+                      <Input placeholder="Enter state" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="supplier_country"
+                      label="Country"
+                      rules={[{ required: true, message: "Please enter country" }]}
+                    >
+                      <Input placeholder="Enter country" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              {/* Financial Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Details (Optional)</h3>
+                <Row gutter={16}>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_gst_number" label="GST Number">
+                      <Input placeholder="Enter GST number" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_pan_number" label="PAN Number">
+                      <Input placeholder="Enter PAN number" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item name="supplier_bank_name" label="Bank Name">
+                      <Input placeholder="Enter bank name" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-center pt-6 border-t border-gray-100">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isSubmittingOnboarding}
+                  size="large"
+                  icon={<CheckOutlined />}
+                  className="!bg-purple-600 hover:!bg-purple-700 !border-purple-600 shadow-lg shadow-purple-600/20 px-12"
+                >
+                  Complete Registration & Continue
+                </Button>
+              </div>
+            </Form>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center text-gray-500 text-sm">
+            <p>Your registration information helps us better understand your business for PCF calculations.</p>
+          </div>
+        </div>
       </div>
     );
   }

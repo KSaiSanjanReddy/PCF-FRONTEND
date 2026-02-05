@@ -78,7 +78,8 @@ export const PermissionProvider: React.FC<{ children: ReactNode }> = ({ children
   }, [loadPermissions]);
 
   // Normalize module name for comparison
-  const normalizeModuleName = (name: string): string => {
+  const normalizeModuleName = (name: string | undefined | null): string => {
+    if (!name) return "";
     const normalized = name.toLowerCase().trim();
 
     // Check if name matches any alias

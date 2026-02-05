@@ -206,6 +206,14 @@ class PCFService {
     current_page?: number;
     total_pages?: number;
     total_count?: number;
+    stats?: {
+      total_pcf_count?: string;
+      approved_count?: string;
+      in_progress_count?: string;
+      rejected_count?: string;
+      draft_count?: string;
+      pending_count?: string;
+    };
   }> {
     try {
       // Build query params
@@ -281,6 +289,9 @@ class PCFService {
         const totalPages = pagination.totalPages || pageInfo.total_pages || pageInfo.totalPages || result.total_pages || result.totalPages || Math.ceil(totalCount / pageSize);
         const currentPage = pagination.page || pageInfo.page || pageInfo.currentPage || result.current_page || 1;
 
+        // Extract stats from API response
+        const stats = result.data?.stats || pageInfo.stats || result.stats || null;
+
         return {
           success: true,
           message: result.message || "PCF BOM list fetched successfully",
@@ -288,6 +299,7 @@ class PCFService {
           current_page: currentPage,
           total_pages: totalPages,
           total_count: totalCount,
+          stats: stats,
         };
       } else {
         console.error("PCF Service Error:", result);
