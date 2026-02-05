@@ -16,16 +16,8 @@ export const menuItems: MenuItem[] = [
   {
     id: "product-portfolio",
     title: "Product Portfolio",
-    path: "/product-portfolio",
+    path: "/product-portfolio/all-products",
     icon: "Package",
-    children: [
-      {
-        id: "all-products",
-        title: "All Products",
-        path: "/product-portfolio/all-products",
-        icon: "Grid",
-      },
-    ],
   },
   {
     id: "components-master",
