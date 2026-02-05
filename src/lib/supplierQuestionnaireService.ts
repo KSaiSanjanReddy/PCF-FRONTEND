@@ -1881,17 +1881,22 @@ class SupplierQuestionnaireService {
   async listDQRRatings(
     pageNumber: number = 1,
     pageSize: number = 20,
-    bomPcfId?: string
+    bomPcfId?: string,
+    search?: string
   ): Promise<{
     success: boolean;
     message: string;
     data?: any[];
-    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number };
+    pagination?: { page: number; limit: number; totalRecords: number; totalPages: number; totalCount: number };
+    dqr_summary?: { total_dqr_count: number; pending_dqr_count: number; completed_dqr_count: number };
   }> {
     try {
       let url = `${API_BASE_URL}/api/dqr-rating/list?pageNumber=${pageNumber}&pageSize=${pageSize}`;
       if (bomPcfId) {
-        url += `&bom_pcf_id=${bomPcfId}`;
+        url += `&bom_pcf_id=${encodeURIComponent(bomPcfId)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
       }
       const response = await fetch(
         url,
@@ -1901,7 +1906,7 @@ class SupplierQuestionnaireService {
         }
       );
 
-      const result: ApiResponse & { pagination?: any } = await response.json();
+      const result: ApiResponse & { pagination?: any; dqr_summary?: any } = await response.json();
 
       if (result.status || result.success) {
         return {
@@ -1909,6 +1914,7 @@ class SupplierQuestionnaireService {
           message: result.message || "DQR ratings fetched successfully",
           data: result.data,
           pagination: result.pagination,
+          dqr_summary: result.dqr_summary,
         };
       } else {
         return {

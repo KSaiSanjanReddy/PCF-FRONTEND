@@ -16,8 +16,11 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { Select } from "antd";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import authService from "../lib/authService";
+
+const { Option } = Select;
 
 interface DQRItem {
   sgiq_id: string;
@@ -48,34 +51,62 @@ interface Pagination {
   limit: number;
   totalRecords: number;
   totalPages: number;
+  totalCount: number;
+}
+
+interface DQRSummary {
+  total_dqr_count: number;
+  pending_dqr_count: number;
+  completed_dqr_count: number;
 }
 
 const DataQualityRatingList: React.FC = () => {
   const navigate = useNavigate();
   const [dqrList, setDqrList] = useState<DQRItem[]>([]);
-  const [filteredDQR, setFilteredDQR] = useState<DQRItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
-    limit: 20,
+    limit: 9,
     totalRecords: 0,
     totalPages: 0,
+    totalCount: 0,
+  });
+  const [dqrSummary, setDqrSummary] = useState<DQRSummary>({
+    total_dqr_count: 0,
+    pending_dqr_count: 0,
+    completed_dqr_count: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(9);
 
+  // Debounce search term
   useEffect(() => {
-    fetchDQRList(currentPage);
-  }, [currentPage]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
 
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset to page 1 when search or pageSize changes
   useEffect(() => {
-    filterDQRList();
-  }, [searchTerm, filterStatus, dqrList]);
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, pageSize]);
 
-  const fetchDQRList = async (page: number = 1) => {
+  // Fetch data when page, search, or pageSize changes
+  useEffect(() => {
+    fetchDQRList(currentPage, debouncedSearchTerm);
+  }, [currentPage, debouncedSearchTerm, pageSize]);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
+
+  const fetchDQRList = async (page: number = 1, search?: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -85,12 +116,20 @@ const DataQualityRatingList: React.FC = () => {
         return;
       }
 
-      const result = await supplierQuestionnaireService.listDQRRatings(page, pageSize);
+      const result = await supplierQuestionnaireService.listDQRRatings(
+        page,
+        pageSize,
+        undefined,
+        search || undefined
+      );
 
       if (result.success && result.data) {
         setDqrList(result.data);
         if (result.pagination) {
           setPagination(result.pagination);
+        }
+        if (result.dqr_summary) {
+          setDqrSummary(result.dqr_summary);
         }
       } else {
         setError(result.message || "Failed to load DQR list");
@@ -101,24 +140,6 @@ const DataQualityRatingList: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const filterDQRList = () => {
-    let filtered = [...dqrList];
-
-    // Apply search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (item) =>
-          item.organization_name?.toLowerCase().includes(searchLower) ||
-          item.sgiq_id?.toLowerCase().includes(searchLower) ||
-          item.supplier_details?.supplier_name?.toLowerCase().includes(searchLower) ||
-          item.email_address?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    setFilteredDQR(filtered);
   };
 
   const formatDate = (dateString?: string) => {
@@ -137,17 +158,12 @@ const DataQualityRatingList: React.FC = () => {
     }
   };
 
-  const calculateStats = () => {
-    const total = pagination.totalRecords;
-    const completed = dqrList.filter(
-      (item) => item.update_date && item.update_date !== item.created_date
-    ).length;
-    const pending = dqrList.length - completed;
-
-    return { total, completed, pending };
+  // Use dqr_summary from API for stats
+  const stats = {
+    total: dqrSummary.total_dqr_count,
+    completed: dqrSummary.completed_dqr_count,
+    pending: dqrSummary.pending_dqr_count,
   };
-
-  const stats = calculateStats();
 
   if (isLoading && dqrList.length === 0) {
     return (
@@ -200,19 +216,6 @@ const DataQualityRatingList: React.FC = () => {
               </div>
             </div>
 
-            {/* Completed */}
-            <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-xs text-green-600 font-medium">Updated</div>
-                  <div className="text-xl font-bold text-green-700">{stats.completed}</div>
-                </div>
-              </div>
-            </div>
-
             {/* Pending */}
             <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
@@ -220,8 +223,21 @@ const DataQualityRatingList: React.FC = () => {
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-xs text-amber-600 font-medium">New</div>
+                  <div className="text-xs text-amber-600 font-medium">Pending</div>
                   <div className="text-xl font-bold text-amber-700">{stats.pending}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Completed */}
+            <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-green-600 font-medium">Completed</div>
+                  <div className="text-xl font-bold text-green-700">{stats.completed}</div>
                 </div>
               </div>
             </div>
@@ -260,7 +276,7 @@ const DataQualityRatingList: React.FC = () => {
 
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDQR.length === 0 ? (
+        {dqrList.length === 0 ? (
           <div className="col-span-full bg-white rounded-2xl shadow-sm p-12 border border-gray-100">
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Star size={48} className="mb-4 opacity-20" />
@@ -273,7 +289,7 @@ const DataQualityRatingList: React.FC = () => {
             </div>
           </div>
         ) : (
-          filteredDQR.map((item) => (
+          dqrList.map((item) => (
             <div
               key={item.sgiq_id}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-green-200 transition-all overflow-hidden"
@@ -343,22 +359,45 @@ const DataQualityRatingList: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      {pagination.totalRecords > 0 && (
+      {(pagination.totalRecords > 0 || pagination.totalCount > 0) && (
         <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="text-sm text-gray-600">
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader size={14} className="animate-spin" />
-                  Loading...
-                </span>
-              ) : (
-                <>
-                  Showing {((currentPage - 1) * pageSize) + 1} to{" "}
-                  {Math.min(currentPage * pageSize, pagination.totalRecords)} of{" "}
-                  {pagination.totalRecords} assessments
-                </>
-              )}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader size={14} className="animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  <>
+                    Showing{" "}
+                    <span className="font-medium">
+                      {Math.min(((currentPage - 1) * pageSize) + 1, pagination.totalRecords || pagination.totalCount)}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-medium">
+                      {Math.min(currentPage * pageSize, pagination.totalRecords || pagination.totalCount)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium">
+                      {pagination.totalRecords || pagination.totalCount}
+                    </span>{" "}
+                    assessments
+                  </>
+                )}
+              </span>
+              <Select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="w-[110px]"
+                size="small"
+              >
+                <Option value={9}>9 / page</Option>
+                <Option value={18}>18 / page</Option>
+                <Option value={27}>27 / page</Option>
+                <Option value={45}>45 / page</Option>
+              </Select>
             </div>
             {pagination.totalPages > 1 && (
               <div className="flex items-center gap-2">

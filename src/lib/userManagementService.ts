@@ -24,6 +24,7 @@ class UserManagementService {
     success: boolean;
     data: ManufacturerOnboarding[];
     totalCount: number;
+    pagination?: { total: number; page: number; limit: number; totalPages: number };
     message: string;
   }> {
     try {
@@ -35,7 +36,7 @@ class UserManagementService {
         }
       );
 
-      const data: OnboardingListResponse<ManufacturerOnboarding> =
+      const data: OnboardingListResponse<ManufacturerOnboarding> & { pagination?: any } =
         await response.json();
 
       if (data.status && data.data) {
@@ -44,7 +45,8 @@ class UserManagementService {
         return {
           success: true,
           data: Array.isArray(rows) ? rows : [],
-          totalCount: data.data.totalCount || 0,
+          totalCount: data.pagination?.total || data.data.totalCount || 0,
+          pagination: data.pagination,
           message: data.message,
         };
       }
@@ -206,6 +208,7 @@ class UserManagementService {
     success: boolean;
     data: SupplierOnboarding[];
     totalCount: number;
+    pagination?: { total: number; page: number; limit: number; totalPages: number };
     message: string;
   }> {
     try {
@@ -217,7 +220,7 @@ class UserManagementService {
         }
       );
 
-      const data: OnboardingListResponse<SupplierOnboarding> =
+      const data: OnboardingListResponse<SupplierOnboarding> & { pagination?: any } =
         await response.json();
 
       if (data.status && data.data) {
@@ -226,7 +229,8 @@ class UserManagementService {
         return {
           success: true,
           data: Array.isArray(rows) ? rows : [],
-          totalCount: data.data.totalCount || 0,
+          totalCount: data.pagination?.total || data.data.totalCount || 0,
+          pagination: data.pagination,
           message: data.message,
         };
       }
