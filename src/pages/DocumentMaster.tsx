@@ -21,13 +21,15 @@ import {
   File,
   Clock,
   CheckCircle,
+  XCircle,
   X,
   Upload as UploadIcon,
   Image as ImageIcon,
   FileType,
+  AlertCircle,
 } from "lucide-react";
 import { documentMasterService } from "../lib/documentMasterService";
-import type { PCFDocumentItem } from "../lib/documentMasterService";
+import type { PCFDocumentItem, DocumentStats } from "../lib/documentMasterService";
 import pcfService from "../lib/pcfService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -48,6 +50,7 @@ const DocumentMaster: React.FC = () => {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [apiStats, setApiStats] = useState<DocumentStats | null>(null);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -76,6 +79,10 @@ const DocumentMaster: React.FC = () => {
           pageSize: result.data.pageSize,
           total: result.data.totalCount,
         });
+        // Set stats from API response
+        if (result.data.stats) {
+          setApiStats(result.data.stats);
+        }
       } else {
         message.error(result.message || "Failed to fetch documents");
       }
@@ -256,11 +263,13 @@ const DocumentMaster: React.FC = () => {
     return ["png", "jpg", "jpeg", "gif", "webp"].includes(ext || "");
   };
 
-  // Calculate stats from current data
+  // Use stats from API response for KPI cards
   const stats = {
-    total: pagination.total,
-    approved: documents.filter((d) => d.status === "Approved").length,
-    pending: documents.filter((d) => d.status === "Pending").length,
+    total: parseInt(apiStats?.total_pcf_count || "0", 10),
+    approved: parseInt(apiStats?.approved_count || "0", 10),
+    rejected: parseInt(apiStats?.rejected_count || "0", 10),
+    draft: parseInt(apiStats?.draft_count || "0", 10),
+    pending: parseInt(apiStats?.pending_count || "0", 10),
   };
 
   const columns = [
@@ -380,16 +389,16 @@ const DocumentMaster: React.FC = () => {
             {/* Right Section - Summary Cards */}
             <div className="flex gap-3 flex-wrap">
               {/* Total */}
-              <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
+              <div className="bg-purple-50 rounded-xl p-4 min-w-[120px] border border-purple-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <File className="w-5 h-5 text-blue-600" />
+                  <div className="bg-purple-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <File className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">
-                      Total PCFs
+                    <div className="text-xs text-purple-600 font-medium">
+                      Total
                     </div>
-                    <div className="text-xl font-bold text-blue-700">
+                    <div className="text-xl font-bold text-purple-700">
                       {stats.total}
                     </div>
                   </div>
@@ -397,7 +406,7 @@ const DocumentMaster: React.FC = () => {
               </div>
 
               {/* Approved */}
-              <div className="bg-green-50 rounded-xl p-4 min-w-[140px] border border-green-100 hover:shadow-md transition-shadow">
+              <div className="bg-green-50 rounded-xl p-4 min-w-[120px] border border-green-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 w-10 h-10 rounded-xl flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
@@ -413,17 +422,51 @@ const DocumentMaster: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pending */}
-              <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
+              {/* Rejected */}
+              <div className="bg-red-50 rounded-xl p-4 min-w-[120px] border border-red-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-red-600 font-medium">
+                      Rejected
+                    </div>
+                    <div className="text-xl font-bold text-red-700">
+                      {stats.rejected}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Draft */}
+              <div className="bg-amber-50 rounded-xl p-4 min-w-[120px] border border-amber-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-600" />
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
                     <div className="text-xs text-amber-600 font-medium">
-                      Pending
+                      Draft
                     </div>
                     <div className="text-xl font-bold text-amber-700">
+                      {stats.draft}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending */}
+              <div className="bg-blue-50 rounded-xl p-4 min-w-[120px] border border-blue-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-blue-600 font-medium">
+                      Pending
+                    </div>
+                    <div className="text-xl font-bold text-blue-700">
                       {stats.pending}
                     </div>
                   </div>

@@ -197,6 +197,7 @@ class PCFService {
       search?: string;
       from_date?: string; // YYYY-MM-DD format
       to_date?: string;   // YYYY-MM-DD format
+      pcf_status?: string; // In Progress, Open, Draft, Completed, Rejected
     }
   ): Promise<{
     success: boolean;
@@ -226,6 +227,7 @@ class PCFService {
         if (filters.search) params.append("search", filters.search);
         if (filters.from_date) params.append("from_date", filters.from_date);
         if (filters.to_date) params.append("to_date", filters.to_date);
+        if (filters.pcf_status) params.append("pcf_status", filters.pcf_status);
       }
 
       const response = await fetch(

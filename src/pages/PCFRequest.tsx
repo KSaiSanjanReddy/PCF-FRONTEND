@@ -35,18 +35,16 @@ interface PCFRequestItem {
   requestNumber: string;
   productName: string;
   productIcon: React.ReactNode;
-  status: "in-progress" | "completed" | "draft" | "rejected" | "open";
+  status: string;
   submittedBy: string;
   submittedOn: string;
 }
 
 interface PCFFilters {
-  is_approved?: boolean;
-  is_rejected?: boolean;
-  is_draft?: boolean | null;
   search?: string;
   from_date?: string;
   to_date?: string;
+  pcf_status?: string;
 }
 
 const PCFRequest: React.FC = () => {
@@ -92,44 +90,14 @@ const PCFRequest: React.FC = () => {
     return <Car className="text-indigo-600" size={20} />;
   };
 
-  // Helper function to determine status from API response
-  const getStatus = (
-    item: any,
-  ): "in-progress" | "completed" | "draft" | "rejected" | "open" => {
-    const status = item.status?.toLowerCase() || "";
-
-    if (status === "rejected") return "rejected";
-    if (status === "approved" || status === "completed") return "completed";
-    if (status === "draft" || item.is_draft) return "draft";
-    if (
-      status === "in-progress" ||
-      status === "in progress" ||
-      status === "pending"
-    )
-      return "in-progress";
-
-    // Default to draft if status is unclear
-    return "open";
-  };
-
   // Build filters object based on current state
   const buildFilters = useCallback((): PCFFilters => {
     const filters: PCFFilters = {};
 
-    // Status filter - map to API params
-    if (statusFilter === "completed") {
-      filters.is_approved = true;
-    } else if (statusFilter === "rejected") {
-      filters.is_rejected = true;
-    } else if (statusFilter === "draft") {
-      filters.is_draft = true;
-    } else if (statusFilter === "in-progress") {
-      // In-progress means not approved, not rejected, not draft (pending)
-      filters.is_approved = false;
-      filters.is_rejected = false;
-      filters.is_draft = false;
+    // Status filter - use pcf_status param
+    if (statusFilter !== "all") {
+      filters.pcf_status = statusFilter;
     }
-    // "all" - no status filters
 
     // Search filter (using debounced value)
     if (debouncedSearchTerm.trim()) {
@@ -217,7 +185,7 @@ const PCFRequest: React.FC = () => {
               requestNumber: item.code || item.request_number || "N/A",
               productName: productCategoryName,
               productIcon: getProductIcon(productCategoryName),
-              status: getStatus(item),
+              status: item.status || "Unknown",
               submittedBy: submittedBy,
               submittedOn: createdDate ? formatDate(createdDate) : "N/A",
             };
@@ -284,21 +252,31 @@ const PCFRequest: React.FC = () => {
 
   // Calculate status counts from current data
   const statusCounts = {
-    inProgress: pcfRequests.filter((item) => item.status === "in-progress")
-      .length,
-    completed: pcfRequests.filter((item) => item.status === "completed").length,
-    pending: pcfRequests.filter((item) => item.status === "draft").length,
+    inProgress: pcfRequests.filter((item) =>
+      item.status?.toLowerCase() === "in progress" || item.status?.toLowerCase() === "in-progress"
+    ).length,
+    completed: pcfRequests.filter((item) =>
+      item.status?.toLowerCase() === "completed"
+    ).length,
+    draft: pcfRequests.filter((item) =>
+      item.status?.toLowerCase() === "draft"
+    ).length,
   };
 
   const getStatusTag = (status: string) => {
-    const statusConfig: Record<string, { color: string; label: string }> = {
-      "in-progress": { color: "blue", label: "In Progress" },
-      completed: { color: "green", label: "Completed" },
-      draft: { color: "gold", label: "Draft" },
-      rejected: { color: "red", label: "Rejected" },
+    const statusLower = status?.toLowerCase() || "";
+    const colorConfig: Record<string, string> = {
+      "in-progress": "blue",
+      "in progress": "blue",
+      completed: "green",
+      draft: "gold",
+      rejected: "red",
+      open: "cyan",
+      approved: "green",
+      pending: "orange",
     };
-    const config = statusConfig[status] || { color: "default", label: status || "Unknown" };
-    return <Tag color={config.color}>{config.label}</Tag>;
+    const color = colorConfig[statusLower] || "default";
+    return <Tag color={color}>{status || "Unknown"}</Tag>;
   };
 
   const columns: ColumnsType<PCFRequestItem> = [
@@ -419,7 +397,7 @@ const PCFRequest: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pending Card */}
+              {/* Draft Card */}
               <div className="bg-amber-50 rounded-xl p-4 min-w-[180px] border border-amber-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="bg-amber-100 w-11 h-11 rounded-xl flex items-center justify-center">
@@ -427,10 +405,10 @@ const PCFRequest: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-sm text-amber-600 font-medium">
-                      Pending
+                      Draft
                     </div>
                     <div className="text-2xl font-bold text-amber-700">
-                      {statusCounts.pending}
+                      {statusCounts.draft}
                     </div>
                   </div>
                 </div>
@@ -472,10 +450,11 @@ const PCFRequest: React.FC = () => {
                 onChange={handleStatusFilterChange}
                 options={[
                   { label: "All Status", value: "all" },
-                  { label: "In Progress", value: "in-progress" },
-                  { label: "Completed", value: "completed" },
-                  { label: "Pending", value: "pending" },
-                  { label: "Rejected", value: "rejected" },
+                  { label: "In Progress", value: "In Progress" },
+                  { label: "Open", value: "Open" },
+                  { label: "Draft", value: "Draft" },
+                  { label: "Completed", value: "Completed" },
+                  { label: "Rejected", value: "Rejected" },
                 ]}
               />
               {canCreate("PCF Request") && (

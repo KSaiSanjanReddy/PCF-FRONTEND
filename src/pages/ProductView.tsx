@@ -142,6 +142,13 @@ const ProductView: React.FC = () => {
   const [contactEmail, setContactEmail] = useState<string>("");
   const [contactMessage, setContactMessage] = useState<string>("");
 
+  // Contact form validation errors
+  const [contactErrors, setContactErrors] = useState<{
+    fullName?: string;
+    phone?: string;
+    email?: string;
+  }>({});
+
   // Linked PCFs state
   const [linkedPCFs, setLinkedPCFs] = useState<LinkedPCF[]>([]);
   const [linkedPCFsLoading, setLinkedPCFsLoading] = useState(false);
@@ -510,19 +517,52 @@ const ProductView: React.FC = () => {
     }
   };
 
+  const validateContactForm = (): boolean => {
+    const errors: { fullName?: string; phone?: string; email?: string } = {};
+
+    // Full Name validation
+    if (!contactFullName.trim()) {
+      errors.fullName = "Full name is required";
+    } else if (contactFullName.trim().length < 2) {
+      errors.fullName = "Full name must be at least 2 characters";
+    }
+
+    // Phone validation
+    if (!contactPhone.trim()) {
+      errors.phone = "Phone number is required";
+    } else {
+      const phoneRegex = /^[\d\s\-+()]{10,}$/;
+      if (!phoneRegex.test(contactPhone.trim())) {
+        errors.phone = "Please enter a valid phone number (min 10 digits)";
+      }
+    }
+
+    // Email validation
+    if (!contactEmail.trim()) {
+      errors.email = "Email address is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(contactEmail.trim())) {
+        errors.email = "Please enter a valid email address";
+      }
+    }
+
+    setContactErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmitContactRequest = async () => {
-    if (!contactFullName || !contactPhone || !contactEmail) {
-      message.error("Please fill in all required fields");
+    if (!validateContactForm()) {
       return;
     }
 
     try {
       setOwnEmissionLoading(true);
       const contactData: ContactTeamData = {
-        full_name: contactFullName,
-        phone_number: contactPhone,
-        email_address: contactEmail,
-        message: contactMessage,
+        full_name: contactFullName.trim(),
+        phone_number: contactPhone.trim(),
+        email_address: contactEmail.trim(),
+        message: contactMessage.trim(),
         product_id: id,
       };
 
@@ -530,11 +570,12 @@ const ProductView: React.FC = () => {
         await ownEmissionService.submitContactRequest(contactData);
       if (response.status) {
         message.success("Request submitted successfully");
-        // Clear form
+        // Clear form and errors
         setContactFullName("");
         setContactPhone("");
         setContactEmail("");
         setContactMessage("");
+        setContactErrors({});
       } else {
         message.error(response.message || "Failed to submit request");
       }
@@ -2499,10 +2540,21 @@ const ProductView: React.FC = () => {
                       </Text>
                       <Input
                         value={contactFullName}
-                        onChange={(e) => setContactFullName(e.target.value)}
+                        onChange={(e) => {
+                          setContactFullName(e.target.value);
+                          if (contactErrors.fullName) {
+                            setContactErrors((prev) => ({ ...prev, fullName: undefined }));
+                          }
+                        }}
                         placeholder="John Doe"
                         size="large"
+                        status={contactErrors.fullName ? "error" : undefined}
                       />
+                      {contactErrors.fullName && (
+                        <Text type="danger" className="text-xs mt-1 block">
+                          {contactErrors.fullName}
+                        </Text>
+                      )}
                     </div>
                   </Col>
                   <Col span={12}>
@@ -2512,10 +2564,21 @@ const ProductView: React.FC = () => {
                       </Text>
                       <Input
                         value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
+                        onChange={(e) => {
+                          setContactPhone(e.target.value);
+                          if (contactErrors.phone) {
+                            setContactErrors((prev) => ({ ...prev, phone: undefined }));
+                          }
+                        }}
                         placeholder="+1 (555) 123-4567"
                         size="large"
+                        status={contactErrors.phone ? "error" : undefined}
                       />
+                      {contactErrors.phone && (
+                        <Text type="danger" className="text-xs mt-1 block">
+                          {contactErrors.phone}
+                        </Text>
+                      )}
                     </div>
                   </Col>
                   <Col span={24}>
@@ -2525,11 +2588,22 @@ const ProductView: React.FC = () => {
                       </Text>
                       <Input
                         value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
+                        onChange={(e) => {
+                          setContactEmail(e.target.value);
+                          if (contactErrors.email) {
+                            setContactErrors((prev) => ({ ...prev, email: undefined }));
+                          }
+                        }}
                         placeholder="john.doe@company.com"
                         size="large"
                         type="email"
+                        status={contactErrors.email ? "error" : undefined}
                       />
+                      {contactErrors.email && (
+                        <Text type="danger" className="text-xs mt-1 block">
+                          {contactErrors.email}
+                        </Text>
+                      )}
                     </div>
                   </Col>
                   <Col span={24}>

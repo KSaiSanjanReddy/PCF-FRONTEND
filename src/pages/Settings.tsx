@@ -108,7 +108,8 @@ const Settings: React.FC = () => {
     },
     {
       title: "Data Setup",
-      description: "Configure core data entities with code, name, and description",
+      description:
+        "Configure core data entities with code, name, and description",
       icon: Database,
       items: [
         {
@@ -145,14 +146,14 @@ const Settings: React.FC = () => {
             group.key === "emissions"
               ? Factory
               : group.key === "electricity"
-              ? Zap
-              : group.key === "components"
-              ? Puzzle
-              : group.key === "products"
-              ? Package
-              : group.key === "industry"
-              ? Building2
-              : Package,
+                ? Zap
+                : group.key === "components"
+                  ? Puzzle
+                  : group.key === "products"
+                    ? Package
+                    : group.key === "industry"
+                      ? Building2
+                      : Package,
           badge: null,
           cardType: "default" as const,
         })),
@@ -209,7 +210,7 @@ const Settings: React.FC = () => {
     items: group.items.filter(
       (item) =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase())
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   }));
 
@@ -302,8 +303,8 @@ const Settings: React.FC = () => {
                               item.cardType === "primary"
                                 ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.shadow}`
                                 : item.cardType === "secondary"
-                                ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.shadow}`
-                                : `bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-300 group-hover:border-green-500 group-hover:bg-gradient-to-br group-hover:from-green-500/10 group-hover:to-green-600/10`
+                                  ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.shadow}`
+                                  : `bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-300 group-hover:border-green-500 group-hover:bg-gradient-to-br group-hover:from-green-500/10 group-hover:to-green-600/10`
                             }`}
                           >
                             <ItemIcon
@@ -347,7 +348,7 @@ const Settings: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl p-6 border border-slate-200">
+        {/* <div className="bg-white rounded-xl p-6 border border-slate-200">
           <h3 className="text-base font-semibold text-slate-700 mb-4">
             Quick Actions
           </h3>
@@ -366,7 +367,7 @@ const Settings: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
