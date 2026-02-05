@@ -275,15 +275,15 @@ export const router = createBrowserRouter([
         element: <Authorizations />,
       },
       {
-        path: "settings/products",
+        path: "settings/products/:tab?",
         element: <Products />,
       },
       {
-        path: "settings/components",
+        path: "settings/components/:tab?",
         element: <Components />,
       },
       {
-        path: "settings/industry",
+        path: "settings/industry/:tab?",
         element: <Industry />,
       },
       // All data setup pages (single entity or grouped with tabs)

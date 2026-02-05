@@ -1575,6 +1575,50 @@ class SupplierQuestionnaireService {
   }
 
   /**
+   * Check if questionnaire is already submitted for a supplier and BOM
+   */
+  async checkQuestionnaireStatus(
+    bom_pcf_id: string,
+    sup_id: string
+  ): Promise<{ success: boolean; message: string; data?: { is_submitted: boolean; sgiq_id?: string } }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/supplier/questionnaire-status?bom_pcf_id=${encodeURIComponent(bom_pcf_id)}&sup_id=${encodeURIComponent(sup_id)}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(),
+        }
+      );
+
+      const result: ApiResponse = await response.json();
+
+      if (result.status || result.success) {
+        return {
+          success: true,
+          message: result.message || "Status fetched successfully",
+          data: {
+            is_submitted: result.data?.is_submitted ?? false,
+            sgiq_id: result.data?.sgiq_id,
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to fetch status",
+          data: { is_submitted: false },
+        };
+      }
+    } catch (error) {
+      console.error("Check questionnaire status error:", error);
+      return {
+        success: false,
+        message: "Network error occurred",
+        data: { is_submitted: false },
+      };
+    }
+  }
+
+  /**
    * Get PCF BOM list for auto-population
    */
   async getPCFBOMListToAutoPopulate(

@@ -292,8 +292,20 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     setNewItem({ code: "", name: "", description: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
-    const basePath = currentPath.replace(/\/[^/]*$/, '');
-    navigate(`${basePath}/${tabKey}`, { replace: true });
+    const tabKeys = tabs.map(t => t.key);
+    const pathParts = currentPath.split('/').filter(Boolean);
+    const lastPart = pathParts[pathParts.length - 1];
+
+    // Check if the last part of URL is already a tab key (needs replacement)
+    // Otherwise append the tab key to current path
+    if (tabKeys.includes(lastPart)) {
+      // Replace the existing tab
+      const basePath = '/' + pathParts.slice(0, -1).join('/');
+      navigate(`${basePath}/${tabKey}`, { replace: true });
+    } else {
+      // Append the tab (no tab in URL yet)
+      navigate(`${currentPath}/${tabKey}`, { replace: true });
+    }
   };
 
   const handleExport = () => {
