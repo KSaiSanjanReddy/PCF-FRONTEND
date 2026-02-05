@@ -17,35 +17,60 @@ import {
   FileText,
   Award,
   Zap,
-  Fuel,
   Factory,
   Droplets,
   Truck,
-  Gauge,
   Layers,
-  Tag,
-  Globe,
-  Calculator,
-  Wrench,
-  Box,
-  Activity,
-  Wind,
-  Flame,
   Battery,
-  Recycle,
-  Droplet,
+  Activity,
   GaugeCircle,
-  Route,
-  Car,
-  Clock,
-  CheckCircle,
   FileCheck,
+  Leaf,
+  Database,
+  Globe,
+  Tag,
+  Clock,
+  Ruler,
+  Scale,
+  Thermometer,
+  Recycle,
+  Car,
+  Fuel,
+  Box,
 } from "lucide-react";
-import { dataSetupGroups, singleEntityPages } from "../config/dataSetupGroups";
+import {
+  dataSetupGroups,
+  masterDataSetupGroups,
+  ecoInventSetupGroups,
+} from "../config/dataSetupGroups";
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Icon mapping for master data setup groups
+  const masterDataIconMap: Record<string, any> = {
+    materials: Layers,
+    energy: Battery,
+    transport: Truck,
+    "water-waste": Droplets,
+    units: Ruler,
+    standards: FileCheck,
+    lifecycle: Activity,
+    manufacturing: Factory,
+    geography: Globe,
+    organization: Building2,
+  };
+
+  // Icon mapping for ecoinvent groups
+  const ecoInventIconMap: Record<string, any> = {
+    "materials-ef": Layers,
+    "electricity-ef": Zap,
+    "fuel-ef": Fuel,
+    "packaging-ef": Box,
+    "vehicle-ef": Car,
+    "waste-ef": Recycle,
+  };
 
   const settingsGroups = [
     {
@@ -82,9 +107,9 @@ const Settings: React.FC = () => {
       ],
     },
     {
-      title: "Data Configuration",
-      description: "Configure system data, categories, and classifications",
-      icon: Package,
+      title: "Data Setup",
+      description: "Configure core data entities with code, name, and description",
+      icon: Database,
       items: [
         {
           name: "Products",
@@ -112,41 +137,52 @@ const Settings: React.FC = () => {
           badge: null,
           cardType: "default",
         },
-        // Grouped configurations
         ...dataSetupGroups.map((group) => ({
           name: group.title,
           description: group.description,
           path: `/settings/data-setup/${group.key}/${group.tabs[0]?.key || ""}`,
           icon:
-            group.key === "emissions" ? Factory :
-            group.key === "electricity" ? Zap :
-            group.key === "energy" ? Battery :
-            group.key === "materials" ? Layers :
-            group.key === "transport" ? Truck :
-            group.key === "water-waste" ? Droplets :
-            group.key === "units" ? GaugeCircle :
-            group.key === "standards" ? FileCheck :
-            group.key === "lifecycle" ? Activity :
-            group.key === "manufacturing" ? Factory : Package,
-          badge: null,
-          cardType: "default" as const,
-        })),
-        // Single entity pages
-        ...singleEntityPages.map((page) => ({
-          name: page.title,
-          description: page.description,
-          path: page.path,
-          icon: page.key === "manufacturer" ? Factory :
-                page.key === "category" ? Tag :
-                page.key === "tag" ? Tag :
-                page.key === "supplier-tier" ? Building2 :
-                page.key === "refrigerent-type" ? Wind :
-                page.key === "country-iso-two" || page.key === "country-iso-three" ? Globe :
-                page.key === "time-zone" ? Clock : Tag,
+            group.key === "emissions"
+              ? Factory
+              : group.key === "electricity"
+              ? Zap
+              : group.key === "components"
+              ? Puzzle
+              : group.key === "products"
+              ? Package
+              : group.key === "industry"
+              ? Building2
+              : Package,
           badge: null,
           cardType: "default" as const,
         })),
       ],
+    },
+    {
+      title: "Master Data Setup",
+      description: "Configure reference data and lookup values",
+      icon: Layers,
+      items: masterDataSetupGroups.map((group) => ({
+        name: group.title,
+        description: group.description,
+        path: `/settings/master-data-setup/${group.key}/${group.tabs[0]?.key || ""}`,
+        icon: masterDataIconMap[group.key] || Tag,
+        badge: null,
+        cardType: "default" as const,
+      })),
+    },
+    {
+      title: "ECOInvent Emission Factors",
+      description: "Configure emission factors from ECOInvent database",
+      icon: Leaf,
+      items: ecoInventSetupGroups.map((group) => ({
+        name: group.title,
+        description: group.description,
+        path: `/settings/ecoinvent-setup/${group.key}/${group.tabs[0]?.key || ""}`,
+        icon: ecoInventIconMap[group.key] || Leaf,
+        badge: null,
+        cardType: "default" as const,
+      })),
     },
   ];
 
@@ -176,6 +212,14 @@ const Settings: React.FC = () => {
         item.description.toLowerCase().includes(searchQuery.toLowerCase())
     ),
   }));
+
+  // Color config - all green
+  const colors = {
+    gradient: "from-green-500 to-green-600",
+    shadow: "shadow-green-500/30",
+    border: "hover:border-green-500/30",
+    hover: "group-hover:text-green-500",
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-5">
@@ -214,11 +258,16 @@ const Settings: React.FC = () => {
           {filteredGroups.map((group) => {
             const GroupIcon = group.icon;
 
+            // Don't render section if no items match search
+            if (group.items.length === 0) return null;
+
             return (
               <div key={group.title} className="space-y-5">
                 {/* Section Header */}
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div
+                    className={`w-12 h-12 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg ${colors.shadow}`}
+                  >
                     <GroupIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
@@ -239,35 +288,39 @@ const Settings: React.FC = () => {
                     return (
                       <div
                         key={item.name}
-                        className="bg-white rounded-xl p-6 cursor-pointer transition-all duration-300 border-2 border-transparent relative overflow-hidden group hover:translate-y-[-4px] hover:shadow-xl hover:shadow-green-500/10 hover:border-green-500/30"
+                        className={`bg-white rounded-xl p-6 cursor-pointer transition-all duration-300 border-2 border-transparent relative overflow-hidden group hover:translate-y-[-4px] hover:shadow-xl hover:shadow-green-500/10 ${colors.border}`}
                         onClick={() => navigate(item.path)}
                       >
                         {/* Top border gradient on hover */}
-                        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-green-500 to-green-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+                        <div
+                          className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${colors.gradient} scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
+                        ></div>
 
                         <div className="flex items-start gap-4">
                           <div
                             className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                               item.cardType === "primary"
-                                ? "bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30"
+                                ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.shadow}`
                                 : item.cardType === "secondary"
-                                ? "bg-gradient-to-br from-green-600 to-green-700 shadow-lg shadow-green-600/25"
-                                : "bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-300 group-hover:border-green-500 group-hover:bg-gradient-to-br group-hover:from-green-500/10 group-hover:to-green-600/10"
+                                ? `bg-gradient-to-br ${colors.gradient} shadow-lg ${colors.shadow}`
+                                : `bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-300 group-hover:border-green-500 group-hover:bg-gradient-to-br group-hover:from-green-500/10 group-hover:to-green-600/10`
                             }`}
                           >
                             <ItemIcon
                               className={`w-5 h-5 transition-colors duration-300 ${
                                 item.cardType === "default"
-                                  ? "text-slate-700 group-hover:text-green-500"
+                                  ? `text-slate-700 ${colors.hover}`
                                   : "text-white"
                               }`}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-semibold text-slate-900  flex items-center gap-2">
+                            <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
                               {item.name}
                               {item.badge && (
-                                <span className="text-[10px] px-2 py-0.5 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-md font-bold">
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 bg-gradient-to-br ${colors.gradient} text-white rounded-md font-bold`}
+                                >
                                   {item.badge}
                                 </span>
                               )}
@@ -279,7 +332,9 @@ const Settings: React.FC = () => {
                         </div>
 
                         {/* Arrow Icon */}
-                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-xl transition-all duration-300 group-hover:text-green-500 group-hover:translate-x-1">
+                        <div
+                          className={`absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-xl transition-all duration-300 ${colors.hover} group-hover:translate-x-1`}
+                        >
                           <ChevronRight className="w-5 h-5" />
                         </div>
                       </div>

@@ -84,6 +84,7 @@ const ComponentsMaster: React.FC = () => {
   const [components, setComponents] = useState<ComponentItem[]>([]);
   const [flattenedData, setFlattenedData] = useState<FlattenedBOMRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<
     [string | null, string | null] | null
@@ -92,6 +93,16 @@ const ComponentsMaster: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Debounce search term - waits 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Flatten the component data to show each BOM item as a row
   const flattenComponentData = (
@@ -214,7 +225,7 @@ const ComponentsMaster: React.FC = () => {
       const result = await componentMasterService.getComponentList({
         pageNumber: currentPage,
         pageSize: pageSize,
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         fromDate: dateRange?.[0] || undefined,
         toDate: dateRange?.[1] || undefined,
         pcfStatus: statusFilter !== "all" ? statusFilter : undefined,
@@ -241,7 +252,7 @@ const ComponentsMaster: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchTerm, dateRange, statusFilter]);
+  }, [currentPage, pageSize, debouncedSearchTerm, dateRange, statusFilter]);
 
   useEffect(() => {
     fetchComponents();
@@ -657,8 +668,9 @@ const ComponentsMaster: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onPressEnter={() => {
+                  // Immediately trigger search on Enter without waiting for debounce
+                  setDebouncedSearchTerm(searchTerm);
                   setCurrentPage(1);
-                  fetchComponents();
                 }}
                 allowClear
                 className="w-[200px]"
@@ -693,7 +705,7 @@ const ComponentsMaster: React.FC = () => {
                 options={[
                   { label: "All Status", value: "all" },
                   { label: "Approved", value: "Approved" },
-                  { label: "In Progress", value: "in-progress" },
+                  { label: "In Progress", value: "In Progress" },
                   { label: "Draft", value: "null" },
                 ]}
               />
