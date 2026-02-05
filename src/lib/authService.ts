@@ -117,8 +117,8 @@ class AuthService {
 
         // Create user object
         const user: User = {
-          id: userData.user_email, // Use email as primary ID
-          userId: userData.user_id, // Store backend user_id separately
+          id: userData.user_id, // Primary ID from backend
+          userId: userData.user_id, // Explicitly keep userId for components
           name: userData.user_name,
           email: userData.user_email,
           role: userData.user_role,
@@ -170,7 +170,7 @@ class AuthService {
       if (data.status && data.data) {
         this.token = data.data.token;
         this.user = {
-          id: data.data.user_email, // Use email as primary ID
+          id: data.data.user_id, // Use UUID as primary ID
           userId: data.data.user_id, // Store backend user_id separately
           name: data.data.user_name,
           email: data.data.user_email,

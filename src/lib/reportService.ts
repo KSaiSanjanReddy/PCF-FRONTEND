@@ -28,10 +28,19 @@ class ReportService {
         };
     }
 
-    private async fetchReport(endpoint: string, pageNumber: number, pageSize: number): Promise<ReportListResponse> {
+    private async fetchReport(endpoint: string, pageNumber: number, pageSize: number, filters: Record<string, any> = {}): Promise<ReportListResponse> {
         try {
+            // Build query parameters
+            const queryParams = new URLSearchParams({
+                pageNumber: pageNumber.toString(),
+                pageSize: pageSize.toString(),
+                ...Object.fromEntries(
+                    Object.entries(filters).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+                )
+            });
+
             const response = await fetch(
-                `${API_BASE_URL}${endpoint}?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+                `${API_BASE_URL}${endpoint}?${queryParams.toString()}`,
                 {
                     method: "GET",
                     headers: this.getHeaders(),
@@ -89,16 +98,76 @@ class ReportService {
         }
     }
 
+    async getReportData(endpoint: string, pageNumber: number = 1, pageSize: number = 20, filters: Record<string, any> = {}) {
+        if (!endpoint) {
+            return {
+                success: false,
+                message: "No endpoint provided",
+                data: [],
+                current_page: 1,
+                total_pages: 1,
+                total_count: 0,
+            };
+        }
+        return this.fetchReport(endpoint, pageNumber, pageSize, filters);
+    }
+
     async getProductFootprintList(pageNumber: number = 1, pageSize: number = 20) {
-        return this.fetchReport("/api/report/product-foot-print-list", pageNumber, pageSize);
+        return this.getReportData("/api/report/product-foot-print-list", pageNumber, pageSize);
     }
 
     async getSupplierFootprintList(pageNumber: number = 1, pageSize: number = 20) {
-        return this.fetchReport("/api/report/supplier-foot-print-list", pageNumber, pageSize);
+        return this.getReportData("/api/report/supplier-foot-print-list", pageNumber, pageSize);
     }
 
     async getPackagingFootprintList(pageNumber: number = 1, pageSize: number = 20) {
-        return this.fetchReport("/api/report/packaging-foot-print-list", pageNumber, pageSize);
+        return this.getReportData("/api/report/packaging-foot-print-list", pageNumber, pageSize);
+    }
+
+    async fetchFavoriteReports(userId: string) {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/report/fetch-favorite-report?user_id=${userId}`,
+                {
+                    method: "GET",
+                    headers: this.getHeaders(),
+                }
+            );
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error("Fetch favorites error:", error);
+            return { status: false, message: "Network error", data: {} };
+        }
+    }
+
+    async upsertFavoriteReport(payload: {
+        user_id: string;
+        is_product_footprint?: boolean;
+        is_supplier_footprint?: boolean;
+        is_material_footprint?: boolean;
+        is_electricity_footprint?: boolean;
+        is_transportation_footprint?: boolean;
+        is_packaging_footprint?: boolean;
+        is_dqr_rating_footprint?: boolean;
+    }) {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/report/upsert-favorite-report`,
+                {
+                    method: "POST",
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error("Upsert favorite error:", error);
+            return { status: false, message: "Network error" };
+        }
     }
 }
 

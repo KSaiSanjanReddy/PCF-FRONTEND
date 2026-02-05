@@ -14,137 +14,101 @@ import {
   MoreVertical,
 } from "lucide-react";
 
-export interface Report {
-  id: string;
-  title: string;
-  description: string;
-  module: string;
-  type: string;
-  tag: string;
-  updatedAt: string;
-  icon: any;
-  iconColor: string;
-  moduleColor: string;
-  typeColor: string;
-  columns?: string[];
-  apiType?: "product" | "supplier" | "packaging";
-}
+import { reportsConfig } from "../config/reportsConfig";
+import { reportService } from "../lib/reportService";
+import { authService } from "../lib/authService";
+import { useEffect } from "react";
+import { message } from "antd";
 
-export const reportsData: Report[] = [
-  {
-    id: "1",
-    title: "Product Footprint",
-    description: "Detailed carbon footprint analysis for all products including raw materials and production.",
-    module: "Sustainability",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 2h ago",
-    icon: FileText,
-    iconColor: "text-blue-500 bg-blue-50",
-    moduleColor: "text-green-600 bg-green-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["SL.NO", "Supplier ID/Code", "Supplier name", "Component or Parts Name", "Manufacturer", "Weight (gms) /unit", "Total Weight (gms)", "Component Category", "Transport Mode", "Economic Ratio", "Allocation Methodology", "Raw Materials Emissions", "Production Emissions", "Packaging Emissions", "Waste Emissions", "Transportation Emissions", "PCF [kg CO2e / kg Material]"],
-    apiType: "product"
-  },
-  {
-    id: "2",
-    title: "Supplier Footprint",
-    description: "Emissions tracking across the supplier network and manufacturing regions.",
-    module: "Emissions",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 5h ago",
-    icon: FileText,
-    iconColor: "text-purple-500 bg-purple-50",
-    moduleColor: "text-orange-600 bg-orange-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["SL. No.", "Supplier ID/Code", "Supplier Name", "Manufacturing Region", "Component / Part Supplied", "Material Type", "Energy Type Used in Manufacturing", "Energy Quantity (kWh/kg)", "Recycled Content (%)", "Emission Factor", "Supplier Emission"],
-    apiType: "supplier"
-  },
-  {
-    id: "3",
-    title: "Material Footprint",
-    description: "Detailed product material breakdown and recyclability metrics.",
-    module: "Sustainability",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 1d ago",
-    icon: FileText,
-    iconColor: "text-green-500 bg-green-50",
-    moduleColor: "text-green-600 bg-green-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["SL.No", "Supplier ID/Code", "Supplier Name", "Material", "Application in Product", "Recyclability (%)", "Weight in kg", "Emission Factor (kg CO₂e/kg material)", "Emission in CO2 eq"]
-  },
-  {
-    id: "4",
-    title: "Electricity Footprint",
-    description: "Energy consumption and electricity source emissions categories.",
-    module: "Emissions",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 3h ago",
-    icon: FileText,
-    iconColor: "text-indigo-500 bg-indigo-50",
-    moduleColor: "text-orange-600 bg-orange-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["Sl.No", "Supplier ID/Code", "Supplier Name", "Electricity Source", "Energy Type", "Emission Factor (kg CO₂e/kWh)", "Emission"]
-  },
-  {
-    id: "5",
-    title: "Transportation Footprint",
-    description: "Logistics emissions categorized by transport modes and distances.",
-    module: "Emissions",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 6h ago",
-    icon: FileText,
-    iconColor: "text-teal-500 bg-teal-50",
-    moduleColor: "text-orange-600 bg-orange-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Mode / Category", "Fuel / Energy Source", "Emission Factor (kg CO₂e / tonne·km)", "Weight Goods in (tons)", "Distance (km)", "Total Emission (kg CO₂e / tonne)"]
-  },
-  {
-    id: "6",
-    title: "Packaging Footprint",
-    description: "Packaging material types and their contribution to total emissions.",
-    module: "Emissions",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 4h ago",
-    icon: FileText,
-    iconColor: "text-amber-500 bg-amber-50",
-    moduleColor: "text-orange-600 bg-orange-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Packaging Material / Type", "Type of energy used", "Recyclability (%)", "Emission Factor (kg CO₂e / kg)", "Emission @ 0.25 kg (kg CO₂e)", "Emission @ 0.5 kg (kg CO₂e)"],
-    apiType: "packaging"
-  },
-  {
-    id: "7",
-    title: "DQR Rating",
-    description: "Comprehensive data quality validation and transparency metrics.",
-    module: "Quality",
-    type: "System",
-    tag: "+",
-    updatedAt: "Updated 1h ago",
-    icon: FileText,
-    iconColor: "text-rose-500 bg-rose-50",
-    moduleColor: "text-blue-600 bg-blue-50",
-    typeColor: "text-green-600 bg-green-50",
-    columns: ["Sl. No", "Supplier ID/Code", "Supplier Name", "Data Source / Supplier", "Data Type", "Technological Representativeness (TeR)", "Geographical Representativeness (GR)", "Temporal Representativeness (TiR)", "Completeness (C)", "Reliability (R)", "Average DQR Score", "Data Quality Level (Catena-X)"]
-  },
-];
+const reportsData = reportsConfig;
+
 
 
 const Reports: React.FC = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [activeTab, setActiveTab] = useState("All Reports");
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+
+  const currentUser = authService.getCurrentUser();
+  const userId = currentUser?.userId || currentUser?.id || ""; // Dynamic from local storage via authService
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [userId]);
+
+  const fetchFavorites = async () => {
+    setLoadingFavorites(true);
+    try {
+      const resp = await reportService.fetchFavoriteReports(userId);
+      if (resp && resp.data) {
+        // Map backend keys to our config IDs
+        const favMap: Record<string, boolean> = {
+          "product-footprint": !!resp.data.is_product_footprint,
+          "supplier-footprint": !!resp.data.is_supplier_footprint,
+          "material-footprint": !!resp.data.is_material_footprint,
+          "electricity-footprint": !!resp.data.is_electricity_footprint,
+          "transportation-footprint": !!resp.data.is_transportation_footprint,
+          "packaging-footprint": !!resp.data.is_packaging_footprint,
+          "dqr-rating": !!resp.data.is_dqr_rating_footprint,
+        };
+        setFavorites(favMap);
+      }
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    } finally {
+      setLoadingFavorites(false);
+    }
+  };
+
+  const toggleFavorite = async (e: React.MouseEvent, reportId: string) => {
+    e.stopPropagation();
+    const newStatus = !favorites[reportId];
+
+    // Update local UI immediately
+    const updatedFavs = { ...favorites, [reportId]: newStatus };
+    setFavorites(updatedFavs);
+
+    try {
+      // Construct payload based on user's structure
+      const payload = {
+        user_id: userId,
+        is_product_footprint: !!updatedFavs["product-footprint"],
+        is_supplier_footprint: !!updatedFavs["supplier-footprint"],
+        is_material_footprint: !!updatedFavs["material-footprint"],
+        is_electricity_footprint: !!updatedFavs["electricity-footprint"],
+        is_transportation_footprint: !!updatedFavs["transportation-footprint"],
+        is_packaging_footprint: !!updatedFavs["packaging-footprint"],
+        is_dqr_rating_footprint: !!updatedFavs["dqr-rating"],
+      };
+
+      const resp = await reportService.upsertFavoriteReport(payload);
+      if (resp && (resp.status || resp.success)) {
+        message.success(newStatus ? "Added to favorites" : "Removed from favorites");
+      } else {
+        // Rollback on failure
+        setFavorites(favorites);
+        message.error("Failed to update favorite");
+      }
+    } catch (error) {
+      setFavorites(favorites);
+      message.error("Network error");
+    }
+  };
+
+  const filteredReports = reportsData.filter((report) => {
+    if (activeTab === "Favorites") {
+      return favorites[report.id];
+    }
+    return true;
+  });
 
   const sidebarItems = [
     { id: "All Reports", label: "All Reports", icon: BarChart3 },
     { id: "Favorites", label: "Favorites", icon: Star },
-    { id: "My Reports", label: "My Reports", icon: FileText },
-    { id: "System Reports", label: "System Reports", icon: LayoutGrid },
+    // { id: "My Reports", label: "My Reports", icon: FileText },
+    // { id: "System Reports", label: "System Reports", icon: LayoutGrid },
   ];
 
   return (
@@ -264,7 +228,7 @@ const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {reportsData.map((report) => (
+                    {filteredReports.map((report) => (
                       <tr
                         key={report.id}
                         className="hover:bg-gray-50/50 transition-colors cursor-pointer"
@@ -298,8 +262,11 @@ const Reports: React.FC = () => {
                           </button>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-green-500 transition-colors">
-                            <Star className="w-5 h-5" />
+                          <button
+                            className={`p-2 transition-colors ${favorites[report.id] ? "text-orange-400" : "text-gray-400 hover:text-orange-400"}`}
+                            onClick={(e) => toggleFavorite(e, report.id)}
+                          >
+                            <Star className={`w-5 h-5 ${favorites[report.id] ? "fill-orange-400" : ""}`} />
                           </button>
                         </td>
                       </tr>
@@ -309,7 +276,7 @@ const Reports: React.FC = () => {
               </div>
             ) : (
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reportsData.map((report) => (
+                {filteredReports.map((report) => (
                   <div
                     key={report.id}
                     className="group border border-gray-100 rounded-xl p-5 hover:border-green-200 hover:shadow-md transition-all space-y-4 cursor-pointer"
@@ -319,8 +286,11 @@ const Reports: React.FC = () => {
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${report.iconColor}`}>
                         <report.icon className="w-5 h-5" />
                       </div>
-                      <button className="p-1.5 text-gray-400 hover:text-green-500 transition-colors">
-                        <Star className="w-5 h-5" />
+                      <button
+                        className={`p-1.5 transition-colors ${favorites[report.id] ? "text-orange-400" : "text-gray-400 hover:text-orange-400"}`}
+                        onClick={(e) => toggleFavorite(e, report.id)}
+                      >
+                        <Star className={`w-5 h-5 ${favorites[report.id] ? "fill-orange-400" : ""}`} />
                       </button>
                     </div>
                     <div>
