@@ -33,6 +33,7 @@ import {
   ecoInventSetupGroups,
 } from "../config/dataSetupGroups";
 import ProtectedRoute from "../components/ProtectedRoute";
+import PermissionRoute from "../components/PermissionRoute";
 
 // New pages
 import PCFRequest from "../pages/PCFRequest";
@@ -163,71 +164,139 @@ export const router = createBrowserRouter([
       },
       {
         path: "pcf-request",
-        element: <PCFRequest />,
+        element: (
+          <PermissionRoute permissionKey="pcf request">
+            <PCFRequest />
+          </PermissionRoute>
+        ),
       },
       {
         path: "pcf-request/new",
-        element: <PCFRequestCreate />,
+        element: (
+          <PermissionRoute permissionKey="pcf request" action="create">
+            <PCFRequestCreate />
+          </PermissionRoute>
+        ),
       },
       {
         path: "pcf-request/:id",
-        element: <PCFRequestView />,
+        element: (
+          <PermissionRoute permissionKey="pcf request">
+            <PCFRequestView />
+          </PermissionRoute>
+        ),
       },
       {
         path: "pcf-request/:id/edit",
-        element: <PCFRequestEdit />,
+        element: (
+          <PermissionRoute permissionKey="pcf request" action="update">
+            <PCFRequestEdit />
+          </PermissionRoute>
+        ),
       },
       {
         path: "product-portfolio",
-        element: <AllProducts />,
+        element: (
+          <PermissionRoute permissionKey="product portfolio">
+            <AllProducts />
+          </PermissionRoute>
+        ),
       },
       {
         path: "product-portfolio/all-products",
-        element: <AllProducts />,
+        element: (
+          <PermissionRoute permissionKey="product portfolio">
+            <AllProducts />
+          </PermissionRoute>
+        ),
       },
       {
         path: "product-portfolio/new",
-        element: <ProductCreate />,
+        element: (
+          <PermissionRoute permissionKey="product portfolio" action="create">
+            <ProductCreate />
+          </PermissionRoute>
+        ),
       },
       {
         path: "product-portfolio/view/:id",
-        element: <ProductView />,
+        element: (
+          <PermissionRoute permissionKey="product portfolio">
+            <ProductView />
+          </PermissionRoute>
+        ),
       },
       {
         path: "product-portfolio/edit/:id",
-        element: <ProductEdit />,
+        element: (
+          <PermissionRoute permissionKey="product portfolio" action="update">
+            <ProductEdit />
+          </PermissionRoute>
+        ),
       },
       {
         path: "components-master",
-        element: <ComponentsMaster />,
+        element: (
+          <PermissionRoute permissionKey="component master">
+            <ComponentsMaster />
+          </PermissionRoute>
+        ),
       },
       {
         path: "components-master/view/:id",
-        element: <ComponentsMasterView />,
+        element: (
+          <PermissionRoute permissionKey="component master">
+            <ComponentsMasterView />
+          </PermissionRoute>
+        ),
       },
       {
         path: "document-master",
-        element: <DocumentMaster />,
+        element: (
+          <PermissionRoute permissionKey="document master">
+            <DocumentMaster />
+          </PermissionRoute>
+        ),
       },
       {
         path: "task-management",
-        element: <TaskManagement />,
+        element: (
+          <PermissionRoute permissionKey="task management">
+            <TaskManagement />
+          </PermissionRoute>
+        ),
       },
       {
         path: "task-management/new",
-        element: <TaskCreate />,
+        element: (
+          <PermissionRoute permissionKey="task management" action="create">
+            <TaskCreate />
+          </PermissionRoute>
+        ),
       },
       {
         path: "task-management/view/:id",
-        element: <TaskView />,
+        element: (
+          <PermissionRoute permissionKey="task management">
+            <TaskView />
+          </PermissionRoute>
+        ),
       },
       {
         path: "reports",
-        element: <ReportsMain />,
+        element: (
+          <PermissionRoute permissionKey="reports">
+            <ReportsMain />
+          </PermissionRoute>
+        ),
       },
       {
         path: "reports/:id",
-        element: <ReportView />,
+        element: (
+          <PermissionRoute permissionKey="reports">
+            <ReportView />
+          </PermissionRoute>
+        ),
       },
       {
         path: "visitor-management",
@@ -251,100 +320,166 @@ export const router = createBrowserRouter([
       },
       {
         path: "settings",
-        element: <Settings />,
+        element: (
+          <PermissionRoute permissionKey="settings">
+            <Settings />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/users",
-        element: <Users />,
+        element: (
+          <PermissionRoute permissionKey="manage users">
+            <Users />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/users/create",
-        element: <UsersCreate />,
+        element: (
+          <PermissionRoute permissionKey="create new user" action="create">
+            <UsersCreate />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/users/edit/:userId",
-        element: <UsersEdit />,
+        element: (
+          <PermissionRoute permissionKey="manage users" action="update">
+            <UsersEdit />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/manufacturer-onboarding",
-        element: <ManufacturerOnboardingForm />,
+        element: (
+          <PermissionRoute permissionKey="settings">
+            <ManufacturerOnboardingForm />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/manufacturer-onboarding/:id",
-        element: <ManufacturerOnboardingForm />,
+        element: (
+          <PermissionRoute permissionKey="settings">
+            <ManufacturerOnboardingForm />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/supplier-onboarding",
-        element: <SupplierOnboardingForm />,
+        element: (
+          <PermissionRoute permissionKey="settings">
+            <SupplierOnboardingForm />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/supplier-onboarding/:id",
-        element: <SupplierOnboardingForm />,
+        element: (
+          <PermissionRoute permissionKey="settings">
+            <SupplierOnboardingForm />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/authorizations",
-        element: <Authorizations />,
+        element: (
+          <PermissionRoute permissionKey="authorization">
+            <Authorizations />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/products/:tab?",
-        element: <Products />,
+        element: (
+          <PermissionRoute permissionKey="data configuration">
+            <Products />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/components/:tab?",
-        element: <Components />,
+        element: (
+          <PermissionRoute permissionKey="data configuration">
+            <Components />
+          </PermissionRoute>
+        ),
       },
       {
         path: "settings/industry/:tab?",
-        element: <Industry />,
+        element: (
+          <PermissionRoute permissionKey="data configuration">
+            <Industry />
+          </PermissionRoute>
+        ),
       },
       // All data setup pages (single entity or grouped with tabs)
       {
         path: "settings/data-setup/:entity",
-        element: <DataSetup />,
+        element: (
+          <PermissionRoute permissionKey="data configuration">
+            <DataSetup />
+          </PermissionRoute>
+        ),
       },
       // Tabbed data setup pages (uses /api/data-setup)
       ...dataSetupGroups.map((group) => ({
         path: `settings/data-setup/${group.key}/:tab?`,
         element: (
-          <DataSetupTabs
-            title={group.title}
-            description={group.description}
-            tabs={group.tabs}
-            defaultTab={group.tabs[0]?.key || ""}
-          />
+          <PermissionRoute permissionKey="data configuration">
+            <DataSetupTabs
+              title={group.title}
+              description={group.description}
+              tabs={group.tabs}
+              defaultTab={group.tabs[0]?.key || ""}
+            />
+          </PermissionRoute>
         ),
       })),
       // Master Data Setup pages (uses /api/master-data-setup)
       ...masterDataSetupGroups.map((group) => ({
         path: `settings/master-data-setup/${group.key}/:tab?`,
         element: (
-          <MasterDataSetupTabs
-            title={group.title}
-            description={group.description}
-            tabs={group.tabs}
-            defaultTab={group.tabs[0]?.key || ""}
-          />
+          <PermissionRoute permissionKey="master data setup">
+            <MasterDataSetupTabs
+              title={group.title}
+              description={group.description}
+              tabs={group.tabs}
+              defaultTab={group.tabs[0]?.key || ""}
+            />
+          </PermissionRoute>
         ),
       })),
       // ECOInvent Emission Factor pages (uses /api/ecoinvent-emission-factor-data-setup)
       ...ecoInventSetupGroups.map((group) => ({
         path: `settings/ecoinvent-setup/${group.key}/:tab?`,
         element: (
-          <EcoInventSetupTabs
-            title={group.title}
-            description={group.description}
-            tabs={group.tabs}
-            defaultTab={group.tabs[0]?.key || ""}
-          />
+          <PermissionRoute permissionKey="eco invent emission factors">
+            <EcoInventSetupTabs
+              title={group.title}
+              description={group.description}
+              tabs={group.tabs}
+              defaultTab={group.tabs[0]?.key || ""}
+            />
+          </PermissionRoute>
         ),
       })),
       {
         path: "data-quality-rating",
-        element: <DataQualityRatingList />,
+        element: (
+          <PermissionRoute permissionKey="data quality rating">
+            <DataQualityRatingList />
+          </PermissionRoute>
+        ),
       },
       {
         path: "data-quality-rating/view",
-        element: <DataQualityRating />,
+        element: (
+          <PermissionRoute permissionKey="data quality rating">
+            <DataQualityRating />
+          </PermissionRoute>
+        ),
       },
     ],
   },

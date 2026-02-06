@@ -23,11 +23,13 @@ import { reportsConfig, type ReportConfig } from "../config/reportsConfig";
 import { reportService } from "../lib/reportService";
 import { authService } from "../lib/authService";
 import { message } from "antd";
+import { useReportsPermissions } from "../contexts/PermissionContext";
 
 const ReportView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const report = reportsConfig.find((r) => r.id === id);
+    const { canExportReports } = useReportsPermissions();
 
     const [visibleColumns, setVisibleColumns] = useState<string[]>(report?.columns.map(c => c.header) || []);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -382,12 +384,15 @@ const ReportView: React.FC = () => {
                             <Star className={`w-4 h-4 ${isFavorite ? "text-orange-400 fill-orange-400" : "text-gray-400"}`} />
                             {isFavorite ? "Favorited" : "Add to Favorites"}
                         </button>
-                        <button
-                            onClick={handleDownloadCSV}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                            <Download className="w-5 h-5" />
-                        </button>
+                        {canExportReports && (
+                            <button
+                                onClick={handleDownloadCSV}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                                title="Export to CSV"
+                            >
+                                <Download className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
                 </div>
 

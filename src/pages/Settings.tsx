@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { usePermissions } from "../contexts/PermissionContext";
 import {
   Settings as SettingsIcon,
   Users,
@@ -47,6 +48,7 @@ import {
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { hasModuleAccess, loading: permissionsLoading } = usePermissions();
 
   // Icon mapping for master data setup groups
   const masterDataIconMap: Record<string, any> = {
@@ -77,6 +79,7 @@ const Settings: React.FC = () => {
       title: "User Management",
       description: "Manage users, permissions, and access controls",
       icon: Users,
+      permissionKey: "user management",
       items: [
         {
           name: "Manage Users",
@@ -86,6 +89,7 @@ const Settings: React.FC = () => {
           icon: Users,
           badge: null,
           cardType: "default",
+          permissionKey: "manage users",
         },
         {
           name: "Authorizations",
@@ -95,6 +99,7 @@ const Settings: React.FC = () => {
           icon: Shield,
           badge: "NEW",
           cardType: "default",
+          permissionKey: "authorization",
         },
         {
           name: "Create New User",
@@ -103,14 +108,16 @@ const Settings: React.FC = () => {
           icon: UserPlus,
           badge: null,
           cardType: "default",
+          permissionKey: "create new user",
         },
       ],
     },
     {
-      title: "Data Setup",
+      title: "Data Configuration",
       description:
         "Configure core data entities with code, name, and description",
       icon: Database,
+      permissionKey: "data configuration",
       items: [
         {
           name: "Products",
@@ -163,6 +170,7 @@ const Settings: React.FC = () => {
       title: "Master Data Setup",
       description: "Configure reference data and lookup values",
       icon: Layers,
+      permissionKey: "master data setup",
       items: masterDataSetupGroups.map((group) => ({
         name: group.title,
         description: group.description,
@@ -176,6 +184,7 @@ const Settings: React.FC = () => {
       title: "ECOInvent Emission Factors",
       description: "Configure emission factors from ECOInvent database",
       icon: Leaf,
+      permissionKey: "eco invent emission factors",
       items: ecoInventSetupGroups.map((group) => ({
         name: group.title,
         description: group.description,
@@ -205,14 +214,35 @@ const Settings: React.FC = () => {
     { label: "System Updates", icon: RefreshCw, action: () => {} },
   ];
 
-  const filteredGroups = settingsGroups.map((group) => ({
-    ...group,
-    items: group.items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()),
-    ),
-  }));
+  // Filter groups and items based on permissions and search query
+  const filteredGroups = useMemo(() => {
+    if (permissionsLoading) {
+      return [];
+    }
+
+    return settingsGroups
+      .filter((group) => {
+        // Check if user has access to the group
+        if (group.permissionKey && !hasModuleAccess(group.permissionKey)) {
+          return false;
+        }
+        return true;
+      })
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item: any) => {
+          // Check permission for item if it has a permissionKey
+          if (item.permissionKey && !hasModuleAccess(item.permissionKey)) {
+            return false;
+          }
+          // Apply search filter
+          return (
+            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.description.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }),
+      }));
+  }, [settingsGroups, searchQuery, hasModuleAccess, permissionsLoading]);
 
   // Color config - all green
   const colors = {
@@ -221,6 +251,18 @@ const Settings: React.FC = () => {
     border: "hover:border-green-500/30",
     hover: "group-hover:text-green-500",
   };
+
+  // Show loading state while permissions are loading
+  if (permissionsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-5 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+          <p className="text-gray-500">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-5">

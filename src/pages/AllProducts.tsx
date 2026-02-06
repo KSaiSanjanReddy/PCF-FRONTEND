@@ -15,19 +15,19 @@ import {
   Eye,
   Plus,
   Edit,
-  Trash2,
   Search,
   X,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import productService from "../lib/productService";
 import type { Product, ProductCategory } from "../lib/productService";
 import { usePermissions } from "../contexts/PermissionContext";
 
 const AllProducts: React.FC = () => {
   const navigate = useNavigate();
-  const { canCreate, canUpdate, canDelete } = usePermissions();
+  const { canCreate, canUpdate } = usePermissions();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -135,19 +135,6 @@ const AllProducts: React.FC = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        await productService.deleteProduct(id);
-        message.success("Product deleted successfully");
-        fetchProducts();
-      } catch (error) {
-        console.error("Error deleting product:", error);
-        message.error("Failed to delete product");
-      }
-    }
-  };
 
   // Format date helper
   const formatDate = (dateString: string | undefined): string => {
@@ -281,15 +268,6 @@ const AllProducts: React.FC = () => {
               title="Edit"
             />
           )}
-          {canDelete("Product Portfolio") && (
-            <Button
-              type="text"
-              danger
-              onClick={() => handleDelete(record.id)}
-              icon={<Trash2 size={16} className="mt-[5px]" />}
-              title="Delete"
-            />
-          )}
         </Space>
       ),
     },
@@ -352,6 +330,7 @@ const AllProducts: React.FC = () => {
                 size="large"
                 format="DD MMM YYYY"
                 placeholder={["Start Date", "End Date"]}
+                value={dateRange ? [dayjs(dateRange[0]), dayjs(dateRange[1])] : null}
                 onChange={(dates) => {
                   if (dates) {
                     setDateRange([

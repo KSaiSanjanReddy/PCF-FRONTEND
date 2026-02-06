@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin } from 'antd';
+import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin, Upload, message } from 'antd';
+import type { UploadFile, UploadProps } from 'antd';
 import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
-import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined, FileOutlined } from '@ant-design/icons';
 import type { QuestionnaireSection, QuestionnaireField, ApiDropdownType } from '../../config/questionnaireSchema';
 import questionnaireDropdownService, { type DropdownItem } from '../../lib/questionnaireDropdownService';
+import supplierQuestionnaireService from '../../lib/supplierQuestionnaireService';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -439,11 +441,78 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         );
         break;
       case 'file':
+        // Get current file key from form if exists (from draft or previous upload)
+        const currentFileKey = form.getFieldValue(field.name.split('.'));
+
+        const fileUploadProps: UploadProps = {
+          customRequest: async (options) => {
+            const { file, onSuccess, onError, onProgress } = options;
+            onProgress?.({ percent: 30 });
+
+            try {
+              const result = await supplierQuestionnaireService.uploadSupplierFile(file as File);
+              if (result.success && result.key) {
+                onProgress?.({ percent: 100 });
+                onSuccess?.({ url: result.url, key: result.key }, file as any);
+                message.success(`File uploaded successfully`);
+                // Store the file key in form
+                form.setFieldValue(field.name.split('.'), result.key);
+              } else {
+                onError?.(new Error(result.message || 'Upload failed'));
+                message.error(result.message || 'Upload failed');
+              }
+            } catch (error: any) {
+              onError?.(error);
+              message.error('Upload failed');
+            }
+          },
+          maxCount: 1,
+          accept: '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg',
+          showUploadList: false,
+        };
+
+        // Extract filename from file key
+        const getFileName = (key: string) => {
+          if (!key) return '';
+          const parts = key.split('/');
+          const fileName = parts[parts.length - 1];
+          // Remove the prefix (IMG-timestamp-uuid-)
+          const match = fileName.match(/^[A-Z]+-\d+-[a-f0-9-]+-(.+)$/);
+          return match ? match[1] : fileName;
+        };
+
         inputComponent = (
           <div>
-            <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
-              Click to Upload
-            </Button>
+            {currentFileKey ? (
+              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircleOutlined className="text-green-600" />
+                <span className="flex-1 text-sm text-gray-700 truncate" title={getFileName(currentFileKey)}>
+                  {getFileName(currentFileKey)}
+                </span>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    form.setFieldValue(field.name.split('.'), undefined);
+                    // Force re-render
+                    form.validateFields([field.name.split('.')]);
+                  }}
+                />
+                <Upload {...fileUploadProps}>
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Replace
+                  </Button>
+                </Upload>
+              </div>
+            ) : (
+              <Upload {...fileUploadProps}>
+                <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
+                  Click to Upload
+                </Button>
+              </Upload>
+            )}
             {field.placeholder && (
               <div className="text-xs text-gray-500 mt-2">{field.placeholder}</div>
             )}

@@ -2386,6 +2386,97 @@ class SupplierQuestionnaireService {
 
     return clientPayload;
   }
+
+  /**
+   * Upload supplier image or file
+   * POST /api/upload-supplier-image-or-file
+   */
+  async uploadSupplierFile(file: File): Promise<{
+    success: boolean;
+    message?: string;
+    url?: string;
+    key?: string;
+  }> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/upload-supplier-image-or-file`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: authService.getToken() || "",
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status) {
+        return {
+          success: true,
+          message: data.message || "Uploaded successfully",
+          url: data.url,
+          key: data.key,
+        };
+      }
+
+      return {
+        success: false,
+        message: data.message || "Upload failed",
+      };
+    } catch (error) {
+      console.error("Error uploading supplier file:", error);
+      return {
+        success: false,
+        message: "An error occurred while uploading file",
+      };
+    }
+  }
+
+  /**
+   * Fetch supplier file by key
+   * GET /api/get-image?key=...
+   */
+  async fetchSupplierFile(fileKey: string): Promise<{
+    success: boolean;
+    url?: string;
+    message?: string;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/get-image?key=${encodeURIComponent(fileKey)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: authService.getToken() || "",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status) {
+        return {
+          success: true,
+          url: data.url,
+        };
+      }
+
+      return {
+        success: false,
+        message: data.message || "Failed to fetch file",
+      };
+    } catch (error) {
+      console.error("Error fetching supplier file:", error);
+      return {
+        success: false,
+        message: "An error occurred while fetching file",
+      };
+    }
+  }
 }
 
 export const supplierQuestionnaireService = new SupplierQuestionnaireService();

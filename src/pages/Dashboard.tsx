@@ -27,6 +27,8 @@ import {
   DashboardHeader,
   ChartModal
 } from "../components/DashboardComponents";
+import { useDashboardPermissions } from "../contexts/PermissionContext";
+import Welcome from "./Welcome";
 
 const productLifeCycleData = [
   { name: "Material", value: 850 },
@@ -106,6 +108,24 @@ const pcfTrendData = [
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
+  const { canViewDashboard, loading: permissionsLoading } = useDashboardPermissions();
+
+  // Show loading state while permissions are being checked
+  if (permissionsLoading) {
+    return (
+      <div className="flex-1 overflow-auto bg-[#F8F9FA] p-8 pt-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show Welcome page if user doesn't have dashboard access
+  if (!canViewDashboard) {
+    return <Welcome />;
+  }
 
   const renderProductLifeCycle = () => (
     <ResponsiveContainer width="100%" height="100%">

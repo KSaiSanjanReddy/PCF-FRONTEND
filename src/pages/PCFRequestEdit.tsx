@@ -194,8 +194,8 @@ const PCFRequestEdit: React.FC = () => {
       .map((f: any) => f.fileKey);
 
     return {
-      bom_pcf_id: id,
       bom_pcf_request: {
+        id: id,
         request_title: formData.title || "",
         priority: formData.priority || "Medium",
         request_organization: formData.organization || "",
@@ -244,8 +244,8 @@ const PCFRequestEdit: React.FC = () => {
 
       // Build payload with merged data
       const payload = {
-        bom_pcf_id: id,
         bom_pcf_request: {
+          id: id,
           request_title: mergedData.title || "",
           priority: mergedData.priority || "Medium",
           request_organization: mergedData.organization || "",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
@@ -38,6 +38,7 @@ import {
 import { menuItems } from "../config/menu";
 import { cn } from "../lib/utils";
 import type { MenuItem } from "../types";
+import { usePermissions } from "../contexts/PermissionContext";
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -85,6 +86,49 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasModuleAccess, loading: permissionsLoading } = usePermissions();
+
+  // Filter menu items based on permissions
+  const filteredMenuItems = useMemo(() => {
+    // If permissions are still loading, show nothing to prevent flash
+    if (permissionsLoading) {
+      console.log("[Sidebar] Permissions loading, showing skeleton");
+      return [];
+    }
+
+    const filterItems = (items: MenuItem[]): MenuItem[] => {
+      return items.filter((item) => {
+        // If no permissionKey, always show (for backwards compatibility)
+        if (!item.permissionKey) {
+          return true;
+        }
+
+        // Check if user has read access to this module
+        const hasAccess = hasModuleAccess(item.permissionKey);
+        console.log(`[Sidebar] "${item.title}" (${item.permissionKey}) -> hasAccess=${hasAccess}`);
+
+        // If item has children, filter them too
+        if (item.children && item.children.length > 0) {
+          const filteredChildren = filterItems(item.children);
+          // Only show parent if at least one child is accessible
+          return filteredChildren.length > 0 || hasAccess;
+        }
+
+        return hasAccess;
+      }).map((item) => {
+        // If item has children, filter them
+        if (item.children && item.children.length > 0) {
+          return {
+            ...item,
+            children: filterItems(item.children),
+          };
+        }
+        return item;
+      });
+    };
+
+    return filterItems(menuItems);
+  }, [hasModuleAccess, permissionsLoading]);
 
   const toggleExpanded = (itemId: string) => {
     if (isMinimized) return; // Don't expand when minimized
@@ -323,7 +367,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               : "px-4 py-4 space-y-1 overflow-auto"
           )}
         >
-          {menuItems.map((item) => renderMenuItem(item))}
+          {permissionsLoading ? (
+            // Loading skeleton
+            <div className="space-y-2 px-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="h-10 bg-slate-800 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            filteredMenuItems.map((item) => renderMenuItem(item))
+          )}
         </nav>
 
         {/* Footer */}
