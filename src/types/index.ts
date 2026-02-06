@@ -14,6 +14,8 @@ export interface MenuItem {
   path: string;
   icon: string;
   children?: MenuItem[];
+  // Permission key for access control - maps to module name in permissions API
+  permissionKey?: string;
 }
 
 // Backend user structure

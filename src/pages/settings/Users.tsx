@@ -406,7 +406,7 @@ const UsersPage: React.FC = () => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...(token ? { Authorization: token } : {}),
             },
             body: JSON.stringify({ user_id: userId }),
           }
@@ -670,11 +670,11 @@ const UsersPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-4">
-            <div className="flex-1 flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-3">
               <Select
                 value={filters.searchColumn}
                 onChange={(value) => handleFilterChange("searchColumn", value)}
-                className="w-[120px]"
+                className="min-w-[140px]"
                 size="large"
               >
                 {SEARCH_COLUMNS.map((col) => (
@@ -719,30 +719,32 @@ const UsersPage: React.FC = () => {
 
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">Role</label>
                   <Select
-                    value={filters.role}
-                    onChange={(value) => handleFilterChange("role", value)}
+                    value={filters.role || undefined}
+                    onChange={(value) => handleFilterChange("role", value || "")}
                     className="w-full"
-                    placeholder="Select role"
+                    placeholder="All Roles"
                     allowClear
+                    size="large"
                   >
-                    {ROLES.map((role) => (
+                    {ROLES.filter(role => role.value).map((role) => (
                       <Option key={role.value} value={role.value}>
                         {role.label}
                       </Option>
                     ))}
                   </Select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    <Calendar className="inline w-3 h-3 mr-1" />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    <Calendar className="inline w-4 h-4 mr-1.5 text-gray-500" />
                     Date Range
                   </label>
                   <RangePicker
                     className="w-full"
+                    size="large"
                     value={
                       filters.fromDate && filters.toDate
                         ? [dayjs(filters.fromDate), dayjs(filters.toDate)]
@@ -750,19 +752,21 @@ const UsersPage: React.FC = () => {
                     }
                     onChange={handleDateRangeChange}
                     format="YYYY-MM-DD"
+                    placeholder={["Start Date", "End Date"]}
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    <ArrowUpDown className="inline w-3 h-3 mr-1" />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    <ArrowUpDown className="inline w-4 h-4 mr-1.5 text-gray-500" />
                     Sort By
                   </label>
                   <Select
-                    value={filters.sortBy}
-                    onChange={(value) => handleFilterChange("sortBy", value)}
+                    value={filters.sortBy || undefined}
+                    onChange={(value) => handleFilterChange("sortBy", value || "")}
                     className="w-full"
                     placeholder="Select field"
                     allowClear
+                    size="large"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <Option key={opt.value} value={opt.value}>
@@ -771,12 +775,13 @@ const UsersPage: React.FC = () => {
                     ))}
                   </Select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Sort Order</label>
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-700">Sort Order</label>
                   <Select
                     value={filters.sortOrder}
                     onChange={(value) => handleFilterChange("sortOrder", value)}
                     className="w-full"
+                    size="large"
                     disabled={!filters.sortBy}
                   >
                     <Option value="asc">Ascending</Option>
@@ -784,17 +789,17 @@ const UsersPage: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-3 mt-4">
+              <div className="flex items-center justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
                 <button
                   onClick={handleResetFilters}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors font-medium"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Reset
                 </button>
                 <button
                   onClick={handleApplyFilters}
-                  className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium shadow-lg shadow-green-600/20"
                 >
                   <Search className="h-4 w-4" />
                   Apply Filters
@@ -857,7 +862,7 @@ const UsersPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
-                        {canUpdate("Users") && (
+                        {canUpdate("manage users") && (
                           <Link
                             to={`/settings/users/edit/${user.user_id}`}
                             className="text-gray-500 hover:text-green-600 p-2 rounded-lg hover:bg-green-50 transition-colors"
@@ -866,7 +871,7 @@ const UsersPage: React.FC = () => {
                             <Edit className="h-5 w-5" />
                           </Link>
                         )}
-                        {canDelete("Users") && (
+                        {canDelete("manage users") && (
                           <button
                             className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
                             onClick={() => handleDeleteUser(user.user_id)}
@@ -1494,7 +1499,7 @@ const UsersPage: React.FC = () => {
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 <span>Refresh</span>
               </button>
-              {activeTab === "enviguide" && canCreate("Users") && (
+              {activeTab === "enviguide" && canCreate("manage users") && (
                 <Link
                   to="/settings/users/create"
                   className="bg-green-600 text-white px-5 py-2.5 rounded-xl hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-600/20 transition-colors"

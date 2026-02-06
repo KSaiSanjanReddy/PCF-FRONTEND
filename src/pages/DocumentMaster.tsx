@@ -73,12 +73,23 @@ const DocumentMaster: React.FC = () => {
         pageSize,
       );
       if (result.status && result.data) {
-        setDocuments(result.data.data);
-        setPagination({
-          current: result.data.page,
-          pageSize: result.data.pageSize,
-          total: result.data.totalCount,
-        });
+        setDocuments(result.data.data || []);
+        // Handle pagination from result.data.pagination
+        const paginationData = result.data.pagination;
+        if (paginationData) {
+          setPagination({
+            current: paginationData.page || page,
+            pageSize: paginationData.limit || pageSize,
+            total: paginationData.total || 0,
+          });
+        } else {
+          // Fallback to old structure
+          setPagination({
+            current: result.data.page || page,
+            pageSize: result.data.pageSize || pageSize,
+            total: result.data.totalCount || 0,
+          });
+        }
         // Set stats from API response
         if (result.data.stats) {
           setApiStats(result.data.stats);

@@ -1,5 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { Upload, Button, message } from "antd";
+import type { UploadFile, UploadProps } from "antd";
+import { UploadOutlined, DeleteOutlined, FileOutlined } from "@ant-design/icons";
 import type { SupplierQuestionnaireData } from "../../lib/supplierQuestionnaireService";
+import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
 import { QUESTIONNAIRE_OPTIONS } from "../../config/questionnaireConfig";
 
 interface ProductDetailsProps {
@@ -7,9 +11,71 @@ interface ProductDetailsProps {
   updateData: (data: Partial<SupplierQuestionnaireData["product_details"]>) => void;
 }
 
+// Helper to extract filename from file key
+const getFileNameFromKey = (key: string): string => {
+  if (!key) return 'File';
+  const parts = key.split('/');
+  const fileName = parts[parts.length - 1];
+  // Remove the prefix (IMG-timestamp-uuid-)
+  const match = fileName.match(/^[A-Z]+-\d+-[a-f0-9-]+-(.+)$/);
+  return match ? match[1] : fileName;
+};
+
 const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+
+  // Sync uploadedFiles state when data.pcf_report_file changes (e.g., from localStorage draft)
+  useEffect(() => {
+    const files = (data.pcf_report_file || []).map((key: string, index: number) => ({
+      uid: `pcf-${index}-${key}`,
+      name: getFileNameFromKey(key),
+      status: "done" as const,
+      url: key,
+    }));
+    setUploadedFiles(files);
+  }, [data.pcf_report_file]);
+
   const handleChange = (field: keyof SupplierQuestionnaireData["product_details"], value: any) => {
     updateData({ ...data, [field]: value });
+  };
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const result = await supplierQuestionnaireService.uploadSupplierFile(file);
+      if (result.success && result.key) {
+        const newFile: UploadFile = {
+          uid: `pcf-${Date.now()}`,
+          name: file.name,
+          status: "done",
+          url: result.key,
+        };
+        const newFiles = [...uploadedFiles, newFile];
+        setUploadedFiles(newFiles);
+        // Store file keys in data
+        updateData({
+          ...data,
+          pcf_report_file: newFiles.map((f) => f.url as string),
+        });
+        message.success(`${file.name} uploaded successfully`);
+      } else {
+        message.error(result.message || "Upload failed");
+      }
+    } catch (error) {
+      message.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveFile = (file: UploadFile) => {
+    const newFiles = uploadedFiles.filter((f) => f.uid !== file.uid);
+    setUploadedFiles(newFiles);
+    updateData({
+      ...data,
+      pcf_report_file: newFiles.map((f) => f.url as string),
+    });
   };
 
   // Production Site Details Helpers
@@ -110,22 +176,46 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Upload PCF Report</label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                      <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PDF, DOC up to 10MB</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Upload PCF Report</label>
+              <Upload.Dragger
+                customRequest={({ file }) => handleFileUpload(file as File)}
+                showUploadList={false}
+                accept=".pdf,.doc,.docx"
+                disabled={uploading}
+                className="!border-2 !border-dashed !border-gray-300 !rounded-md hover:!border-green-400"
+              >
+                <div className="py-4">
+                  <UploadOutlined className="text-3xl text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">
+                    <span className="text-green-600 font-medium">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">PDF, DOC up to 10MB</p>
                 </div>
-              </div>
+              </Upload.Dragger>
+
+              {/* Uploaded Files List */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {uploadedFiles.map((file) => (
+                    <div
+                      key={file.uid}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileOutlined className="text-green-600" />
+                        <span className="text-sm text-gray-700">{file.name}</span>
+                      </div>
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveFile(file)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -40,6 +40,22 @@ interface TaskManagementItem {
   progress: number;
 }
 
+// Predefined category options - add more as needed
+const CATEGORY_OPTIONS = [
+  { label: "All Categories", value: "all" },
+  { label: "PCF", value: "PCF" },
+  { label: "LCA", value: "LCA" },
+  { label: "DQR", value: "DQR" },
+  { label: "General", value: "General" },
+];
+
+const PRIORITY_OPTIONS = [
+  { label: "All Priorities", value: "all" },
+  { label: "Low", value: "Low" },
+  { label: "Medium", value: "Medium" },
+  { label: "High", value: "High" },
+];
+
 const TaskManagement: React.FC = () => {
   const { canCreate, canDelete } = usePermissions();
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,6 +67,9 @@ const TaskManagement: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [assigneeOptions, setAssigneeOptions] = useState<{ label: string; value: string }[]>([
+    { label: "All Assignees", value: "all" },
+  ]);
   const navigate = useNavigate();
   // Helper function to format date
   const formatDate = (dateString: string): string => {
@@ -84,9 +103,9 @@ const TaskManagement: React.FC = () => {
     setIsLoading(true);
     try {
       const result = await taskService.getTaskList(currentPage, pageSize, {
-        priority: priorityFilter,
-        assignee: assigneeFilter,
-        category: categoryFilter,
+        priority: priorityFilter !== "all" ? priorityFilter : undefined,
+        assignee: assigneeFilter !== "all" ? assigneeFilter : undefined,
+        category: categoryFilter !== "all" ? categoryFilter : undefined,
       });
 
       if (result.success && result.data) {
@@ -106,7 +125,7 @@ const TaskManagement: React.FC = () => {
               "In Progress": "In Progress",
               "Completed": "Completed",
             };
-            
+
             return {
               id: item.id,
               taskName: item.task_title || "N/A",
@@ -123,6 +142,20 @@ const TaskManagement: React.FC = () => {
         setTasks(transformedData);
         setTotalCount(result.total_count || 0);
         setTotalPages(result.total_pages || 1);
+
+        // Collect unique assignees for filter dropdown (only on first load without filters)
+        if (priorityFilter === "all" && assigneeFilter === "all" && categoryFilter === "all") {
+          const uniqueAssigneeNames = Array.from(
+            new Set(result.data.flatMap((item) =>
+              item.assigned_entities?.map((entity) => entity.name) || []
+            ))
+          ).filter(Boolean);
+
+          setAssigneeOptions([
+            { label: "All Assignees", value: "all" },
+            ...uniqueAssigneeNames.map((name) => ({ label: name, value: name })),
+          ]);
+        }
       } else {
         message.error(result.message || "Failed to fetch tasks");
         setTasks([]);
@@ -149,13 +182,21 @@ const TaskManagement: React.FC = () => {
     completed: tasks.filter((item) => item.status === "Completed").length,
   };
 
-  // Get unique assignees and categories for filters
-  const uniqueAssignees = Array.from(
-    new Set(tasks.map((task) => task.assignee))
-  );
-  const uniqueCategories = Array.from(
-    new Set(tasks.map((task) => task.category))
-  );
+  // Handle filter changes - reset to page 1
+  const handlePriorityChange = (value: string) => {
+    setPriorityFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleAssigneeChange = (value: string) => {
+    setAssigneeFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setCurrentPage(1);
+  };
 
   const getStatusTag = (status: string) => {
     const statusConfig = {
@@ -390,45 +431,38 @@ const TaskManagement: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
               <Space wrap>
                 <Select
-                  defaultValue="All Priorities"
+                  placeholder="All Priorities"
                   className="w-[140px]"
                   size="large"
                   value={priorityFilter}
-                  onChange={(value) => setPriorityFilter(value)}
-                  options={[
-                    { label: "All Priorities", value: "all" },
-                    { label: "Low", value: "low" },
-                    { label: "Medium", value: "medium" },
-                    { label: "High", value: "high" },
-                  ]}
+                  onChange={handlePriorityChange}
+                  options={PRIORITY_OPTIONS}
+                  allowClear
+                  onClear={() => handlePriorityChange("all")}
                 />
                 <Select
-                  defaultValue="All Assignees"
-                  className="w-[140px]"
+                  placeholder="All Assignees"
+                  className="w-[160px]"
                   size="large"
                   value={assigneeFilter}
-                  onChange={(value) => setAssigneeFilter(value)}
-                  options={[
-                    { label: "All Assignees", value: "all" },
-                    ...uniqueAssignees.map((assignee) => ({
-                      label: assignee,
-                      value: assignee,
-                    })),
-                  ]}
+                  onChange={handleAssigneeChange}
+                  options={assigneeOptions}
+                  allowClear
+                  onClear={() => handleAssigneeChange("all")}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
                 />
                 <Select
-                  defaultValue="All Categories"
+                  placeholder="All Categories"
                   className="w-[150px]"
                   size="large"
                   value={categoryFilter}
-                  onChange={(value) => setCategoryFilter(value)}
-                  options={[
-                    { label: "All Categories", value: "all" },
-                    ...uniqueCategories.map((category) => ({
-                      label: category,
-                      value: category,
-                    })),
-                  ]}
+                  onChange={handleCategoryChange}
+                  options={CATEGORY_OPTIONS}
+                  allowClear
+                  onClear={() => handleCategoryChange("all")}
                 />
                 {canCreate("Task Management") && (
                   <Button

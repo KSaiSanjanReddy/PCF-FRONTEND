@@ -309,13 +309,24 @@ class AuthorizationService {
     message: string;
   }> {
     try {
+      const token = localStorage.getItem("token");
+
+      // Debug: Log what we're sending to the API
+      console.log("[AuthService] Updating permissions - payload:", JSON.stringify(permissions, null, 2));
+
       const response = await fetch(`${API_BASE_URL}/api/user/permission/update`, {
         method: "POST",
-        headers: this.getAuthHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: token } : {}),
+        },
         body: JSON.stringify(permissions),
       });
 
       const data = await response.json();
+
+      // Debug: Log the response
+      console.log("[AuthService] Update response:", data);
 
       return {
         success: data.status || false,

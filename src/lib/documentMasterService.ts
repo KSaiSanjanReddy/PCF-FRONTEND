@@ -67,6 +67,11 @@ export interface DocumentListResponse {
     totalCount: number;
     data: PCFDocumentItem[];
     stats?: DocumentStats;
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+    };
   };
 }
 

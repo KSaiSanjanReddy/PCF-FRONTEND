@@ -42,10 +42,10 @@ interface ModuleWithPermissions {
   expanded?: boolean;
 }
 
-type TabKey = "roles" | "by-role" | "by-user";
+type TabKey = "roles" | "by-user";
 
 const AuthorizationsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>("roles");
+  const [activeTab, setActiveTab] = useState<TabKey>("by-user");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,6 +66,7 @@ const AuthorizationsPage: React.FC = () => {
   const [users, setUsers] = useState<BackendUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [usersLoading, setUsersLoading] = useState(false);
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("");
 
   // Modules & Permissions
   const [modules, setModules] = useState<ModuleWithPermissions[]>([]);
@@ -102,7 +103,7 @@ const AuthorizationsPage: React.FC = () => {
     }
   }, [roleSearch]);
 
-  // Load users
+  // Load all users
   const loadUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
@@ -119,6 +120,36 @@ const AuthorizationsPage: React.FC = () => {
     } catch (error) {
       console.error("Error loading users:", error);
       message.error("Failed to load users");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  // Load users by role using the new API
+  const loadUsersByRole = useCallback(async (roleName: string) => {
+    try {
+      setUsersLoading(true);
+      const response = await fetch(
+        `https://enviguide.nextechltd.in/api/users/by-role?user_role=${encodeURIComponent(roleName)}`
+      );
+      const data = await response.json();
+
+      if (data.status && Array.isArray(data.data)) {
+        // Map the response to match our BackendUser structure
+        const mappedUsers: BackendUser[] = data.data.map((u: { user_id: string; user_name: string; user_role: string }) => ({
+          user_id: u.user_id,
+          user_name: u.user_name,
+          user_role: u.user_role,
+          user_email: "", // Not returned by this API
+        }));
+        setUsers(mappedUsers);
+      } else {
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Error loading users by role:", error);
+      message.error("Failed to load users by role");
+      setUsers([]);
     } finally {
       setUsersLoading(false);
     }
@@ -157,6 +188,9 @@ const AuthorizationsPage: React.FC = () => {
       const result = await authorizationService.getPermissionsByUserId(userId);
 
       if (result.success) {
+        // Debug: Log the raw API response to check permission_id presence
+        console.log("[Permissions] Raw API response:", JSON.stringify(result.data, null, 2));
+
         // Store hierarchical permissions directly from API
         setUserPermissions(result.data as unknown as MainModulePermission[]);
         setOriginalPermissions(result.data);
@@ -401,7 +435,7 @@ const AuthorizationsPage: React.FC = () => {
     setExpandedModules(new Set());
   };
 
-  // Handle permission change for hierarchical structure - NO cascading for individual fields
+  // Handle permission change for hierarchical structure - CASCADE to children for all fields
   const handleHierarchicalPermissionChange = (
     permissionId: string,
     field: "create" | "read" | "update" | "delete" | "print" | "export" | "send" | "all",
@@ -414,7 +448,7 @@ const AuthorizationsPage: React.FC = () => {
 
     setUserPermissions((prevPermissions) =>
       prevPermissions.map((mainModule) => {
-        // Main module level
+        // Main module level - cascade to all children
         if (level === "main" && mainModule.main_module_id === mainModuleId) {
           const updatedMain = { ...mainModule };
 
@@ -451,15 +485,41 @@ const AuthorizationsPage: React.FC = () => {
               })),
             }));
           } else {
-            // Individual field - only update this module, no cascading
+            // Individual field - cascade to all children
             updatedMain[field] = value;
+            updatedMain.modules = mainModule.modules.map((mod) => ({
+              ...mod,
+              [field]: value,
+              all: (
+                (field === "create" ? value : mod.create) &&
+                (field === "read" ? value : mod.read) &&
+                (field === "update" ? value : mod.update) &&
+                (field === "delete" ? value : mod.delete) &&
+                (field === "print" ? value : mod.print) &&
+                (field === "export" ? value : mod.export) &&
+                (field === "send" ? value : mod.send)
+              ),
+              submodules: mod.submodules.map((sub) => ({
+                ...sub,
+                [field]: value,
+                all: (
+                  (field === "create" ? value : sub.create) &&
+                  (field === "read" ? value : sub.read) &&
+                  (field === "update" ? value : sub.update) &&
+                  (field === "delete" ? value : sub.delete) &&
+                  (field === "print" ? value : sub.print) &&
+                  (field === "export" ? value : sub.export) &&
+                  (field === "send" ? value : sub.send)
+                ),
+              })),
+            }));
             // Check if all individual permissions are true to set "all"
-            updatedMain.all = updatedMain.create && updatedMain.read && updatedMain.update && updatedMain.delete;
+            updatedMain.all = updatedMain.create && updatedMain.read && updatedMain.update && updatedMain.delete && updatedMain.print && updatedMain.export && updatedMain.send;
           }
           return updatedMain;
         }
 
-        // Module level (under a main module)
+        // Module level (under a main module) - cascade to submodules
         if (level === "module" && mainModule.main_module_id === mainModuleId) {
           return {
             ...mainModule,
@@ -489,9 +549,22 @@ const AuthorizationsPage: React.FC = () => {
                     all: value,
                   }));
                 } else {
-                  // Individual field - only update this module
+                  // Individual field - cascade to submodules
                   updatedMod[field] = value;
-                  updatedMod.all = updatedMod.create && updatedMod.read && updatedMod.update && updatedMod.delete;
+                  updatedMod.submodules = mod.submodules.map((sub) => ({
+                    ...sub,
+                    [field]: value,
+                    all: (
+                      (field === "create" ? value : sub.create) &&
+                      (field === "read" ? value : sub.read) &&
+                      (field === "update" ? value : sub.update) &&
+                      (field === "delete" ? value : sub.delete) &&
+                      (field === "print" ? value : sub.print) &&
+                      (field === "export" ? value : sub.export) &&
+                      (field === "send" ? value : sub.send)
+                    ),
+                  }));
+                  updatedMod.all = updatedMod.create && updatedMod.read && updatedMod.update && updatedMod.delete && updatedMod.print && updatedMod.export && updatedMod.send;
                 }
                 return updatedMod;
               }
@@ -500,7 +573,7 @@ const AuthorizationsPage: React.FC = () => {
           };
         }
 
-        // Submodule level
+        // Submodule level - no children to cascade to
         if (level === "submodule" && mainModule.main_module_id === mainModuleId) {
           return {
             ...mainModule,
@@ -523,7 +596,7 @@ const AuthorizationsPage: React.FC = () => {
                         updatedSub.all = value;
                       } else {
                         updatedSub[field] = value;
-                        updatedSub.all = updatedSub.create && updatedSub.read && updatedSub.update && updatedSub.delete;
+                        updatedSub.all = updatedSub.create && updatedSub.read && updatedSub.update && updatedSub.delete && updatedSub.print && updatedSub.export && updatedSub.send;
                       }
                       return updatedSub;
                     }
@@ -555,55 +628,63 @@ const AuthorizationsPage: React.FC = () => {
       const permissionsToUpdate: any[] = [];
 
       userPermissions.forEach((mainModule) => {
-        // Add main module permission
-        permissionsToUpdate.push({
-          permission_id: mainModule.permission_id,
-          user_id: mainModule.user_id,
-          module_name: mainModule.main_module_name,
-          create: mainModule.create,
-          update: mainModule.update,
-          delete: mainModule.delete,
-          read: mainModule.read,
-          print: mainModule.print,
-          export: mainModule.export,
-          send: mainModule.send,
-          all: mainModule.all,
-        });
+        // Add main module permission - only if permission_id exists
+        if (mainModule.permission_id) {
+          permissionsToUpdate.push({
+            permission_id: mainModule.permission_id,
+            user_id: mainModule.user_id || selectedUser,
+            module_name: mainModule.main_module_name,
+            create: mainModule.create,
+            update: mainModule.update,
+            delete: mainModule.delete,
+            read: mainModule.read,
+            print: mainModule.print,
+            export: mainModule.export,
+            send: mainModule.send,
+            all: mainModule.all,
+          });
+        }
 
         // Add module permissions
         mainModule.modules.forEach((mod) => {
-          permissionsToUpdate.push({
-            permission_id: mod.permission_id,
-            user_id: mod.user_id,
-            module_name: mod.module_name,
-            create: mod.create,
-            update: mod.update,
-            delete: mod.delete,
-            read: mod.read,
-            print: mod.print,
-            export: mod.export,
-            send: mod.send,
-            all: mod.all,
-          });
+          if (mod.permission_id) {
+            permissionsToUpdate.push({
+              permission_id: mod.permission_id,
+              user_id: mod.user_id || selectedUser,
+              module_name: mod.module_name,
+              create: mod.create,
+              update: mod.update,
+              delete: mod.delete,
+              read: mod.read,
+              print: mod.print,
+              export: mod.export,
+              send: mod.send,
+              all: mod.all,
+            });
+          }
 
           // Add submodule permissions
           mod.submodules.forEach((sub) => {
-            permissionsToUpdate.push({
-              permission_id: sub.permission_id,
-              user_id: sub.user_id,
-              module_name: sub.submodule_name,
-              create: sub.create,
-              update: sub.update,
-              delete: sub.delete,
-              read: sub.read,
-              print: sub.print,
-              export: sub.export,
-              send: sub.send,
-              all: sub.all,
-            });
+            if (sub.permission_id) {
+              permissionsToUpdate.push({
+                permission_id: sub.permission_id,
+                user_id: sub.user_id || selectedUser,
+                module_name: sub.submodule_name,
+                create: sub.create,
+                update: sub.update,
+                delete: sub.delete,
+                read: sub.read,
+                print: sub.print,
+                export: sub.export,
+                send: sub.send,
+                all: sub.all,
+              });
+            }
           });
         });
       });
+
+      console.log("[Permissions] Updating permissions:", permissionsToUpdate);
 
       const result = await authorizationService.updatePermissions(permissionsToUpdate);
 
@@ -1073,22 +1154,31 @@ const AuthorizationsPage: React.FC = () => {
         <table className="min-w-full">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-2/5">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[250px]">
                 Module
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Create
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Read
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Update
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 Delete
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-[12%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Print
+              </th>
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Export
+              </th>
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Send
+              </th>
+              <th className="px-3 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <span className="text-green-600">All</span>
               </th>
             </tr>
@@ -1131,7 +1221,7 @@ const AuthorizationsPage: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="px-3 py-4 text-center">
                       <Checkbox
                         checked={mainModule.create}
                         onChange={(e) =>
@@ -1145,7 +1235,7 @@ const AuthorizationsPage: React.FC = () => {
                         }
                       />
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="px-3 py-4 text-center">
                       <Checkbox
                         checked={mainModule.read}
                         onChange={(e) =>
@@ -1159,7 +1249,7 @@ const AuthorizationsPage: React.FC = () => {
                         }
                       />
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="px-3 py-4 text-center">
                       <Checkbox
                         checked={mainModule.update}
                         onChange={(e) =>
@@ -1173,7 +1263,7 @@ const AuthorizationsPage: React.FC = () => {
                         }
                       />
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="px-3 py-4 text-center">
                       <Checkbox
                         checked={mainModule.delete}
                         onChange={(e) =>
@@ -1187,7 +1277,49 @@ const AuthorizationsPage: React.FC = () => {
                         }
                       />
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="px-3 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.print}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "print",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.export}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "export",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-4 text-center">
+                      <Checkbox
+                        checked={mainModule.send}
+                        onChange={(e) =>
+                          handleHierarchicalPermissionChange(
+                            mainModule.permission_id,
+                            "send",
+                            e.target.checked,
+                            "main",
+                            mainModule.main_module_id
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-4 text-center">
                       <Checkbox
                         checked={mainModule.all}
                         onChange={(e) =>
@@ -1244,7 +1376,7 @@ const AuthorizationsPage: React.FC = () => {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 py-3 text-center">
                               <Checkbox
                                 checked={mod.create}
                                 onChange={(e) =>
@@ -1258,7 +1390,7 @@ const AuthorizationsPage: React.FC = () => {
                                 }
                               />
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 py-3 text-center">
                               <Checkbox
                                 checked={mod.read}
                                 onChange={(e) =>
@@ -1272,7 +1404,7 @@ const AuthorizationsPage: React.FC = () => {
                                 }
                               />
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 py-3 text-center">
                               <Checkbox
                                 checked={mod.update}
                                 onChange={(e) =>
@@ -1286,7 +1418,7 @@ const AuthorizationsPage: React.FC = () => {
                                 }
                               />
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 py-3 text-center">
                               <Checkbox
                                 checked={mod.delete}
                                 onChange={(e) =>
@@ -1300,7 +1432,49 @@ const AuthorizationsPage: React.FC = () => {
                                 }
                               />
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-3 py-3 text-center">
+                              <Checkbox
+                                checked={mod.print}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "print",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <Checkbox
+                                checked={mod.export}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "export",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <Checkbox
+                                checked={mod.send}
+                                onChange={(e) =>
+                                  handleHierarchicalPermissionChange(
+                                    mod.permission_id,
+                                    "send",
+                                    e.target.checked,
+                                    "module",
+                                    mainModule.main_module_id
+                                  )
+                                }
+                              />
+                            </td>
+                            <td className="px-3 py-3 text-center">
                               <Checkbox
                                 checked={mod.all}
                                 onChange={(e) =>
@@ -1331,7 +1505,7 @@ const AuthorizationsPage: React.FC = () => {
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-2.5 text-center">
+                                <td className="px-3 py-2.5 text-center">
                                   <Checkbox
                                     checked={sub.create}
                                     onChange={(e) =>
@@ -1346,7 +1520,7 @@ const AuthorizationsPage: React.FC = () => {
                                     }
                                   />
                                 </td>
-                                <td className="px-4 py-2.5 text-center">
+                                <td className="px-3 py-2.5 text-center">
                                   <Checkbox
                                     checked={sub.read}
                                     onChange={(e) =>
@@ -1361,7 +1535,7 @@ const AuthorizationsPage: React.FC = () => {
                                     }
                                   />
                                 </td>
-                                <td className="px-4 py-2.5 text-center">
+                                <td className="px-3 py-2.5 text-center">
                                   <Checkbox
                                     checked={sub.update}
                                     onChange={(e) =>
@@ -1376,7 +1550,7 @@ const AuthorizationsPage: React.FC = () => {
                                     }
                                   />
                                 </td>
-                                <td className="px-4 py-2.5 text-center">
+                                <td className="px-3 py-2.5 text-center">
                                   <Checkbox
                                     checked={sub.delete}
                                     onChange={(e) =>
@@ -1391,7 +1565,52 @@ const AuthorizationsPage: React.FC = () => {
                                     }
                                   />
                                 </td>
-                                <td className="px-4 py-2.5 text-center">
+                                <td className="px-3 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.print}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "print",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.export}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "export",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <Checkbox
+                                    checked={sub.send}
+                                    onChange={(e) =>
+                                      handleHierarchicalPermissionChange(
+                                        sub.permission_id,
+                                        "send",
+                                        e.target.checked,
+                                        "submodule",
+                                        mainModule.main_module_id,
+                                        mod.permission_id
+                                      )
+                                    }
+                                  />
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
                                   <Checkbox
                                     checked={sub.all}
                                     onChange={(e) =>
@@ -1423,15 +1642,63 @@ const AuthorizationsPage: React.FC = () => {
   const renderByUserTab = () => {
     const selectedUserData = users.find((u) => u.user_id === selectedUser);
 
+    // Users are now fetched directly from API based on role filter, no client-side filtering needed
+    const displayUsers = users;
+
     return (
       <div className="space-y-4">
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center gap-4">
+            {/* Role Filter */}
+            <div className="w-64">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Role</label>
+              <Select
+                allowClear
+                placeholder="All Roles"
+                className="w-full"
+                size="large"
+                loading={rolesLoading}
+                value={selectedRoleFilter || undefined}
+                onChange={async (value) => {
+                  setSelectedRoleFilter(value || "");
+                  // Clear selected user when role filter changes
+                  setSelectedUser("");
+                  setUserPermissions([]);
+                  setExpandedMainModules(new Set());
+                  setExpandedModules(new Set());
+
+                  // Fetch users based on role selection
+                  if (value) {
+                    // Find the role name from the selected role_id
+                    const selectedRoleData = roles.find((r) => r.role_id === value);
+                    if (selectedRoleData) {
+                      await loadUsersByRole(selectedRoleData.role_name);
+                    }
+                  } else {
+                    // No role selected, load all users
+                    await loadUsers();
+                  }
+                }}
+              >
+                {roles.map((role) => (
+                  <Option key={role.role_id} value={role.role_id}>
+                    <div className="flex items-center gap-2">
+                      <UserCog className="h-4 w-4 text-gray-400" />
+                      <span>{role.role_name}</span>
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </div>
+
+            {/* User Select */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search & Select User</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select User {selectedRoleFilter && displayUsers.length > 0 && `(${displayUsers.length} users)`}
+              </label>
               <Select
                 showSearch
-                placeholder="Search for a user by name or email"
+                placeholder={selectedRoleFilter ? "Select a user from this role" : "Search for a user by name or email"}
                 className="w-full"
                 size="large"
                 loading={usersLoading}
@@ -1442,7 +1709,7 @@ const AuthorizationsPage: React.FC = () => {
                   setExpandedModules(new Set());
                 }}
                 filterOption={(input, option) => {
-                  const user = users.find((u) => u.user_id === option?.value);
+                  const user = displayUsers.find((u) => u.user_id === option?.value);
                   return (
                     user?.user_name?.toLowerCase().includes(input.toLowerCase()) ||
                     user?.user_email?.toLowerCase().includes(input.toLowerCase()) ||
@@ -1450,7 +1717,7 @@ const AuthorizationsPage: React.FC = () => {
                   );
                 }}
               >
-                {users.map((user) => (
+                {displayUsers.map((user) => (
                   <Option key={user.user_id} value={user.user_id}>
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-xs font-medium text-white">
@@ -1458,7 +1725,11 @@ const AuthorizationsPage: React.FC = () => {
                       </div>
                       <div>
                         <span className="font-medium">{user.user_name}</span>
-                        <span className="text-gray-500 ml-2">({user.user_email})</span>
+                        {user.user_email ? (
+                          <span className="text-gray-500 ml-2">({user.user_email})</span>
+                        ) : user.user_role ? (
+                          <span className="text-gray-400 ml-2">- {user.user_role}</span>
+                        ) : null}
                       </div>
                     </div>
                   </Option>
@@ -1510,13 +1781,16 @@ const AuthorizationsPage: React.FC = () => {
             </div>
 
             {/* Permission Legend */}
-            <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-6 text-xs text-gray-500">
-              <span className="font-medium">Permission Types:</span>
-              <span><strong>Create</strong> - Add new items</span>
-              <span><strong>Read</strong> - View items</span>
-              <span><strong>Update</strong> - Modify items</span>
-              <span><strong>Delete</strong> - Remove items</span>
-              <span className="text-green-600"><strong>All</strong> - Grant all permissions (cascades to children)</span>
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+              <span className="font-medium">Permissions:</span>
+              <span><strong>C</strong>reate</span>
+              <span><strong>R</strong>ead</span>
+              <span><strong>U</strong>pdate</span>
+              <span><strong>D</strong>elete</span>
+              <span><strong>P</strong>rint</span>
+              <span><strong>E</strong>xport</span>
+              <span><strong>S</strong>end</span>
+              <span className="text-green-600"><strong>All</strong> - Grant all (cascades)</span>
             </div>
 
             {renderHierarchicalPermissionMatrix()}
@@ -1538,6 +1812,16 @@ const AuthorizationsPage: React.FC = () => {
 
   const tabItems = [
     {
+      key: "by-user",
+      label: (
+        <span className="flex items-center gap-2">
+          <User className="h-4 w-4" />
+          User Permissions
+        </span>
+      ),
+      children: renderByUserTab(),
+    },
+    {
       key: "roles",
       label: (
         <span className="flex items-center gap-2">
@@ -1546,26 +1830,6 @@ const AuthorizationsPage: React.FC = () => {
         </span>
       ),
       children: renderRolesTab(),
-    },
-    {
-      key: "by-role",
-      label: (
-        <span className="flex items-center gap-2">
-          <Building2 className="h-4 w-4" />
-          By Role
-        </span>
-      ),
-      children: renderByRoleTab(),
-    },
-    {
-      key: "by-user",
-      label: (
-        <span className="flex items-center gap-2">
-          <User className="h-4 w-4" />
-          By User
-        </span>
-      ),
-      children: renderByUserTab(),
     },
   ];
 
@@ -1595,10 +1859,10 @@ const AuthorizationsPage: React.FC = () => {
                 <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 <span>Refresh</span>
               </button>
-              {(activeTab === "by-role" || activeTab === "by-user") && (
+              {activeTab === "by-user" && (
                 <button
-                  onClick={activeTab === "by-user" ? handleSaveHierarchicalPermissions : handleSavePermissions}
-                  disabled={saving || !hasChanges || (!selectedRole && !selectedUser)}
+                  onClick={handleSaveHierarchicalPermissions}
+                  disabled={saving || !hasChanges || !selectedUser}
                   className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20 transition-colors"
                 >
                   {saving ? (

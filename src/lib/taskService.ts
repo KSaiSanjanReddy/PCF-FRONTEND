@@ -92,13 +92,8 @@ class TaskService {
       if (filters) {
         const params = new URLSearchParams();
         if (filters.priority && filters.priority !== "all") {
-          // Convert lowercase to capitalized format
-          const priorityMap: Record<string, string> = {
-            low: "Low",
-            medium: "Medium",
-            high: "High",
-          };
-          params.append("priority", priorityMap[filters.priority.toLowerCase()] || filters.priority);
+          // Send priority as-is (already in correct format: Low, Medium, High)
+          params.append("priority", filters.priority);
         }
         if (filters.assignee && filters.assignee !== "all") {
           params.append("assigned_user_name", filters.assignee);
