@@ -194,6 +194,24 @@ const Settings: React.FC = () => {
         cardType: "default" as const,
       })),
     },
+    {
+      title: "Alert Management",
+      description: "Configure system alerts and notification rules",
+      icon: Bell,
+      permissionKey: "alert management",
+      items: [
+        {
+          name: "Alert Management",
+          description:
+            "Create and manage automated alerts and notifications",
+          path: "/settings/alert-management",
+          icon: Bell,
+          badge: "NEW",
+          cardType: "default",
+          permissionKey: "alert management",
+        },
+      ],
+    },
   ];
 
   const quickActions = [

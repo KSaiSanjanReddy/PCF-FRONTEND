@@ -12,7 +12,7 @@ const UsersCreate: React.FC = () => {
 
   // Redirect if user doesn't have create permission
   useEffect(() => {
-    if (!canCreate("Users")) {
+    if (!canCreate("manage users")) {
       message.error("You don't have permission to create users");
       navigate("/settings/users");
     }

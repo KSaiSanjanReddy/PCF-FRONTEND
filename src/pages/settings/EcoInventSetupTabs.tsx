@@ -593,7 +593,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 <Upload className="h-4 w-4" />
                 <span>Import CSV</span>
               </button>
-              {canCreate("Settings") && (
+              {canCreate("eco invent emission factors") && (
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors shadow-lg shadow-green-600/20"
@@ -692,7 +692,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                           </td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              {canUpdate("Settings") && (
+                              {canUpdate("eco invent emission factors") && (
                                 <button
                                   onClick={() => handleEdit(item)}
                                   className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all"
@@ -701,7 +701,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                                   <Edit className="h-4 w-4" />
                                 </button>
                               )}
-                              {canDelete("Settings") && (
+                              {canDelete("eco invent emission factors") && (
                                 <button
                                   onClick={() => handleDeleteClick(item)}
                                   className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all"

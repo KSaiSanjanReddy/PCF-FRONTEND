@@ -201,10 +201,12 @@ class AuthService {
     userData: SignupRequest
   ): Promise<{ success: boolean; message: string }> {
     try {
+      const token = this.getToken();
       const response = await fetch(`${API_BASE_URL}/api/user/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: token } : {}),
         },
         body: JSON.stringify(userData),
       });

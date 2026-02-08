@@ -16,6 +16,8 @@ import Users from "../pages/settings/Users";
 import UsersCreate from "../pages/settings/UsersCreate";
 import UsersEdit from "../pages/settings/UsersEdit";
 import Authorizations from "../pages/settings/Authorizations";
+import AlertManagement from "../pages/settings/AlertManagement";
+import AlertManagementCreate from "../pages/settings/AlertManagementCreate";
 import ManufacturerOnboardingForm from "../pages/settings/ManufacturerOnboardingForm";
 import SupplierOnboardingForm from "../pages/settings/SupplierOnboardingForm";
 import PublicManufacturerOnboarding from "../pages/PublicManufacturerOnboarding";
@@ -387,6 +389,30 @@ export const router = createBrowserRouter([
         element: (
           <PermissionRoute permissionKey="authorization">
             <Authorizations />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "settings/alert-management",
+        element: (
+          <PermissionRoute permissionKey="alert management">
+            <AlertManagement />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "settings/alert-management/new",
+        element: (
+          <PermissionRoute permissionKey="alert management" action="create">
+            <AlertManagementCreate />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "settings/alert-management/edit/:id",
+        element: (
+          <PermissionRoute permissionKey="alert management" action="update">
+            <AlertManagementCreate />
           </PermissionRoute>
         ),
       },

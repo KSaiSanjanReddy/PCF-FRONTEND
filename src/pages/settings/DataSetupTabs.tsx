@@ -778,7 +778,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  {canUpdate("Settings") && (
+                                  {canUpdate("data configuration") && (
                                     <button
                                       onClick={() => handleEdit(item)}
                                       className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all duration-200"
@@ -787,7 +787,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                       <Edit className="h-4 w-4" />
                                     </button>
                                   )}
-                                  {canDelete("Settings") && (
+                                  {canDelete("data configuration") && (
                                     <button
                                       onClick={() => handleDeleteClick(item)}
                                       className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -804,7 +804,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                       ))}
 
                       {/* Add New Row */}
-                      {canCreate("Settings") && (
+                      {canCreate("data configuration") && (
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
                           <td className="px-6 py-4">
                             <input
