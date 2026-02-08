@@ -1,72 +1,99 @@
 const API_BASE_URL = "https://enviguide.nextechltd.in";
 
+// BOM Detail item (nested within PCF request)
+export interface BomDetail {
+  id: string;
+  code: string;
+  material_number: string;
+  component_name: string;
+  qunatity: number | null; // Note: typo in API
+  production_location: string;
+  manufacturer: string;
+  detail_description: string;
+  weight_gms: number;
+  total_weight_gms: number | null;
+  component_category: string;
+  price: number;
+  total_price: number | null;
+  economic_ratio: number;
+  supplier_id: string;
+  is_weight_gms: boolean;
+  created_date: string;
+  product_specifications: any[];
+  material_emission: any[] | null;
+  production_emission_calculation: any | null;
+  packaging_emission_calculation: any | null;
+  waste_emission_calculation: any | null;
+  logistic_emission_calculation: any | null;
+  pcf_total_emission_calculation: any | null;
+  allocation_methodology: any | null;
+}
+
+// PCF Request item (main item in data.data array)
 export interface ComponentItem {
   id: string;
   code: string;
-  componentCode?: string;
-  componentName?: string;
-  lifecycleStage?: string;
-  location?: string;
-  materialType?: string;
-  weight?: string;
-  recyclability?: string;
-  certificateStatus?: string;
   status?: string;
-  // Additional fields from API response
-  request_title?: string;
-  priority?: string;
-  request_organization?: string;
   due_date?: string;
-  request_description?: string;
-  product_code?: string;
-  model_version?: string;
-  product_category?: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  component_category?: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  component_type?: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  manufacturer?: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  createdby?: {
+  priority?: string;
+  createdBy?: {
     user_id: string;
     user_name: string;
   };
   created_by?: string;
-  updated_by?: string | null;
   update_date?: string;
   created_date?: string;
-  bom_details?: any[];
+  manufacturer?: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  };
+  product_code?: string;
+  model_version?: string | null;
+  request_title?: string;
+  component_type?: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  };
+  product_images?: any[] | null;
+  product_category?: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  };
+  component_category?: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  };
+  request_description?: string | null;
+  technical_specification_file?: any[] | null;
+  bom_details?: BomDetail[];
 }
 
 export interface ComponentStats {
   total_pcf_count: string;
   approved_count: string;
+  in_progress_count: string;
   rejected_count: string;
   draft_count: string;
   pending_count: string;
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface ComponentListResponse {
   success: boolean;
   message: string;
   data?: {
-    page: number;
-    pageSize: number;
     data: ComponentItem[];
-    totalCount?: number;
+    pagination: Pagination;
     stats?: ComponentStats;
   };
 }
@@ -177,20 +204,20 @@ class ComponentMasterService {
 
       if (result.status || result.success) {
         // Return API data with minimal transformation
-        const transformedData = result.data?.data?.map((item: any) => ({
-          ...item,
-          // Normalize status to lowercase for consistent handling
-          status: item.status || "draft",
-        })) || [];
+        const items = result.data?.data || [];
+        const pagination = result.data?.pagination || {
+          total: items.length,
+          page: params?.pageNumber || 1,
+          limit: params?.pageSize || 20,
+          totalPages: 1,
+        };
 
         return {
           success: true,
           message: result.message || "Components fetched successfully",
           data: {
-            page: result.data?.page || 1,
-            pageSize: result.data?.pageSize || 20,
-            data: transformedData,
-            totalCount: result.data?.totalCount || transformedData.length,
+            data: items,
+            pagination: pagination,
             stats: result.data?.stats,
           },
         };
