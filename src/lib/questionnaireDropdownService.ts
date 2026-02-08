@@ -94,7 +94,7 @@ async function fetchDropdown<T>(endpoint: string): Promise<T[]> {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: token } : {}),
     },
   });
 

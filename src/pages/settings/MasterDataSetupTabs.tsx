@@ -19,6 +19,8 @@ import {
   updateMasterData,
   deleteMasterData,
   bulkAddMasterData,
+  getFuelTypeDropdown,
+  getEnergySourceDropdown,
   type MasterDataItem,
   type MasterDataEntity,
 } from "../../lib/masterDataSetupService";
@@ -58,13 +60,17 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // State for each tab's data
   const [tabData, setTabData] = useState<Record<string, MasterDataItem[]>>({});
-  const [newItem, setNewItem] = useState({ name: "" });
+  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "" });
   const [editingItem, setEditingItem] = useState<{
     item: MasterDataItem;
     tab: string;
   } | null>(null);
-  const [editItem, setEditItem] = useState({ name: "" });
+  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Fuel type dropdown for sub-fuel-type entity
+  const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
+  // Energy source dropdown for energy-type entity
+  const [energySources, setEnergySources] = useState<{ id: string; name: string }[]>([]);
   const [itemToDelete, setItemToDelete] = useState<{
     item: MasterDataItem;
     tab: string;
@@ -77,6 +83,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
     name: "",
+    fuel_type_name: "",
+    energy_source_name: "",
   });
   const [importPreview, setImportPreview] = useState<MasterDataItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -95,8 +103,25 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     const load = async () => {
       if (!currentEntity) return;
       setIsLoading(true);
+
+      // Load fuel types if entity is sub-fuel-type
+      if (currentEntity === "sub-fuel-type") {
+        const fuelTypeData = await getFuelTypeDropdown();
+        setFuelTypes(fuelTypeData);
+      }
+      // Load energy sources if entity is energy-type
+      if (currentEntity === "energy-type") {
+        const energySourceData = await getEnergySourceDropdown();
+        setEnergySources(energySourceData);
+      }
+
       const data = await listMasterData(currentEntity);
-      setTabData((prev) => ({ ...prev, [activeTab]: data }));
+      // Ensure each item has a unique ID (fallback to index if missing)
+      const dataWithIds = data.map((item, idx) => ({
+        ...item,
+        id: item.id || `temp-${idx + 1}`,
+      }));
+      setTabData((prev) => ({ ...prev, [activeTab]: dataWithIds }));
       setIsLoading(false);
     };
     load();
@@ -121,12 +146,30 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleAddNew = async () => {
     if (!currentEntity || !newItem.name) return;
-    const result = await addMasterData(currentEntity, newItem);
+    // Validate ft_id for sub-fuel-type
+    if (currentEntity === "sub-fuel-type" && !newItem.ft_id) {
+      message.error("Please select a fuel type");
+      return;
+    }
+    // Validate es_id for energy-type
+    if (currentEntity === "energy-type" && !newItem.es_id) {
+      message.error("Please select an energy source");
+      return;
+    }
+    const result = await addMasterData(currentEntity, {
+      name: newItem.name,
+      ft_id: newItem.ft_id || undefined,
+      es_id: newItem.es_id || undefined,
+    });
     if (result.success) {
       message.success("Item added successfully");
       const data = await listMasterData(currentEntity);
-      setTabData((prev) => ({ ...prev, [activeTab]: data }));
-      setNewItem({ name: "" });
+      const dataWithIds = data.map((item, idx) => ({
+        ...item,
+        id: item.id || `temp-${idx + 1}`,
+      }));
+      setTabData((prev) => ({ ...prev, [activeTab]: dataWithIds }));
+      setNewItem({ name: "", ft_id: "", es_id: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -141,23 +184,51 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleEdit = (item: MasterDataItem) => {
     setEditingItem({ item, tab: activeTab });
-    setEditItem({ name: item.name });
+    setEditItem({ name: item.name, ft_id: item.ft_id || "", es_id: item.es_id || "" });
   };
 
   const handleSaveEdit = async () => {
     if (!currentEntity || !editingItem || !editItem.name) return;
+
+    // Validate ft_id for sub-fuel-type
+    if (currentEntity === "sub-fuel-type" && !editItem.ft_id) {
+      message.error("Please select a fuel type");
+      return;
+    }
+    // Validate es_id for energy-type
+    if (currentEntity === "energy-type" && !editItem.es_id) {
+      message.error("Please select an energy source");
+      return;
+    }
 
     // Store original data for rollback
     const originalData = tabData[activeTab] || [];
     const currentEditing = editingItem;
     const editedValues = { ...editItem };
 
+    // Get fuel type name for optimistic UI update
+    const fuelTypeName = currentEntity === "sub-fuel-type"
+      ? fuelTypes.find(ft => ft.id === editItem.ft_id)?.name || ""
+      : "";
+
+    // Get energy source name for optimistic UI update
+    const energySourceName = currentEntity === "energy-type"
+      ? energySources.find(es => es.id === editItem.es_id)?.name || ""
+      : "";
+
     // Optimistic UI update
     setTabData((prev) => ({
       ...prev,
       [activeTab]: (prev[activeTab] || []).map((item) =>
         item.id === editingItem.item.id
-          ? { ...item, name: editItem.name }
+          ? {
+              ...item,
+              name: editItem.name,
+              ft_id: editItem.ft_id || item.ft_id,
+              fuel_type_name: fuelTypeName || item.fuel_type_name,
+              es_id: editItem.es_id || item.es_id,
+              energy_source_name: energySourceName || item.energy_source_name,
+            }
           : item
       ),
     }));
@@ -168,6 +239,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     const result = await updateMasterData(currentEntity, {
       id: currentEditing.item.id!,
       name: editedValues.name,
+      ft_id: editedValues.ft_id || undefined,
+      es_id: editedValues.es_id || undefined,
     });
 
     if (result.success) {
@@ -184,7 +257,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ name: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -218,8 +291,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ name: "" });
-    setNewItem({ name: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "" });
+    setNewItem({ name: "", ft_id: "", es_id: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map((t) => t.key);
@@ -289,9 +362,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // Auto-detect column mapping based on header names
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = { name: "" };
+    const mapping: Record<string, string> = { name: "", fuel_type_name: "", energy_source_name: "" };
     const fieldsToMatch = [
-      { key: "name", patterns: ["name", "title", "label", "value"] },
+      { key: "name", patterns: ["name", "title", "label", "value", "sub fuel type", "sub-fuel-type", "energy type", "energy-type"] },
+      { key: "fuel_type_name", patterns: ["fuel type", "fuel_type", "fuel-type", "fueltype", "fuel type name"] },
+      { key: "energy_source_name", patterns: ["energy source", "energy_source", "energy-source", "energysource", "energy source name"] },
     ];
 
     headers.forEach((header) => {
@@ -363,15 +438,38 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     };
 
     const nameIdx = getColumnIndex("name");
+    const fuelTypeNameIdx = getColumnIndex("fuel_type_name");
+    const energySourceNameIdx = getColumnIndex("energy_source_name");
 
     const previewItems: MasterDataItem[] = data
       .filter((row) => {
         const name = nameIdx >= 0 ? row[nameIdx] : "";
+        // For sub-fuel-type, also require fuel_type_name
+        if (currentEntity === "sub-fuel-type") {
+          const fuelTypeName = fuelTypeNameIdx >= 0 ? row[fuelTypeNameIdx] : "";
+          return name && fuelTypeName;
+        }
+        // For energy-type, also require energy_source_name
+        if (currentEntity === "energy-type") {
+          const energySourceName = energySourceNameIdx >= 0 ? row[energySourceNameIdx] : "";
+          return name && energySourceName;
+        }
         return name; // At least name required
       })
-      .map((row) => ({
-        name: nameIdx >= 0 ? row[nameIdx] : "",
-      }));
+      .map((row) => {
+        const item: MasterDataItem = {
+          name: nameIdx >= 0 ? row[nameIdx] : "",
+        };
+        // Include fuel_type_name for sub-fuel-type bulk import
+        if (currentEntity === "sub-fuel-type" && fuelTypeNameIdx >= 0) {
+          item.fuel_type_name = row[fuelTypeNameIdx];
+        }
+        // Include energy_source_name for energy-type bulk import
+        if (currentEntity === "energy-type" && energySourceNameIdx >= 0) {
+          item.energy_source_name = row[energySourceNameIdx];
+        }
+        return item;
+      });
 
     setImportPreview(previewItems);
   };
@@ -430,7 +528,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     setShowImportModal(false);
     setCsvHeaders([]);
     setCsvData([]);
-    setColumnMapping({ name: "" });
+    setColumnMapping({ name: "", fuel_type_name: "", energy_source_name: "" });
     setImportPreview([]);
   };
 
@@ -567,6 +665,16 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Code
                         </th>
+                        {currentEntity === "sub-fuel-type" && (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Fuel Type
+                          </th>
+                        )}
+                        {currentEntity === "energy-type" && (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Energy Source
+                          </th>
+                        )}
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Name
                         </th>
@@ -594,13 +702,51 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   {item.code || "-"}
                                 </div>
                               </td>
+                              {currentEntity === "sub-fuel-type" && (
+                                <td className="px-6 py-4">
+                                  <Select
+                                    value={editItem.ft_id || undefined}
+                                    onChange={(value) =>
+                                      setEditItem({ ...editItem, ft_id: value })
+                                    }
+                                    className="w-full"
+                                    placeholder="Select fuel type"
+                                    size="middle"
+                                  >
+                                    {fuelTypes.map((ft) => (
+                                      <Option key={ft.id} value={ft.id}>
+                                        {ft.name}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </td>
+                              )}
+                              {currentEntity === "energy-type" && (
+                                <td className="px-6 py-4">
+                                  <Select
+                                    value={editItem.es_id || undefined}
+                                    onChange={(value) =>
+                                      setEditItem({ ...editItem, es_id: value })
+                                    }
+                                    className="w-full"
+                                    placeholder="Select energy source"
+                                    size="middle"
+                                  >
+                                    {energySources.map((es) => (
+                                      <Option key={es.id} value={es.id}>
+                                        {es.name}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </td>
+                              )}
                               <td className="px-6 py-4">
                                 <div className="relative">
                                   <input
                                     type="text"
                                     value={editItem.name}
                                     onChange={(e) =>
-                                      setEditItem({ name: e.target.value })
+                                      setEditItem({ ...editItem, name: e.target.value })
                                     }
                                     onKeyDown={handleKeyDown}
                                     className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all duration-200 bg-white shadow-sm"
@@ -614,7 +760,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 <div className="flex items-center justify-center space-x-2">
                                   <button
                                     onClick={handleSaveEdit}
-                                    disabled={!editItem.name}
+                                    disabled={
+                                      !editItem.name ||
+                                      (currentEntity === "sub-fuel-type" && !editItem.ft_id) ||
+                                      (currentEntity === "energy-type" && !editItem.es_id)
+                                    }
                                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                                     title="Save (Ctrl+Enter)"
                                   >
@@ -638,6 +788,20 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   {item.code || "-"}
                                 </div>
                               </td>
+                              {currentEntity === "sub-fuel-type" && (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600">
+                                    {item.fuel_type_name || "-"}
+                                  </div>
+                                </td>
+                              )}
+                              {currentEntity === "energy-type" && (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600">
+                                    {item.energy_source_name || "-"}
+                                  </div>
+                                </td>
+                              )}
                               <td className="px-6 py-4">
                                 <div className="text-sm font-medium text-gray-900">
                                   {item.name}
@@ -645,7 +809,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  {canUpdate("Settings") && (
+                                  {canUpdate("master data setup") && (
                                     <button
                                       onClick={() => handleEdit(item)}
                                       className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all duration-200"
@@ -654,7 +818,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                       <Edit className="h-4 w-4" />
                                     </button>
                                   )}
-                                  {canDelete("Settings") && (
+                                  {canDelete("master data setup") && (
                                     <button
                                       onClick={() => handleDeleteClick(item)}
                                       className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -671,17 +835,55 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       ))}
 
                       {/* Add New Row */}
-                      {canCreate("Settings") && (
+                      {canCreate("master data setup") && (
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
                           <td className="px-6 py-4">
                             <span className="text-sm text-gray-400 italic">Auto-generated</span>
                           </td>
+                          {currentEntity === "sub-fuel-type" && (
+                            <td className="px-6 py-4">
+                              <Select
+                                value={newItem.ft_id || undefined}
+                                onChange={(value) =>
+                                  setNewItem({ ...newItem, ft_id: value })
+                                }
+                                className="w-full"
+                                placeholder="Select fuel type"
+                                size="middle"
+                              >
+                                {fuelTypes.map((ft) => (
+                                  <Option key={ft.id} value={ft.id}>
+                                    {ft.name}
+                                  </Option>
+                                ))}
+                              </Select>
+                            </td>
+                          )}
+                          {currentEntity === "energy-type" && (
+                            <td className="px-6 py-4">
+                              <Select
+                                value={newItem.es_id || undefined}
+                                onChange={(value) =>
+                                  setNewItem({ ...newItem, es_id: value })
+                                }
+                                className="w-full"
+                                placeholder="Select energy source"
+                                size="middle"
+                              >
+                                {energySources.map((es) => (
+                                  <Option key={es.id} value={es.id}>
+                                    {es.name}
+                                  </Option>
+                                ))}
+                              </Select>
+                            </td>
+                          )}
                           <td className="px-6 py-4">
                             <input
                               type="text"
                               placeholder="Enter name"
                               value={newItem.name}
-                              onChange={(e) => handleInputChange(e.target.value)}
+                              onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
                             />
                           </td>
@@ -689,14 +891,18 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                             <div className="flex items-center justify-center space-x-2">
                               <button
                                 onClick={handleAddNew}
-                                disabled={!newItem.name}
+                                disabled={
+                                  !newItem.name ||
+                                  (currentEntity === "sub-fuel-type" && !newItem.ft_id) ||
+                                  (currentEntity === "energy-type" && !newItem.es_id)
+                                }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
                                 <Plus className="h-4 w-4" />
                                 <span>Add</span>
                               </button>
                               <button
-                                onClick={() => setNewItem({ name: "" })}
+                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "" })}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Clear form"
                               >
@@ -813,25 +1019,67 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
               <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">
                 1
               </span>
-              Map CSV Column
+              Map CSV Columns
             </h4>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <Select
-                className="w-full max-w-xs"
-                placeholder="Select column"
-                value={columnMapping.name || undefined}
-                onChange={(value) => handleMappingChange("name", value)}
-                allowClear
-              >
-                {csvHeaders.map((header) => (
-                  <Option key={header} value={header}>
-                    {header}
-                  </Option>
-                ))}
-              </Select>
+            <div className={(currentEntity === "sub-fuel-type" || currentEntity === "energy-type") ? "grid grid-cols-2 gap-4" : ""}>
+              {currentEntity === "sub-fuel-type" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Fuel Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select column"
+                    value={columnMapping.fuel_type_name || undefined}
+                    onChange={(value) => handleMappingChange("fuel_type_name", value)}
+                    allowClear
+                  >
+                    {csvHeaders.map((header) => (
+                      <Option key={header} value={header}>
+                        {header}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {currentEntity === "energy-type" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Energy Source <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select column"
+                    value={columnMapping.energy_source_name || undefined}
+                    onChange={(value) => handleMappingChange("energy_source_name", value)}
+                    allowClear
+                  >
+                    {csvHeaders.map((header) => (
+                      <Option key={header} value={header}>
+                        {header}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full max-w-xs"
+                  placeholder="Select column"
+                  value={columnMapping.name || undefined}
+                  onChange={(value) => handleMappingChange("name", value)}
+                  allowClear
+                >
+                  {csvHeaders.map((header) => (
+                    <Option key={header} value={header}>
+                      {header}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -855,7 +1103,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                     No valid items found
                   </p>
                   <p className="text-xs text-amber-600">
-                    Please map the Name column
+                    {currentEntity === "sub-fuel-type"
+                      ? "Please map both Fuel Type and Name columns"
+                      : currentEntity === "energy-type"
+                      ? "Please map both Energy Source and Name columns"
+                      : "Please map the Name column"}
                   </p>
                 </div>
               </div>
@@ -863,9 +1115,19 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <Table
                   dataSource={importPreview.slice(0, 10)}
-                  columns={[
-                    { title: "Name", dataIndex: "name", key: "name" },
-                  ]}
+                  columns={
+                    currentEntity === "sub-fuel-type"
+                      ? [
+                          { title: "Fuel Type", dataIndex: "fuel_type_name", key: "fuel_type_name" },
+                          { title: "Name", dataIndex: "name", key: "name" },
+                        ]
+                      : currentEntity === "energy-type"
+                      ? [
+                          { title: "Energy Source", dataIndex: "energy_source_name", key: "energy_source_name" },
+                          { title: "Name", dataIndex: "name", key: "name" },
+                        ]
+                      : [{ title: "Name", dataIndex: "name", key: "name" }]
+                  }
                   pagination={false}
                   size="small"
                   rowKey={(record, index) => `preview-${index}`}

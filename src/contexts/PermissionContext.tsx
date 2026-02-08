@@ -77,6 +77,8 @@ const MODULE_ALIASES: Record<string, string[]> = {
   "authorization": ["authorization", "authorizations"],
   "create new user": ["create new user", "new user", "add user"],
   "manage users": ["manage users"],
+  // Alert Management
+  "alert management": ["alert management", "alert-management", "alerts"],
 };
 
 // Find canonical name from alias

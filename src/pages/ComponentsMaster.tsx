@@ -12,7 +12,6 @@ import {
 } from "antd";
 import {
   Puzzle,
-  Plus,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -20,6 +19,7 @@ import {
   Eye,
   Search,
   File,
+  PlayCircle,
 } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +43,8 @@ const formatNumber = (
 // Flattened BOM row type for the table
 interface FlattenedBOMRow {
   key: string;
-  bom_id: string | null;
+  bom_id: string;
+  bom_code: string;
   pcf_code: string;
   pcf_request_number: string;
   pcf_sub_date_time: string;
@@ -108,119 +109,71 @@ const ComponentsMaster: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Flatten the component data to show each BOM item as a row
-  const flattenComponentData = (
+  // Transform the component data (each item is now a BOM with nested pcf_request)
+  const transformComponentData = (
     components: ComponentItem[],
   ): FlattenedBOMRow[] => {
-    const flattened: FlattenedBOMRow[] = [];
+    return components.map((comp) => {
+      const pcfRequest = comp.pcf_request || {};
+      const allocationMethod = comp.allocation_methodology || {};
+      const packaging = comp.packaging_emission_calculation || {};
+      const logistic = comp.logistic_emission_calculation || {};
+      const pcfTotal = comp.pcf_total_emission_calculation || {};
 
-    components.forEach((comp) => {
-      const bomDetails = comp.bom_details || [];
-
-      if (bomDetails.length === 0) {
-        flattened.push({
-          key: comp.id,
-          bom_id: null,
-          pcf_code: comp.code || "N/A",
-          pcf_request_number: comp.code || "N/A",
-          pcf_sub_date_time: comp.created_date || "",
-          product_category: comp.product_category?.name || "N/A",
-          product_code: comp.product_code || "N/A",
-          product_name: comp.request_title || "N/A",
-          pcf_id: comp.id,
-          status: comp.status || "draft",
-          material_number: "N/A",
-          component_name: "N/A",
-          component_category: "N/A",
-          detailed_description: "N/A",
-          manufacturer: "N/A",
-          production_location: "N/A",
-          transport_mode: "N/A",
-          quantity: 0,
-          weight_gms: 0,
-          total_weight_gms: 0,
-          price: 0,
-          total_price: 0,
-          economic_ratio: 0,
-          split_allocation: false,
-          sys_expansion_allocation: false,
-          check_er_less_than_five: "N/A",
-          phy_mass_allocation: "N/A",
-          econ_allocation: "N/A",
-          packaging_type: "N/A",
-          pack_weight_kg: 0,
-          emission_factor_box_kg: 0,
-          material_emission_total: 0,
-          distance_km: 0,
-          logistic_emission: 0,
-          production_emission: 0,
-          waste_emission: 0,
-          total_pcf_value: 0,
-        });
-      } else {
-        bomDetails.forEach((bom: any, index: number) => {
-          const allocationMethod = bom.allocation_methodology || {};
-          const packaging = bom.packaging_emission_calculation || {};
-          const logistic = bom.logistic_emission_calculation || {};
-          const pcfTotal = bom.pcf_total_emission_calculation || {};
-
-          let materialEmissionTotal = 0;
-          if (bom.material_emission && Array.isArray(bom.material_emission)) {
-            materialEmissionTotal = bom.material_emission.reduce(
-              (sum: number, m: any) => sum + (m.material_emission || 0),
-              0,
-            );
-          }
-
-          flattened.push({
-            key: `${comp.id}-${bom.id || index}`,
-            bom_id: bom.id || null,
-            pcf_code: comp.code || "N/A",
-            pcf_request_number: comp.code || "N/A",
-            pcf_sub_date_time: comp.created_date || "",
-            product_category: comp.product_category?.name || "N/A",
-            product_code: comp.product_code || "N/A",
-            product_name: comp.request_title || "N/A",
-            pcf_id: comp.id,
-            status: comp.status || "draft",
-            material_number: bom.material_number || "N/A",
-            component_name: bom.component_name || "N/A",
-            component_category: bom.component_category || "N/A",
-            detailed_description: bom.detail_description || "N/A",
-            manufacturer: bom.manufacturer || "N/A",
-            production_location: bom.production_location || "N/A",
-            transport_mode: logistic.mode_of_transport || "N/A",
-            quantity: bom.quantity || 0,
-            weight_gms: bom.weight_gms || 0,
-            total_weight_gms: bom.total_weight_gms || 0,
-            price: bom.price || 0,
-            total_price: bom.total_price || 0,
-            economic_ratio: bom.economic_ratio || 0,
-            split_allocation: allocationMethod.split_allocation || false,
-            sys_expansion_allocation:
-              allocationMethod.sys_expansion_allocation || false,
-            check_er_less_than_five:
-              allocationMethod.check_er_less_than_five || "N/A",
-            phy_mass_allocation:
-              allocationMethod.phy_mass_allocation_er_less_than_five || "N/A",
-            econ_allocation:
-              allocationMethod.econ_allocation_er_greater_than_five || "N/A",
-            packaging_type: packaging.packaging_type || "N/A",
-            pack_weight_kg: packaging.pack_weight_kg || 0,
-            emission_factor_box_kg: packaging.emission_factor_box_kg || 0,
-            material_emission_total: materialEmissionTotal,
-            distance_km: logistic.distance_km || 0,
-            logistic_emission:
-              logistic.leg_wise_transport_emissions_per_unit_kg_co2e || 0,
-            production_emission: pcfTotal.production_value || 0,
-            waste_emission: pcfTotal.waste_value || 0,
-            total_pcf_value: pcfTotal.total_pcf_value || 0,
-          });
-        });
+      let materialEmissionTotal = 0;
+      if (comp.material_emission && Array.isArray(comp.material_emission)) {
+        materialEmissionTotal = comp.material_emission.reduce(
+          (sum: number, m: any) => sum + (m.material_emission || 0),
+          0,
+        );
       }
-    });
 
-    return flattened;
+      return {
+        key: comp.id,
+        bom_id: comp.id,
+        bom_code: comp.code || "N/A",
+        pcf_code: pcfRequest.code || "N/A",
+        pcf_request_number: pcfRequest.code || "N/A",
+        pcf_sub_date_time: pcfRequest.created_date || comp.created_date || "",
+        product_category: pcfRequest.product_category?.name || "N/A",
+        product_code: pcfRequest.product_code || "N/A",
+        product_name: pcfRequest.request_title || "N/A",
+        pcf_id: pcfRequest.id || "",
+        status: pcfRequest.status || "draft",
+        material_number: comp.material_number || "N/A",
+        component_name: comp.component_name || "N/A",
+        component_category: comp.component_category || "N/A",
+        detailed_description: comp.detail_description || "N/A",
+        manufacturer: comp.manufacturer || "N/A",
+        production_location: comp.production_location || "N/A",
+        transport_mode: logistic?.mode_of_transport || "N/A",
+        quantity: comp.qunatity || 0,
+        weight_gms: comp.weight_gms || 0,
+        total_weight_gms: comp.total_weight_gms || 0,
+        price: comp.price || 0,
+        total_price: comp.total_price || 0,
+        economic_ratio: comp.economic_ratio || 0,
+        split_allocation: allocationMethod?.split_allocation || false,
+        sys_expansion_allocation:
+          allocationMethod?.sys_expansion_allocation || false,
+        check_er_less_than_five:
+          allocationMethod?.check_er_less_than_five || "N/A",
+        phy_mass_allocation:
+          allocationMethod?.phy_mass_allocation_er_less_than_five || "N/A",
+        econ_allocation:
+          allocationMethod?.econ_allocation_er_greater_than_five || "N/A",
+        packaging_type: packaging?.packaging_type || "N/A",
+        pack_weight_kg: packaging?.pack_weight_kg || 0,
+        emission_factor_box_kg: packaging?.emission_factor_box_kg || 0,
+        material_emission_total: materialEmissionTotal,
+        distance_km: logistic?.distance_km || 0,
+        logistic_emission:
+          logistic?.leg_wise_transport_emissions_per_unit_kg_co2e || 0,
+        production_emission: pcfTotal?.production_value || 0,
+        waste_emission: pcfTotal?.waste_value || 0,
+        total_pcf_value: pcfTotal?.total_pcf_value || 0,
+      };
+    });
   };
 
   const fetchComponents = useCallback(async () => {
@@ -238,11 +191,9 @@ const ComponentsMaster: React.FC = () => {
       if (result.success && result.data) {
         const data = result.data;
         setComponents(data.data);
-        setFlattenedData(flattenComponentData(data.data));
-        setTotalCount(data.totalCount || data.data.length || 0);
-        setTotalPages(
-          Math.ceil((data.totalCount || data.data.length || 0) / pageSize),
-        );
+        setFlattenedData(transformComponentData(data.data));
+        setTotalCount(data.pagination?.total || data.data.length || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
         // Set stats from API response
         if (data.stats) {
           setStats(data.stats);
@@ -267,12 +218,21 @@ const ComponentsMaster: React.FC = () => {
   }, [fetchComponents]);
 
   // Use stats from API response for KPI cards
+  // Calculate total from individual counts since API no longer provides total_pcf_count
+  const approved = parseInt(stats?.approved_count || "0", 10);
+  const inProgress = parseInt(stats?.in_progress_count || "0", 10);
+  const rejected = parseInt(stats?.rejected_count || "0", 10);
+  const draft = parseInt(stats?.draft_count || "0", 10);
+  const pending = parseInt(stats?.pending_count || "0", 10);
+  const total = approved + inProgress + rejected + draft + pending;
+
   const statusCounts = {
-    total: parseInt(stats?.total_pcf_count || "0", 10),
-    approved: parseInt(stats?.approved_count || "0", 10),
-    rejected: parseInt(stats?.rejected_count || "0", 10),
-    draft: parseInt(stats?.draft_count || "0", 10),
-    pending: parseInt(stats?.pending_count || "0", 10),
+    total,
+    approved,
+    inProgress,
+    rejected,
+    draft,
+    pending,
   };
 
   const formatDate = (dateString: string) => {
@@ -307,6 +267,7 @@ const ComponentsMaster: React.FC = () => {
     const statusConfig: Record<string, { color: string; label: string }> = {
       approved: { color: "green", label: "Approved" },
       completed: { color: "green", label: "Completed" },
+      submitted: { color: "cyan", label: "Submitted" },
       "in-progress": { color: "blue", label: "In Progress" },
       "in progress": { color: "blue", label: "In Progress" },
       pending: { color: "blue", label: "Pending" },
@@ -315,7 +276,7 @@ const ComponentsMaster: React.FC = () => {
     };
     const config = statusConfig[statusLower] || {
       color: "gold",
-      label: "Draft",
+      label: status || "Draft",
     };
     return <Tag color={config.color}>{config.label}</Tag>;
   };
@@ -344,6 +305,12 @@ const ComponentsMaster: React.FC = () => {
           </div>
         </div>
       ),
+    },
+    {
+      title: "BOM Code",
+      dataIndex: "bom_code",
+      key: "bom_code",
+      width: 120,
     },
     {
       title: "PCF Sub Date & Time",
@@ -560,13 +527,13 @@ const ComponentsMaster: React.FC = () => {
       fixed: "right",
       render: (_: any, record: FlattenedBOMRow) => {
         // Find the full component data from the components array
-        const componentData = components.find((c) => c.id === record.pcf_id);
+        const componentData = components.find((c) => c.id === record.bom_id);
         return (
           <Button
             type="primary"
             onClick={() =>
               navigate(
-                `/components-master/view/${record.pcf_code}${record.bom_id ? `?bomId=${record.bom_id}` : ""}`,
+                `/components-master/view/${record.pcf_code}?bomId=${record.bom_id}`,
                 { state: { componentData } },
               )
             }
@@ -633,6 +600,23 @@ const ComponentsMaster: React.FC = () => {
                     </div>
                     <div className="text-xl font-bold text-green-700">
                       {statusCounts.approved}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* In Progress */}
+              <div className="bg-cyan-50 rounded-xl p-4 min-w-[120px] border border-cyan-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-cyan-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <PlayCircle className="w-5 h-5 text-cyan-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-cyan-600 font-medium">
+                      In Progress
+                    </div>
+                    <div className="text-xl font-bold text-cyan-700">
+                      {statusCounts.inProgress}
                     </div>
                   </div>
                 </div>

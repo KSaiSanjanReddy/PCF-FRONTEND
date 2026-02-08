@@ -14,7 +14,7 @@ const UsersEdit: React.FC = () => {
 
   // Redirect if user doesn't have update permission
   useEffect(() => {
-    if (!canUpdate("Users")) {
+    if (!canUpdate("manage users")) {
       message.error("You don't have permission to edit users");
       navigate("/settings/users");
     }
@@ -87,7 +87,7 @@ const UsersEdit: React.FC = () => {
         }/api/roles/get`,
         {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: token } : {}),
           },
         }
       );
@@ -114,7 +114,7 @@ const UsersEdit: React.FC = () => {
         }/api/department/get`,
         {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: token } : {}),
           },
         }
       );
