@@ -179,11 +179,6 @@ const PublicSupplierOnboarding: React.FC = () => {
                     <Input placeholder="Enter years" />
                   </Form.Item>
                 </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="supplier_number_of_employees" label="Number of Employees">
-                    <Input placeholder="Enter number" />
-                  </Form.Item>
-                </Col>
                 <Col xs={24}>
                   <Form.Item
                     name="supplier_supplied_categories"

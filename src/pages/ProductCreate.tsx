@@ -92,7 +92,7 @@ const ProductCreate: React.FC = () => {
       }
     } catch (error) {
       console.error("Error creating product:", error);
-      // message.error("An error occurred while creating the product");
+      message.error("An error occurred while creating the product");
     } finally {
       setLoading(false);
     }

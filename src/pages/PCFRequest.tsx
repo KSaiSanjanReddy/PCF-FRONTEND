@@ -172,7 +172,13 @@ const PCFRequest: React.FC = () => {
         // Transform API data to PCFRequestItem
         const transformedData: PCFRequestItem[] = result.data.map(
           (item: any) => {
-            // Extract product category name from nested structure or direct field
+            // Extract actual product name from product_details (new field)
+            const productName =
+              item.product_details?.product_name ||
+              item.request_title ||
+              "N/A";
+
+            // Extract product category for icon
             const productCategoryName =
               item.product_category?.name ||
               item.product_category_name ||
@@ -195,7 +201,7 @@ const PCFRequest: React.FC = () => {
             return {
               id: item.id,
               requestNumber: item.code || item.request_number || "N/A",
-              productName: productCategoryName,
+              productName: productName,
               productIcon: getProductIcon(productCategoryName),
               status: item.status || "Unknown",
               submittedBy: submittedBy,

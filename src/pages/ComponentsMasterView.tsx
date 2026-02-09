@@ -173,18 +173,62 @@ const ComponentsMasterView: React.FC = () => {
       return fallback;
     };
 
+    // For BOM-centric structure, PCF data is in data.pcf_request
+    const pcfRequest = data.pcf_request || {};
+
+    // Create a bom_details array from the current BOM item for compatibility
+    const bomItem = {
+      id: data.id,
+      code: data.code,
+      material_number: data.material_number,
+      component_name: data.component_name,
+      component_category: data.component_category,
+      manufacturer: data.manufacturer,
+      production_location: data.production_location,
+      weight_gms: data.weight_gms,
+      total_weight_gms: data.total_weight_gms,
+      price: data.price,
+      total_price: data.total_price,
+      economic_ratio: data.economic_ratio,
+      qunatity: data.qunatity,
+      detail_description: data.detail_description,
+      material_emission: data.material_emission,
+      production_emission_calculation: data.production_emission_calculation,
+      packaging_emission_calculation: data.packaging_emission_calculation,
+      waste_emission_calculation: data.waste_emission_calculation,
+      logistic_emission_calculation: data.logistic_emission_calculation,
+      pcf_total_emission_calculation: data.pcf_total_emission_calculation,
+      allocation_methodology: data.allocation_methodology,
+      product_specifications: data.product_specifications,
+    };
+
     return {
       ...data,
-      id: data.id,
-      componentCode: data.code || "N/A",
-      componentName: data.request_title || "N/A",
-      lifecycleStage: extractString(data.component_category) || "N/A",
-      manufacturer: extractString(data.manufacturer) || "N/A",
-      location: data.bom_details?.[0]?.production_location || "N/A",
-      materialType: data.bom_details?.[0]?.material_emission?.[0]?.material_type || "N/A",
-      weight: data.bom_details?.[0]?.weight_gms ? `${data.bom_details[0].weight_gms} gms` : "N/A",
+      id: pcfRequest.id || data.id,
+      componentCode: pcfRequest.code || "N/A",
+      componentName: pcfRequest.request_title || data.component_name || "N/A",
+      lifecycleStage: extractString(pcfRequest.component_category) || "N/A",
+      manufacturer: data.manufacturer || extractString(pcfRequest.manufacturer) || "N/A",
+      location: data.production_location || "N/A",
+      materialType: data.material_emission?.[0]?.material_type || "N/A",
+      weight: data.weight_gms ? `${data.weight_gms} gms` : "N/A",
       recyclability: "N/A",
-      certificateStatus: data.status || "N/A",
+      certificateStatus: pcfRequest.status || "N/A",
+      status: pcfRequest.status,
+      priority: pcfRequest.priority,
+      due_date: pcfRequest.due_date,
+      product_code: pcfRequest.product_code,
+      product_category: pcfRequest.product_category,
+      component_category: pcfRequest.component_category,
+      component_type: pcfRequest.component_type,
+      request_organization: pcfRequest.request_organization,
+      created_date: pcfRequest.created_date || data.created_date,
+      update_date: pcfRequest.update_date,
+      createdby: pcfRequest.createdBy,
+      technical_specification_file: pcfRequest.technical_specification_file,
+      product_images: pcfRequest.product_images,
+      // Create bom_details array for compatibility with existing UI
+      bom_details: [bomItem],
     };
   }, []);
 
@@ -463,7 +507,7 @@ const ComponentsMasterView: React.FC = () => {
                 <Button type="primary" icon={<Download size={16} />} block className="shadow-lg shadow-green-600/20" onClick={handleExportCSV}>
                   Export PCF Report
                 </Button>
-                <Button icon={<Eye size={16} />} block onClick={() => navigate(`/pcf-request/${componentData?.id}`)}>
+                <Button icon={<Eye size={16} />} block onClick={() => navigate(`/pcf-request/view/${componentData?.componentCode}`)}>
                   View Full PCF Details
                 </Button>
               </Space>

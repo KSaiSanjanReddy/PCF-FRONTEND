@@ -26,7 +26,6 @@ import { useNavigate } from "react-router-dom";
 import componentMasterService, {
   type ComponentItem,
   type ComponentStats,
-  type BomDetail,
 } from "../lib/componentMasterService";
 
 // Helper function to safely format numbers
@@ -110,123 +109,71 @@ const ComponentsMaster: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Transform the component data (each item is a PCF request with nested bom_details)
+  // Transform the component data (each item is a BOM with nested pcf_request)
   const transformComponentData = (
     components: ComponentItem[],
   ): FlattenedBOMRow[] => {
-    const rows: FlattenedBOMRow[] = [];
+    return components.map((bom) => {
+      const pcf = bom.pcf_request || {};
+      const allocationMethod = bom.allocation_methodology || {};
+      const packaging = bom.packaging_emission_calculation || {};
+      const logistic = bom.logistic_emission_calculation || {};
+      const pcfTotal = bom.pcf_total_emission_calculation || {};
 
-    components.forEach((pcf) => {
-      const bomDetails = pcf.bom_details || [];
-
-      // If PCF has no bom_details, still create a row for the PCF
-      if (bomDetails.length === 0) {
-        rows.push({
-          key: pcf.id,
-          bom_id: "",
-          bom_code: "N/A",
-          pcf_code: pcf.code || "N/A",
-          pcf_request_number: pcf.code || "N/A",
-          pcf_sub_date_time: pcf.created_date || "",
-          product_category: pcf.product_category?.name || "N/A",
-          product_code: pcf.product_code || "N/A",
-          product_name: pcf.request_title || "N/A",
-          pcf_id: pcf.id,
-          status: pcf.status || "draft",
-          material_number: "N/A",
-          component_name: "N/A",
-          component_category: "N/A",
-          detailed_description: "N/A",
-          manufacturer: pcf.manufacturer?.name || "N/A",
-          production_location: "N/A",
-          transport_mode: "N/A",
-          quantity: 0,
-          weight_gms: 0,
-          total_weight_gms: 0,
-          price: 0,
-          total_price: 0,
-          economic_ratio: 0,
-          split_allocation: false,
-          sys_expansion_allocation: false,
-          check_er_less_than_five: "N/A",
-          phy_mass_allocation: "N/A",
-          econ_allocation: "N/A",
-          packaging_type: "N/A",
-          pack_weight_kg: 0,
-          emission_factor_box_kg: 0,
-          material_emission_total: 0,
-          distance_km: 0,
-          logistic_emission: 0,
-          production_emission: 0,
-          waste_emission: 0,
-          total_pcf_value: 0,
-        });
-      } else {
-        // Create a row for each BOM detail
-        bomDetails.forEach((bom: BomDetail) => {
-          const allocationMethod = bom.allocation_methodology || {};
-          const packaging = bom.packaging_emission_calculation || {};
-          const logistic = bom.logistic_emission_calculation || {};
-          const pcfTotal = bom.pcf_total_emission_calculation || {};
-
-          let materialEmissionTotal = 0;
-          if (bom.material_emission && Array.isArray(bom.material_emission)) {
-            materialEmissionTotal = bom.material_emission.reduce(
-              (sum: number, m: any) => sum + (m.material_emission || 0),
-              0,
-            );
-          }
-
-          rows.push({
-            key: `${pcf.id}-${bom.id}`,
-            bom_id: bom.id,
-            bom_code: bom.code || "N/A",
-            pcf_code: pcf.code || "N/A",
-            pcf_request_number: pcf.code || "N/A",
-            pcf_sub_date_time: pcf.created_date || "",
-            product_category: pcf.product_category?.name || "N/A",
-            product_code: pcf.product_code || "N/A",
-            product_name: pcf.request_title || "N/A",
-            pcf_id: pcf.id,
-            status: pcf.status || "draft",
-            material_number: bom.material_number || "N/A",
-            component_name: bom.component_name || "N/A",
-            component_category: bom.component_category || "N/A",
-            detailed_description: bom.detail_description || "N/A",
-            manufacturer: bom.manufacturer || "N/A",
-            production_location: bom.production_location || "N/A",
-            transport_mode: (logistic as any)?.mode_of_transport || "N/A",
-            quantity: bom.qunatity || 0,
-            weight_gms: bom.weight_gms || 0,
-            total_weight_gms: bom.total_weight_gms || 0,
-            price: bom.price || 0,
-            total_price: bom.total_price || 0,
-            economic_ratio: bom.economic_ratio || 0,
-            split_allocation: (allocationMethod as any)?.split_allocation || false,
-            sys_expansion_allocation:
-              (allocationMethod as any)?.sys_expansion_allocation || false,
-            check_er_less_than_five:
-              (allocationMethod as any)?.check_er_less_than_five || "N/A",
-            phy_mass_allocation:
-              (allocationMethod as any)?.phy_mass_allocation_er_less_than_five || "N/A",
-            econ_allocation:
-              (allocationMethod as any)?.econ_allocation_er_greater_than_five || "N/A",
-            packaging_type: (packaging as any)?.packaging_type || "N/A",
-            pack_weight_kg: (packaging as any)?.pack_weight_kg || 0,
-            emission_factor_box_kg: (packaging as any)?.emission_factor_box_kg || 0,
-            material_emission_total: materialEmissionTotal,
-            distance_km: (logistic as any)?.distance_km || 0,
-            logistic_emission:
-              (logistic as any)?.leg_wise_transport_emissions_per_unit_kg_co2e || 0,
-            production_emission: (pcfTotal as any)?.production_value || 0,
-            waste_emission: (pcfTotal as any)?.waste_value || 0,
-            total_pcf_value: (pcfTotal as any)?.total_pcf_value || 0,
-          });
-        });
+      let materialEmissionTotal = 0;
+      if (bom.material_emission && Array.isArray(bom.material_emission)) {
+        materialEmissionTotal = bom.material_emission.reduce(
+          (sum: number, m: any) => sum + (m.material_emission || 0),
+          0,
+        );
       }
-    });
 
-    return rows;
+      return {
+        key: bom.id,
+        bom_id: bom.id,
+        bom_code: bom.code || "N/A",
+        pcf_code: pcf.code || "N/A",
+        pcf_request_number: pcf.code || "N/A",
+        pcf_sub_date_time: pcf.created_date || bom.created_date || "",
+        product_category: pcf.product_category?.name || "N/A",
+        product_code: pcf.product_code || "N/A",
+        product_name: pcf.request_title || "N/A",
+        pcf_id: pcf.id || "",
+        status: pcf.status || "draft",
+        material_number: bom.material_number || "N/A",
+        component_name: bom.component_name || "N/A",
+        component_category: bom.component_category || "N/A",
+        detailed_description: bom.detail_description || "N/A",
+        manufacturer: bom.manufacturer || pcf.manufacturer?.name || "N/A",
+        production_location: bom.production_location || "N/A",
+        transport_mode: (logistic as any)?.mode_of_transport || "N/A",
+        quantity: bom.qunatity || 0,
+        weight_gms: bom.weight_gms || 0,
+        total_weight_gms: bom.total_weight_gms || 0,
+        price: bom.price || 0,
+        total_price: bom.total_price || 0,
+        economic_ratio: bom.economic_ratio || 0,
+        split_allocation: (allocationMethod as any)?.split_allocation || false,
+        sys_expansion_allocation:
+          (allocationMethod as any)?.sys_expansion_allocation || false,
+        check_er_less_than_five:
+          (allocationMethod as any)?.check_er_less_than_five || "N/A",
+        phy_mass_allocation:
+          (allocationMethod as any)?.phy_mass_allocation_er_less_than_five || "N/A",
+        econ_allocation:
+          (allocationMethod as any)?.econ_allocation_er_greater_than_five || "N/A",
+        packaging_type: (packaging as any)?.packaging_type || "N/A",
+        pack_weight_kg: (packaging as any)?.pack_weight_kg || 0,
+        emission_factor_box_kg: (packaging as any)?.emission_factor_box_kg || 0,
+        material_emission_total: materialEmissionTotal,
+        distance_km: (logistic as any)?.distance_km || 0,
+        logistic_emission:
+          (logistic as any)?.leg_wise_transport_emissions_per_unit_kg_co2e || 0,
+        production_emission: (pcfTotal as any)?.production_value || 0,
+        waste_emission: (pcfTotal as any)?.waste_value || 0,
+        total_pcf_value: (pcfTotal as any)?.total_pcf_value || 0,
+      };
+    });
   };
 
   const fetchComponents = useCallback(async () => {
@@ -271,12 +218,13 @@ const ComponentsMaster: React.FC = () => {
   }, [fetchComponents]);
 
   // Use stats from API response for KPI cards
-  const total = parseInt(stats?.total_pcf_count || "0", 10);
   const approved = parseInt(stats?.approved_count || "0", 10);
   const inProgress = parseInt(stats?.in_progress_count || "0", 10);
   const rejected = parseInt(stats?.rejected_count || "0", 10);
   const draft = parseInt(stats?.draft_count || "0", 10);
   const pending = parseInt(stats?.pending_count || "0", 10);
+  // Calculate total from sum of all status counts
+  const total = approved + inProgress + rejected + draft + pending;
 
   const statusCounts = {
     total,
@@ -578,15 +526,15 @@ const ComponentsMaster: React.FC = () => {
       width: 120,
       fixed: "right",
       render: (_: any, record: FlattenedBOMRow) => {
-        // Find the full PCF data from the components array
-        const pcfData = components.find((c) => c.id === record.pcf_id);
+        // Find the full BOM data from the components array
+        const bomData = components.find((c) => c.id === record.bom_id);
         return (
           <Button
             type="primary"
             onClick={() =>
               navigate(
                 `/components-master/view/${record.pcf_code}?bomId=${record.bom_id}`,
-                { state: { componentData: pcfData } },
+                { state: { componentData: bomData } },
               )
             }
             icon={<Eye size={16} />}

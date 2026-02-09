@@ -21,11 +21,10 @@ export interface EcoInventItem {
   type_of_energy?: string; // electricity-emission-factor
   fuel_type?: string; // fuel-emission-factor
   material_type?: string; // packaging-emission-factor
-  treatment_type?: string; // waste-treatment-type
-  name?: string; // packaging-treatment-type
-  code?: string; // packaging-treatment-type
+  name?: string; // packaging-treatment-type, waste-treatment-type
+  code?: string; // packaging-treatment-type, waste-treatment-type
   vehicle_type?: string; // vehicle-type-emission-factor
-  waste_material_type?: string; // waste-material-type-emission-factor
+  waste_type?: string; // waste-material-type-emission-factor
   // Common emission factor fields
   ef_eu_region?: string;
   ef_india_region?: string;
@@ -35,6 +34,7 @@ export interface EcoInventItem {
   iso_country_code?: string;
   // Foreign keys
   ptt_id?: string; // packaging-emission-factor -> treatment type
+  wtt_id?: string; // waste-material-type-emission-factor -> waste treatment type
 }
 
 // Entity-specific configuration
@@ -74,15 +74,15 @@ export const entityConfigs: Record<EcoInventEntity, EcoInventEntityConfig> = {
   "vehicle-type-emission-factor": {
     nameField: "vehicle_type",
     displayName: "Vehicle Type",
-    idField: "vtef_id",
+    idField: "wtef_id",
   },
   "waste-material-type-emission-factor": {
-    nameField: "waste_material_type",
-    displayName: "Waste Material Type",
-    idField: "wmtef_id",
+    nameField: "waste_type",
+    displayName: "Waste Type",
+    idField: "wmttef_id",
   },
   "waste-treatment-type": {
-    nameField: "treatment_type",
+    nameField: "name",
     displayName: "Treatment Type",
     idField: "wtt_id",
   },
@@ -129,8 +129,8 @@ function extractName(entity: EcoInventEntity, item: any): string {
 function normalizeItem(entity: EcoInventEntity, item: any): EcoInventItem {
   const config = entityConfigs[entity];
 
-  // Packaging treatment type uses name and code only
-  if (entity === "packaging-treatment-type") {
+  // Treatment types (packaging and waste) use name and code only
+  if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
     return {
       id: extractId(entity, item),
       name: item.name || "",
@@ -144,6 +144,21 @@ function normalizeItem(entity: EcoInventEntity, item: any): EcoInventItem {
       id: extractId(entity, item),
       [config.nameField]: extractName(entity, item),
       ptt_id: item.ptt_id || "",
+      ef_eu_region: item.ef_eu_region || "",
+      ef_india_region: item.ef_india_region || "",
+      ef_global_region: item.ef_global_region || "",
+      year: item.year || new Date().getFullYear(),
+      unit: item.unit || "",
+      iso_country_code: item.iso_country_code || "",
+    };
+  }
+
+  // Waste material type emission factor includes wtt_id
+  if (entity === "waste-material-type-emission-factor") {
+    return {
+      id: extractId(entity, item),
+      [config.nameField]: extractName(entity, item),
+      wtt_id: item.wtt_id || "",
       ef_eu_region: item.ef_eu_region || "",
       ef_india_region: item.ef_india_region || "",
       ef_global_region: item.ef_global_region || "",
@@ -200,8 +215,8 @@ export async function addEcoInventData(
     const config = entityConfigs[entity];
     let payload: any;
 
-    // Packaging treatment type uses name and code only
-    if (entity === "packaging-treatment-type") {
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
       payload = {
         name: item.name || "",
         code: item.code || "",
@@ -212,6 +227,19 @@ export async function addEcoInventData(
       payload = {
         [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
         ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
         ef_eu_region: item.ef_eu_region || "0",
         ef_india_region: item.ef_india_region || "0",
         ef_global_region: item.ef_global_region || "0",
@@ -258,8 +286,8 @@ export async function updateEcoInventData(
     const config = entityConfigs[entity];
     let payload: any;
 
-    // Packaging treatment type uses name and code only
-    if (entity === "packaging-treatment-type") {
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
       payload = {
         [config.idField]: item.id,
         name: item.name || "",
@@ -272,6 +300,20 @@ export async function updateEcoInventData(
         [config.idField]: item.id,
         [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
         ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
         ef_eu_region: item.ef_eu_region || "0",
         ef_india_region: item.ef_india_region || "0",
         ef_global_region: item.ef_global_region || "0",
@@ -344,8 +386,8 @@ export async function bulkAddEcoInventData(
     const config = entityConfigs[entity];
     let payloadItems: any[];
 
-    // Packaging treatment type uses name and code only
-    if (entity === "packaging-treatment-type") {
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
       payloadItems = items.map((item) => ({
         name: item.name || "",
         code: item.code || "",
@@ -356,6 +398,19 @@ export async function bulkAddEcoInventData(
       payloadItems = items.map((item) => ({
         [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
         ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
         ef_eu_region: item.ef_eu_region || "0",
         ef_india_region: item.ef_india_region || "0",
         ef_global_region: item.ef_global_region || "0",
@@ -432,6 +487,26 @@ export async function getTreatmentTypeDropdown(): Promise<{ id: string; name: st
     if (Array.isArray(data?.data)) {
       return (data.data as any[]).map((item) => ({
         id: item.ptt_id || item.id || "",
+        name: item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get waste treatment types dropdown for waste material type emission factor
+export async function getWasteTreatmentTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(endpoint("waste-treatment-type", "drop-down-list"), {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.wtt_id || item.id || "",
         name: item.name || "",
       }));
     }

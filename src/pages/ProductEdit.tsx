@@ -128,7 +128,7 @@ const ProductEdit: React.FC = () => {
       }
     } catch (error) {
       console.error("Error updating product:", error);
-      // message.error("An error occurred while updating the product");
+      message.error("An error occurred while updating the product");
     } finally {
       setLoading(false);
     }

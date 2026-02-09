@@ -214,6 +214,7 @@ const AlertManagementCreate: React.FC = () => {
         }
       } catch (error) {
         console.error("Error loading tables:", error);
+        message.error("Failed to load tables");
       }
     };
 
@@ -241,6 +242,7 @@ const AlertManagementCreate: React.FC = () => {
         }
       } catch (error) {
         console.error("Error loading columns:", error);
+        message.error("Failed to load columns");
       }
     };
 
@@ -286,6 +288,7 @@ const AlertManagementCreate: React.FC = () => {
         setUsers(allUsers);
       } catch (error) {
         console.error("Error loading users:", error);
+        message.error("Failed to load users");
       }
     };
 
