@@ -20,8 +20,10 @@ export interface EcoInventItem {
   element_name?: string; // materials-emission-factor
   type_of_energy?: string; // electricity-emission-factor
   fuel_type?: string; // fuel-emission-factor
-  packaging_type?: string; // packaging-emission-factor
-  treatment_type?: string; // packaging-treatment-type, waste-treatment-type
+  material_type?: string; // packaging-emission-factor
+  treatment_type?: string; // waste-treatment-type
+  name?: string; // packaging-treatment-type
+  code?: string; // packaging-treatment-type
   vehicle_type?: string; // vehicle-type-emission-factor
   waste_material_type?: string; // waste-material-type-emission-factor
   // Common emission factor fields
@@ -31,6 +33,8 @@ export interface EcoInventItem {
   year?: number;
   unit?: string;
   iso_country_code?: string;
+  // Foreign keys
+  ptt_id?: string; // packaging-emission-factor -> treatment type
 }
 
 // Entity-specific configuration
@@ -58,12 +62,12 @@ export const entityConfigs: Record<EcoInventEntity, EcoInventEntityConfig> = {
     idField: "fef_id",
   },
   "packaging-emission-factor": {
-    nameField: "packaging_type",
-    displayName: "Packaging Type",
+    nameField: "material_type",
+    displayName: "Material Type",
     idField: "pef_id",
   },
   "packaging-treatment-type": {
-    nameField: "treatment_type",
+    nameField: "name",
     displayName: "Treatment Type",
     idField: "ptt_id",
   },
@@ -124,6 +128,31 @@ function extractName(entity: EcoInventEntity, item: any): string {
 // Normalize item from API response
 function normalizeItem(entity: EcoInventEntity, item: any): EcoInventItem {
   const config = entityConfigs[entity];
+
+  // Packaging treatment type uses name and code only
+  if (entity === "packaging-treatment-type") {
+    return {
+      id: extractId(entity, item),
+      name: item.name || "",
+      code: item.code || "",
+    };
+  }
+
+  // Packaging emission factor includes ptt_id
+  if (entity === "packaging-emission-factor") {
+    return {
+      id: extractId(entity, item),
+      [config.nameField]: extractName(entity, item),
+      ptt_id: item.ptt_id || "",
+      ef_eu_region: item.ef_eu_region || "",
+      ef_india_region: item.ef_india_region || "",
+      ef_global_region: item.ef_global_region || "",
+      year: item.year || new Date().getFullYear(),
+      unit: item.unit || "",
+      iso_country_code: item.iso_country_code || "",
+    };
+  }
+
   return {
     id: extractId(entity, item),
     [config.nameField]: extractName(entity, item),
@@ -169,15 +198,38 @@ export async function addEcoInventData(
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const config = entityConfigs[entity];
-    const payload: any = {
-      [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-      ef_eu_region: item.ef_eu_region || "0",
-      ef_india_region: item.ef_india_region || "0",
-      ef_global_region: item.ef_global_region || "0",
-      year: item.year || new Date().getFullYear(),
-      unit: item.unit || "",
-      iso_country_code: item.iso_country_code || "",
-    };
+    let payload: any;
+
+    // Packaging treatment type uses name and code only
+    if (entity === "packaging-treatment-type") {
+      payload = {
+        name: item.name || "",
+        code: item.code || "",
+      };
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    } else {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
 
     const res = await fetch(endpoint(entity, "add"), {
       method: "POST",
@@ -204,16 +256,41 @@ export async function updateEcoInventData(
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const config = entityConfigs[entity];
-    const payload: any = {
-      [config.idField]: item.id,
-      [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-      ef_eu_region: item.ef_eu_region || "0",
-      ef_india_region: item.ef_india_region || "0",
-      ef_global_region: item.ef_global_region || "0",
-      year: item.year || new Date().getFullYear(),
-      unit: item.unit || "",
-      iso_country_code: item.iso_country_code || "",
-    };
+    let payload: any;
+
+    // Packaging treatment type uses name and code only
+    if (entity === "packaging-treatment-type") {
+      payload = {
+        [config.idField]: item.id,
+        name: item.name || "",
+        code: item.code || "",
+      };
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    } else {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
 
     const res = await fetch(endpoint(entity, "update"), {
       method: "POST",
@@ -265,20 +342,43 @@ export async function bulkAddEcoInventData(
 ): Promise<{ success: boolean; message: string; addedCount?: number }> {
   try {
     const config = entityConfigs[entity];
+    let payloadItems: any[];
+
+    // Packaging treatment type uses name and code only
+    if (entity === "packaging-treatment-type") {
+      payloadItems = items.map((item) => ({
+        name: item.name || "",
+        code: item.code || "",
+      }));
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    } else {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+
     const res = await fetch(endpoint(entity, "bulk/add"), {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(
-        items.map((item) => ({
-          [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-          ef_eu_region: item.ef_eu_region || "0",
-          ef_india_region: item.ef_india_region || "0",
-          ef_global_region: item.ef_global_region || "0",
-          year: item.year || new Date().getFullYear(),
-          unit: item.unit || "",
-          iso_country_code: item.iso_country_code || "",
-        }))
-      ),
+      body: JSON.stringify(payloadItems),
     });
     const data = await res.json();
     if (data?.success || data?.status) {
@@ -313,6 +413,26 @@ export async function getDropdownList(
       return (data.data as any[]).map((item) => ({
         id: extractId(entity, item),
         name: extractName(entity, item),
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get treatment types dropdown for packaging emission factor
+export async function getTreatmentTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(endpoint("packaging-treatment-type", "drop-down-list"), {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.ptt_id || item.id || "",
+        name: item.name || "",
       }));
     }
     return [];

@@ -132,45 +132,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
     ],
   },
   {
-    key: "components",
-    title: "Components Configuration",
-    description: "Configure component types and categories",
-    tabs: [
-      {
-        key: "component-type",
-        label: "Component Type",
-        entity: "component-type",
-      },
-      {
-        key: "component-category",
-        label: "Component Category",
-        entity: "component-category",
-      },
-    ],
-  },
-  {
-    key: "products",
-    title: "Products Configuration",
-    description: "Configure product types and categories",
-    tabs: [
-      {
-        key: "product-type",
-        label: "Product Type",
-        entity: "product-type",
-      },
-      {
-        key: "product-category",
-        label: "Product Category",
-        entity: "product-category",
-      },
-      {
-        key: "product-sub-category",
-        label: "Product Sub Category",
-        entity: "product-sub-category",
-      },
-    ],
-  },
-  {
     key: "manufacturing",
     title: "Manufacturing Configuration",
     description: "Configure manufacturing processes and stages",
