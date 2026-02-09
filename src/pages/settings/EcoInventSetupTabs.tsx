@@ -21,6 +21,7 @@ import {
   deleteEcoInventData,
   bulkAddEcoInventData,
   getEntityConfig,
+  getTreatmentTypeDropdown,
   type EcoInventItem,
   type EcoInventEntity,
 } from "../../lib/ecoInventService";
@@ -91,10 +92,17 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const [importPreview, setImportPreview] = useState<EcoInventItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
 
+  // Treatment type dropdown for packaging emission factor
+  const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
+
   const currentTabConfig = tabs.find((t) => t.key === activeTab);
   const currentEntity = currentTabConfig?.entity;
   const currentData = tabData[activeTab] || [];
   const entityConfig = currentEntity ? getEntityConfig(currentEntity) : null;
+
+  // Special entity checks
+  const isPackagingTreatmentType = currentEntity === "packaging-treatment-type";
+  const isPackagingEmissionFactor = currentEntity === "packaging-emission-factor";
 
   useEffect(() => {
     if (urlTab && urlTab !== activeTab) {
@@ -113,20 +121,48 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     load();
   }, [activeTab, currentEntity]);
 
+  // Load treatment types for packaging emission factor
+  useEffect(() => {
+    if (isPackagingEmissionFactor) {
+      getTreatmentTypeDropdown().then(setTreatmentTypes);
+    }
+  }, [isPackagingEmissionFactor]);
+
   // Reset new item when entity changes
   useEffect(() => {
     if (entityConfig) {
-      setNewItem({
-        [entityConfig.nameField]: "",
-        ef_eu_region: "",
-        ef_india_region: "",
-        ef_global_region: "",
-        year: new Date().getFullYear(),
-        unit: "",
-        iso_country_code: "",
-      });
+      // Packaging treatment type only uses name and code
+      if (isPackagingTreatmentType) {
+        setNewItem({
+          name: "",
+          code: "",
+        });
+      }
+      // Packaging emission factor includes ptt_id
+      else if (isPackagingEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          ptt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      } else {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      }
     }
-  }, [entityConfig]);
+  }, [entityConfig, isPackagingTreatmentType, isPackagingEmissionFactor]);
 
   const handleDelete = async (id: string) => {
     if (!currentEntity) return;
@@ -147,10 +183,23 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
 
   const handleAddNew = async () => {
     if (!currentEntity || !entityConfig) return;
-    const nameValue = newItem[entityConfig.nameField as keyof EcoInventItem];
-    if (!nameValue) {
-      message.warning(`Please enter ${entityConfig.displayName}`);
-      return;
+
+    // Validation for packaging treatment type
+    if (isPackagingTreatmentType) {
+      if (!newItem.name) {
+        message.warning("Please enter Treatment Type name");
+        return;
+      }
+      if (!newItem.code) {
+        message.warning("Please enter Treatment Type code");
+        return;
+      }
+    } else {
+      const nameValue = newItem[entityConfig.nameField as keyof EcoInventItem];
+      if (!nameValue) {
+        message.warning(`Please enter ${entityConfig.displayName}`);
+        return;
+      }
     }
 
     const result = await addEcoInventData(currentEntity, newItem);
@@ -158,15 +207,32 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       message.success("Item added successfully");
       const data = await listEcoInventData(currentEntity);
       setTabData((prev) => ({ ...prev, [activeTab]: data }));
-      setNewItem({
-        [entityConfig.nameField]: "",
-        ef_eu_region: "",
-        ef_india_region: "",
-        ef_global_region: "",
-        year: new Date().getFullYear(),
-        unit: "",
-        iso_country_code: "",
-      });
+
+      // Reset new item based on entity type
+      if (isPackagingTreatmentType) {
+        setNewItem({ name: "", code: "" });
+      } else if (isPackagingEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          ptt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      } else {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      }
       setShowAddModal(false);
     } else {
       message.error({
@@ -183,10 +249,23 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
 
   const handleSaveEdit = async () => {
     if (!currentEntity || !editingItem || !entityConfig) return;
-    const nameValue = editItem[entityConfig.nameField as keyof EcoInventItem];
-    if (!nameValue) {
-      message.warning(`Please enter ${entityConfig.displayName}`);
-      return;
+
+    // Validation for packaging treatment type
+    if (isPackagingTreatmentType) {
+      if (!editItem.name) {
+        message.warning("Please enter Treatment Type name");
+        return;
+      }
+      if (!editItem.code) {
+        message.warning("Please enter Treatment Type code");
+        return;
+      }
+    } else {
+      const nameValue = editItem[entityConfig.nameField as keyof EcoInventItem];
+      if (!nameValue) {
+        message.warning(`Please enter ${entityConfig.displayName}`);
+        return;
+      }
     }
 
     // Store original data for rollback
@@ -269,25 +348,62 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       return;
     }
 
-    // Convert data to CSV
-    const headers = [
-      entityConfig.displayName,
-      "EF EU Region",
-      "EF India Region",
-      "EF Global Region",
-      "Year",
-      "Unit",
-      "ISO Country Code",
-    ];
-    const rows = currentData.map((item) => [
-      item[entityConfig.nameField as keyof EcoInventItem] || "",
-      item.ef_eu_region || "",
-      item.ef_india_region || "",
-      item.ef_global_region || "",
-      item.year?.toString() || "",
-      item.unit || "",
-      item.iso_country_code || "",
-    ]);
+    let headers: string[];
+    let rows: (string | number)[][];
+
+    // Packaging treatment type only has name and code
+    if (isPackagingTreatmentType) {
+      headers = ["Treatment Type", "Code"];
+      rows = currentData.map((item) => [
+        item.name || "",
+        item.code || "",
+      ]);
+    }
+    // Packaging emission factor includes treatment type
+    else if (isPackagingEmissionFactor) {
+      headers = [
+        entityConfig.displayName,
+        "Treatment Type",
+        "EF EU Region",
+        "EF India Region",
+        "EF Global Region",
+        "Year",
+        "Unit",
+        "ISO Country Code",
+      ];
+      rows = currentData.map((item) => {
+        const treatmentType = treatmentTypes.find((t) => t.id === item.ptt_id);
+        return [
+          item[entityConfig.nameField as keyof EcoInventItem] || "",
+          treatmentType?.name || item.ptt_id || "",
+          item.ef_eu_region || "",
+          item.ef_india_region || "",
+          item.ef_global_region || "",
+          item.year?.toString() || "",
+          item.unit || "",
+          item.iso_country_code || "",
+        ];
+      });
+    } else {
+      headers = [
+        entityConfig.displayName,
+        "EF EU Region",
+        "EF India Region",
+        "EF Global Region",
+        "Year",
+        "Unit",
+        "ISO Country Code",
+      ];
+      rows = currentData.map((item) => [
+        item[entityConfig.nameField as keyof EcoInventItem] || "",
+        item.ef_eu_region || "",
+        item.ef_india_region || "",
+        item.ef_global_region || "",
+        item.year?.toString() || "",
+        item.unit || "",
+        item.iso_country_code || "",
+      ]);
+    }
 
     const csvContent = [
       headers.join(","),
@@ -334,6 +450,36 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   // Auto-detect column mapping
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
     if (!entityConfig) return {};
+
+    // Packaging treatment type only uses name and code
+    if (isPackagingTreatmentType) {
+      const mapping: Record<string, string> = {
+        name: "",
+        code: "",
+      };
+
+      const fieldsToMatch = [
+        { key: "name", patterns: ["name", "treatment", "type", "treatment type"] },
+        { key: "code", patterns: ["code"] },
+      ];
+
+      headers.forEach((header) => {
+        const headerLower = header.toLowerCase().trim();
+        fieldsToMatch.forEach((field) => {
+          if (!mapping[field.key]) {
+            for (const pattern of field.patterns) {
+              if (headerLower.includes(pattern) || pattern.includes(headerLower)) {
+                mapping[field.key] = header;
+                break;
+              }
+            }
+          }
+        });
+      });
+
+      return mapping;
+    }
+
     const mapping: Record<string, string> = {
       [entityConfig.nameField]: "",
       ef_eu_region: "",
@@ -343,6 +489,11 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       unit: "",
       iso_country_code: "",
     };
+
+    // Add ptt_id for packaging emission factor
+    if (isPackagingEmissionFactor) {
+      mapping.ptt_id = "";
+    }
 
     const fieldsToMatch = [
       {
@@ -358,7 +509,6 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
           "fuel",
           "waste",
           "packaging",
-          "treatment",
         ],
       },
       {
@@ -380,6 +530,14 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         patterns: ["iso", "country", "country_code", "iso_code"],
       },
     ];
+
+    // Add treatment type matching for packaging emission factor
+    if (isPackagingEmissionFactor) {
+      fieldsToMatch.push({
+        key: "ptt_id",
+        patterns: ["treatment", "treatment type", "ptt"],
+      });
+    }
 
     headers.forEach((header) => {
       const headerLower = header.toLowerCase().trim();
@@ -448,6 +606,25 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       return headers.findIndex((h) => h === mappedHeader);
     };
 
+    // Packaging treatment type only uses name and code
+    if (isPackagingTreatmentType) {
+      const nameIdx = getColumnIndex("name");
+      const codeIdx = getColumnIndex("code");
+
+      const previewItems: EcoInventItem[] = data
+        .filter((row) => {
+          const name = nameIdx >= 0 ? row[nameIdx] : "";
+          return name;
+        })
+        .map((row) => ({
+          name: nameIdx >= 0 ? row[nameIdx] : "",
+          code: codeIdx >= 0 ? row[codeIdx] : "",
+        }));
+
+      setImportPreview(previewItems);
+      return;
+    }
+
     const nameIdx = getColumnIndex(entityConfig.nameField);
     const euIdx = getColumnIndex("ef_eu_region");
     const indiaIdx = getColumnIndex("ef_india_region");
@@ -455,21 +632,36 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     const yearIdx = getColumnIndex("year");
     const unitIdx = getColumnIndex("unit");
     const isoIdx = getColumnIndex("iso_country_code");
+    const pttIdx = isPackagingEmissionFactor ? getColumnIndex("ptt_id") : -1;
 
     const previewItems: EcoInventItem[] = data
       .filter((row) => {
         const name = nameIdx >= 0 ? row[nameIdx] : "";
         return name;
       })
-      .map((row) => ({
-        [entityConfig.nameField]: nameIdx >= 0 ? row[nameIdx] : "",
-        ef_eu_region: euIdx >= 0 ? row[euIdx] : "",
-        ef_india_region: indiaIdx >= 0 ? row[indiaIdx] : "",
-        ef_global_region: globalIdx >= 0 ? row[globalIdx] : "",
-        year: yearIdx >= 0 ? parseInt(row[yearIdx]) || new Date().getFullYear() : new Date().getFullYear(),
-        unit: unitIdx >= 0 ? row[unitIdx] : "",
-        iso_country_code: isoIdx >= 0 ? row[isoIdx] : "",
-      }));
+      .map((row) => {
+        const item: EcoInventItem = {
+          [entityConfig.nameField]: nameIdx >= 0 ? row[nameIdx] : "",
+          ef_eu_region: euIdx >= 0 ? row[euIdx] : "",
+          ef_india_region: indiaIdx >= 0 ? row[indiaIdx] : "",
+          ef_global_region: globalIdx >= 0 ? row[globalIdx] : "",
+          year: yearIdx >= 0 ? parseInt(row[yearIdx]) || new Date().getFullYear() : new Date().getFullYear(),
+          unit: unitIdx >= 0 ? row[unitIdx] : "",
+          iso_country_code: isoIdx >= 0 ? row[isoIdx] : "",
+        };
+
+        // Add ptt_id for packaging emission factor - try to match by name
+        if (isPackagingEmissionFactor && pttIdx >= 0) {
+          const treatmentValue = row[pttIdx];
+          // Try to find matching treatment type by name
+          const matchingType = treatmentTypes.find(
+            (t) => t.name.toLowerCase() === treatmentValue?.toLowerCase() || t.id === treatmentValue
+          );
+          item.ptt_id = matchingType?.id || treatmentValue || "";
+        }
+
+        return item;
+      });
 
     setImportPreview(previewItems);
   };
@@ -640,29 +832,70 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-green-50 to-green-100">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          {entityConfig.displayName}
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          EF EU
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          EF India
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          EF Global
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          Year
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          Unit
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-24">
-                          Actions
-                        </th>
-                      </tr>
+                      {isPackagingTreatmentType ? (
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Treatment Type
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Code
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-24">
+                            Actions
+                          </th>
+                        </tr>
+                      ) : isPackagingEmissionFactor ? (
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            {entityConfig.displayName}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Treatment Type
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF EU
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF India
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF Global
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Year
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Unit
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-24">
+                            Actions
+                          </th>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            {entityConfig.displayName}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF EU
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF India
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            EF Global
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Year
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Unit
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-24">
+                            Actions
+                          </th>
+                        </tr>
+                      )}
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                       {currentData.map((item, index) => (
@@ -672,24 +905,61 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                             index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            {getNameValue(item)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {item.ef_eu_region}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {item.ef_india_region}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {item.ef_global_region}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {item.year}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {item.unit}
-                          </td>
+                          {isPackagingTreatmentType ? (
+                            <>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {item.name}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.code}
+                              </td>
+                            </>
+                          ) : isPackagingEmissionFactor ? (
+                            <>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {getNameValue(item)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {treatmentTypes.find((t) => t.id === item.ptt_id)?.name || item.ptt_id || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_eu_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_india_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_global_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.year}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.unit}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {getNameValue(item)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_eu_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_india_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_global_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.year}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.unit}
+                              </td>
+                            </>
+                          )}
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               {canUpdate("eco invent emission factors") && (
@@ -746,9 +1016,13 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               <Plus className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <div className="font-semibold text-gray-900">Add Emission Factor</div>
+              <div className="font-semibold text-gray-900">
+                {isPackagingTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
+              </div>
               <div className="text-sm text-gray-500 font-normal">
-                Enter the details for the new emission factor
+                {isPackagingTreatmentType
+                  ? "Enter the details for the new treatment type"
+                  : "Enter the details for the new emission factor"}
               </div>
             </div>
           </div>
@@ -759,96 +1033,149 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         footer={null}
       >
         <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {entityConfig.displayName} <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
-              onChange={(e) =>
-                setNewItem({ ...newItem, [entityConfig.nameField]: e.target.value })
-              }
-              placeholder={`Enter ${entityConfig.displayName.toLowerCase()}`}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF EU Region
-              </label>
-              <Input
-                value={newItem.ef_eu_region || ""}
-                onChange={(e) =>
-                  setNewItem({ ...newItem, ef_eu_region: e.target.value })
-                }
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF India Region
-              </label>
-              <Input
-                value={newItem.ef_india_region || ""}
-                onChange={(e) =>
-                  setNewItem({ ...newItem, ef_india_region: e.target.value })
-                }
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF Global Region
-              </label>
-              <Input
-                value={newItem.ef_global_region || ""}
-                onChange={(e) =>
-                  setNewItem({ ...newItem, ef_global_region: e.target.value })
-                }
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Year
-              </label>
-              <InputNumber
-                className="w-full"
-                value={newItem.year}
-                onChange={(value) =>
-                  setNewItem({ ...newItem, year: value || new Date().getFullYear() })
-                }
-                min={2000}
-                max={2100}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unit
-              </label>
-              <Input
-                value={newItem.unit || ""}
-                onChange={(e) =>
-                  setNewItem({ ...newItem, unit: e.target.value })
-                }
-                placeholder="e.g., kg CO2e"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ISO Country Code
-              </label>
-              <Input
-                value={newItem.iso_country_code || ""}
-                onChange={(e) =>
-                  setNewItem({ ...newItem, iso_country_code: e.target.value })
-                }
-                placeholder="e.g., IN"
-              />
-            </div>
-          </div>
+          {isPackagingTreatmentType ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Treatment Type Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={newItem.name || ""}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, name: e.target.value })
+                  }
+                  placeholder="Enter treatment type name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Code <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={newItem.code || ""}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, code: e.target.value })
+                  }
+                  placeholder="e.g., PKS0021"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {entityConfig.displayName} <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, [entityConfig.nameField]: e.target.value })
+                  }
+                  placeholder={`Enter ${entityConfig.displayName.toLowerCase()}`}
+                />
+              </div>
+              {isPackagingEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Treatment Type
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select treatment type"
+                    value={newItem.ptt_id || undefined}
+                    onChange={(value) => setNewItem({ ...newItem, ptt_id: value })}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {treatmentTypes.map((tt) => (
+                      <Option key={tt.id} value={tt.id}>
+                        {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF EU Region
+                  </label>
+                  <Input
+                    value={newItem.ef_eu_region || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, ef_eu_region: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF India Region
+                  </label>
+                  <Input
+                    value={newItem.ef_india_region || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, ef_india_region: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF Global Region
+                  </label>
+                  <Input
+                    value={newItem.ef_global_region || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, ef_global_region: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Year
+                  </label>
+                  <InputNumber
+                    className="w-full"
+                    value={newItem.year}
+                    onChange={(value) =>
+                      setNewItem({ ...newItem, year: value || new Date().getFullYear() })
+                    }
+                    min={2000}
+                    max={2100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unit
+                  </label>
+                  <Input
+                    value={newItem.unit || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, unit: e.target.value })
+                    }
+                    placeholder="e.g., kg CO2e"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ISO Country Code
+                  </label>
+                  <Input
+                    value={newItem.iso_country_code || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, iso_country_code: e.target.value })
+                    }
+                    placeholder="e.g., IN"
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button onClick={() => setShowAddModal(false)}>Cancel</Button>
             <Button
@@ -856,7 +1183,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               onClick={handleAddNew}
               className="!bg-green-600 hover:!bg-green-700 !border-green-600"
             >
-              Add Emission Factor
+              {isPackagingTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
             </Button>
           </div>
         </div>
@@ -870,9 +1197,13 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               <Edit className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <div className="font-semibold text-gray-900">Edit Emission Factor</div>
+              <div className="font-semibold text-gray-900">
+                {isPackagingTreatmentType ? "Edit Treatment Type" : "Edit Emission Factor"}
+              </div>
               <div className="text-sm text-gray-500 font-normal">
-                Update the emission factor details
+                {isPackagingTreatmentType
+                  ? "Update the treatment type details"
+                  : "Update the emission factor details"}
               </div>
             </div>
           </div>
@@ -883,90 +1214,141 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         footer={null}
       >
         <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {entityConfig.displayName} <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
-              onChange={(e) =>
-                setEditItem({ ...editItem, [entityConfig.nameField]: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF EU Region
-              </label>
-              <Input
-                value={editItem.ef_eu_region || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, ef_eu_region: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF India Region
-              </label>
-              <Input
-                value={editItem.ef_india_region || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, ef_india_region: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                EF Global Region
-              </label>
-              <Input
-                value={editItem.ef_global_region || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, ef_global_region: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Year
-              </label>
-              <InputNumber
-                className="w-full"
-                value={editItem.year}
-                onChange={(value) =>
-                  setEditItem({ ...editItem, year: value || new Date().getFullYear() })
-                }
-                min={2000}
-                max={2100}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unit
-              </label>
-              <Input
-                value={editItem.unit || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, unit: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ISO Country Code
-              </label>
-              <Input
-                value={editItem.iso_country_code || ""}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, iso_country_code: e.target.value })
-                }
-              />
-            </div>
-          </div>
+          {isPackagingTreatmentType ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Treatment Type Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={editItem.name || ""}
+                  onChange={(e) =>
+                    setEditItem({ ...editItem, name: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Code <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={editItem.code || ""}
+                  onChange={(e) =>
+                    setEditItem({ ...editItem, code: e.target.value })
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {entityConfig.displayName} <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
+                  onChange={(e) =>
+                    setEditItem({ ...editItem, [entityConfig.nameField]: e.target.value })
+                  }
+                />
+              </div>
+              {isPackagingEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Treatment Type
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select treatment type"
+                    value={editItem.ptt_id || undefined}
+                    onChange={(value) => setEditItem({ ...editItem, ptt_id: value })}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {treatmentTypes.map((tt) => (
+                      <Option key={tt.id} value={tt.id}>
+                        {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF EU Region
+                  </label>
+                  <Input
+                    value={editItem.ef_eu_region || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, ef_eu_region: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF India Region
+                  </label>
+                  <Input
+                    value={editItem.ef_india_region || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, ef_india_region: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    EF Global Region
+                  </label>
+                  <Input
+                    value={editItem.ef_global_region || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, ef_global_region: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Year
+                  </label>
+                  <InputNumber
+                    className="w-full"
+                    value={editItem.year}
+                    onChange={(value) =>
+                      setEditItem({ ...editItem, year: value || new Date().getFullYear() })
+                    }
+                    min={2000}
+                    max={2100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unit
+                  </label>
+                  <Input
+                    value={editItem.unit || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, unit: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ISO Country Code
+                  </label>
+                  <Input
+                    value={editItem.iso_country_code || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, iso_country_code: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button onClick={handleCancelEdit}>Cancel</Button>
             <Button
@@ -993,7 +1375,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Emission Factor
+                    {isPackagingTreatmentType ? "Delete Treatment Type" : "Delete Emission Factor"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     This action cannot be undone.
@@ -1002,10 +1384,17 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium">{entityConfig.displayName}:</span>{" "}
-                  {getNameValue(itemToDelete.item)}
-                </p>
+                {isPackagingTreatmentType ? (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">Treatment Type:</span>{" "}
+                    {itemToDelete.item.name} ({itemToDelete.item.code})
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-medium">{entityConfig.displayName}:</span>{" "}
+                    {getNameValue(itemToDelete.item)}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-end space-x-3">
@@ -1059,141 +1448,205 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               </span>
               Map CSV Columns
             </h4>
-            <div className="grid grid-cols-4 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {entityConfig.displayName} <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping[entityConfig.nameField] || undefined}
-                  onChange={(v) => handleMappingChange(entityConfig.nameField, v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
+            {isPackagingTreatmentType ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Treatment Type Name <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.name || undefined}
+                    onChange={(v) => handleMappingChange("name", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Code <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.code || undefined}
+                    onChange={(v) => handleMappingChange("code", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  EF EU Region
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.ef_eu_region || undefined}
-                  onChange={(v) => handleMappingChange("ef_eu_region", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {entityConfig.displayName} <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping[entityConfig.nameField] || undefined}
+                    onChange={(v) => handleMappingChange(entityConfig.nameField, v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                {isPackagingEmissionFactor && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Treatment Type
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select"
+                      value={columnMapping.ptt_id || undefined}
+                      onChange={(v) => handleMappingChange("ptt_id", v)}
+                      allowClear
+                      size="small"
+                    >
+                      {csvHeaders.map((h) => (
+                        <Option key={h} value={h}>
+                          {h}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    EF EU Region
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.ef_eu_region || undefined}
+                    onChange={(v) => handleMappingChange("ef_eu_region", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    EF India Region
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.ef_india_region || undefined}
+                    onChange={(v) => handleMappingChange("ef_india_region", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    EF Global Region
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.ef_global_region || undefined}
+                    onChange={(v) => handleMappingChange("ef_global_region", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Year
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.year || undefined}
+                    onChange={(v) => handleMappingChange("year", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Unit
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.unit || undefined}
+                    onChange={(v) => handleMappingChange("unit", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    ISO Country Code
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select"
+                    value={columnMapping.iso_country_code || undefined}
+                    onChange={(v) => handleMappingChange("iso_country_code", v)}
+                    allowClear
+                    size="small"
+                  >
+                    {csvHeaders.map((h) => (
+                      <Option key={h} value={h}>
+                        {h}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  EF India Region
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.ef_india_region || undefined}
-                  onChange={(v) => handleMappingChange("ef_india_region", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  EF Global Region
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.ef_global_region || undefined}
-                  onChange={(v) => handleMappingChange("ef_global_region", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Year
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.year || undefined}
-                  onChange={(v) => handleMappingChange("year", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Unit
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.unit || undefined}
-                  onChange={(v) => handleMappingChange("unit", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  ISO Country Code
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select"
-                  value={columnMapping.iso_country_code || undefined}
-                  onChange={(v) => handleMappingChange("iso_country_code", v)}
-                  allowClear
-                  size="small"
-                >
-                  {csvHeaders.map((h) => (
-                    <Option key={h} value={h}>
-                      {h}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Preview Section */}
@@ -1216,7 +1669,9 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     No valid items found
                   </p>
                   <p className="text-xs text-amber-600">
-                    Please map at least the {entityConfig.displayName} column
+                    {isPackagingTreatmentType
+                      ? "Please map at least the Treatment Type Name column"
+                      : `Please map at least the ${entityConfig.displayName} column`}
                   </p>
                 </div>
               </div>
@@ -1224,18 +1679,39 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <Table
                   dataSource={importPreview.slice(0, 5)}
-                  columns={[
-                    {
-                      title: entityConfig.displayName,
-                      dataIndex: entityConfig.nameField,
-                      key: "name",
-                    },
-                    { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
-                    { title: "EF India", dataIndex: "ef_india_region", key: "india" },
-                    { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
-                    { title: "Year", dataIndex: "year", key: "year" },
-                    { title: "Unit", dataIndex: "unit", key: "unit" },
-                  ]}
+                  columns={
+                    isPackagingTreatmentType
+                      ? [
+                          { title: "Treatment Type", dataIndex: "name", key: "name" },
+                          { title: "Code", dataIndex: "code", key: "code" },
+                        ]
+                      : isPackagingEmissionFactor
+                      ? [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          {
+                            title: "Treatment Type",
+                            dataIndex: "ptt_id",
+                            key: "ptt_id",
+                            render: (value: string) => {
+                              const tt = treatmentTypes.find((t) => t.id === value);
+                              return tt?.name || value || "-";
+                            },
+                          },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                      : [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                  }
                   pagination={false}
                   size="small"
                   rowKey={(_, index) => `preview-${index}`}
