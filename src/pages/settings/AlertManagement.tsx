@@ -64,17 +64,21 @@ const AlertManagement: React.FC = () => {
       );
 
       if (result.success) {
-        setAlerts(result.data || []);
+        // Ensure data is always an array
+        const alertsData = Array.isArray(result.data) ? result.data : [];
+        setAlerts(alertsData);
         if (result.pagination) {
-          setTotalCount(result.pagination.total);
-          setTotalPages(result.pagination.totalPages);
+          setTotalCount(result.pagination.total || 0);
+          setTotalPages(result.pagination.totalPages || 1);
         }
       } else {
         message.error(result.message || "Failed to fetch alerts");
+        setAlerts([]);
       }
     } catch (error) {
       console.error("Error fetching alerts:", error);
       message.error("An error occurred while fetching alerts");
+      setAlerts([]);
     } finally {
       setLoading(false);
     }

@@ -146,12 +146,18 @@ class AlertManagementService {
       const result = await response.json();
 
       if (result.status) {
+        // Ensure data is always an array
+        let alertsData = result.data?.data || result.data;
+        if (!Array.isArray(alertsData)) {
+          alertsData = [];
+        }
+
         return {
           success: true,
           message: result.message || "Alerts fetched successfully",
-          data: result.data?.data || result.data || [],
+          data: alertsData,
           pagination: result.data?.pagination || {
-            total: result.data?.length || 0,
+            total: alertsData.length || 0,
             page: pageNo,
             limit: pageSize,
             totalPages: 1,
@@ -162,6 +168,7 @@ class AlertManagementService {
       return {
         success: false,
         message: result.message || "Failed to fetch alerts",
+        data: [],
       };
     } catch (error) {
       console.error("Error fetching alerts:", error);
