@@ -40,20 +40,11 @@ interface TaskManagementItem {
   progress: number;
 }
 
-// Predefined category options - add more as needed
-const CATEGORY_OPTIONS = [
-  { label: "All Categories", value: "all" },
-  { label: "PCF", value: "PCF" },
-  { label: "LCA", value: "LCA" },
-  { label: "DQR", value: "DQR" },
-  { label: "General", value: "General" },
-];
-
 const PRIORITY_OPTIONS = [
   { label: "All Priorities", value: "all" },
-  { label: "Low", value: "Low" },
-  { label: "Medium", value: "Medium" },
   { label: "High", value: "High" },
+  { label: "Medium", value: "Medium" },
+  { label: "Low", value: "Low" },
 ];
 
 const TaskManagement: React.FC = () => {
@@ -65,10 +56,9 @@ const TaskManagement: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [assigneeOptions, setAssigneeOptions] = useState<{ label: string; value: string }[]>([
-    { label: "All Assignees", value: "all" },
+  const [categoryOptions, setCategoryOptions] = useState<{ label: string; value: string }[]>([
+    { label: "All Categories", value: "all" },
   ]);
   const navigate = useNavigate();
   // Helper function to format date
@@ -98,13 +88,33 @@ const TaskManagement: React.FC = () => {
     }
   };
 
+  // Load categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const result = await taskService.getCategoryDropdown();
+        if (result.success && result.data) {
+          setCategoryOptions([
+            { label: "All Categories", value: "all" },
+            ...result.data.map((cat) => ({
+              label: cat.name,
+              value: cat.name, // Use name for filtering as API accepts category name
+            })),
+          ]);
+        }
+      } catch (error) {
+        console.error("Error loading categories:", error);
+      }
+    };
+    loadCategories();
+  }, []);
+
   // Fetch task list from API
   const fetchTaskList = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await taskService.getTaskList(currentPage, pageSize, {
         priority: priorityFilter !== "all" ? priorityFilter : undefined,
-        assignee: assigneeFilter !== "all" ? assigneeFilter : undefined,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
       });
 
@@ -142,20 +152,6 @@ const TaskManagement: React.FC = () => {
         setTasks(transformedData);
         setTotalCount(result.total_count || 0);
         setTotalPages(result.total_pages || 1);
-
-        // Collect unique assignees for filter dropdown (only on first load without filters)
-        if (priorityFilter === "all" && assigneeFilter === "all" && categoryFilter === "all") {
-          const uniqueAssigneeNames = Array.from(
-            new Set(result.data.flatMap((item) =>
-              item.assigned_entities?.map((entity) => entity.name) || []
-            ))
-          ).filter(Boolean);
-
-          setAssigneeOptions([
-            { label: "All Assignees", value: "all" },
-            ...uniqueAssigneeNames.map((name) => ({ label: name, value: name })),
-          ]);
-        }
       } else {
         message.error(result.message || "Failed to fetch tasks");
         setTasks([]);
@@ -167,7 +163,7 @@ const TaskManagement: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, priorityFilter, assigneeFilter, categoryFilter]);
+  }, [currentPage, pageSize, priorityFilter, categoryFilter]);
 
   // Load data on component mount and when filters change
   useEffect(() => {
@@ -185,11 +181,6 @@ const TaskManagement: React.FC = () => {
   // Handle filter changes - reset to page 1
   const handlePriorityChange = (value: string) => {
     setPriorityFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handleAssigneeChange = (value: string) => {
-    setAssigneeFilter(value);
     setCurrentPage(1);
   };
 
@@ -441,28 +432,18 @@ const TaskManagement: React.FC = () => {
                   onClear={() => handlePriorityChange("all")}
                 />
                 <Select
-                  placeholder="All Assignees"
+                  placeholder="All Categories"
                   className="w-[160px]"
                   size="large"
-                  value={assigneeFilter}
-                  onChange={handleAssigneeChange}
-                  options={assigneeOptions}
+                  value={categoryFilter}
+                  onChange={handleCategoryChange}
+                  options={categoryOptions}
                   allowClear
-                  onClear={() => handleAssigneeChange("all")}
+                  onClear={() => handleCategoryChange("all")}
                   showSearch
                   filterOption={(input, option) =>
                     (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                   }
-                />
-                <Select
-                  placeholder="All Categories"
-                  className="w-[150px]"
-                  size="large"
-                  value={categoryFilter}
-                  onChange={handleCategoryChange}
-                  options={CATEGORY_OPTIONS}
-                  allowClear
-                  onClear={() => handleCategoryChange("all")}
                 />
                 {canCreate("Task Management") && (
                   <Button

@@ -27,6 +27,7 @@ import {
   Image as ImageIcon,
   FileType,
   AlertCircle,
+  PlayCircle,
 } from "lucide-react";
 import { documentMasterService } from "../lib/documentMasterService";
 import type { PCFDocumentItem, DocumentStats } from "../lib/documentMasterService";
@@ -278,6 +279,7 @@ const DocumentMaster: React.FC = () => {
   const stats = {
     total: parseInt(apiStats?.total_pcf_count || "0", 10),
     approved: parseInt(apiStats?.approved_count || "0", 10),
+    inProgress: parseInt(apiStats?.in_progress_count || "0", 10),
     rejected: parseInt(apiStats?.rejected_count || "0", 10),
     draft: parseInt(apiStats?.draft_count || "0", 10),
     pending: parseInt(apiStats?.pending_count || "0", 10),
@@ -428,6 +430,23 @@ const DocumentMaster: React.FC = () => {
                     </div>
                     <div className="text-xl font-bold text-green-700">
                       {stats.approved}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* In Progress */}
+              <div className="bg-cyan-50 rounded-xl p-4 min-w-[120px] border border-cyan-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-cyan-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <PlayCircle className="w-5 h-5 text-cyan-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-cyan-600 font-medium">
+                      In Progress
+                    </div>
+                    <div className="text-xl font-bold text-cyan-700">
+                      {stats.inProgress}
                     </div>
                   </div>
                 </div>

@@ -11,6 +11,7 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
+import ForgotMFA from "../pages/auth/ForgotMFA";
 import MFAVerification from "../pages/auth/MFAVerification";
 import Users from "../pages/settings/Users";
 import UsersCreate from "../pages/settings/UsersCreate";
@@ -92,6 +93,10 @@ export const router = createBrowserRouter([
   {
     path: "/reset-password",
     element: <ResetPassword />,
+  },
+  {
+    path: "/forgot-mfa",
+    element: <ForgotMFA />,
   },
   {
     path: "/mfa-verification",

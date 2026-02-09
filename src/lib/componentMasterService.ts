@@ -1,56 +1,27 @@
 const API_BASE_URL = "https://enviguide.nextechltd.in";
 
-// BOM Detail item (nested within PCF request)
-export interface BomDetail {
+// PCF Request nested within BOM item
+export interface PcfRequest {
   id: string;
   code: string;
-  material_number: string;
-  component_name: string;
-  qunatity: number | null; // Note: typo in API
-  production_location: string;
-  manufacturer: string;
-  detail_description: string;
-  weight_gms: number;
-  total_weight_gms: number | null;
-  component_category: string;
-  price: number;
-  total_price: number | null;
-  economic_ratio: number;
-  supplier_id: string;
-  is_weight_gms: boolean;
-  created_date: string;
-  product_specifications: any[];
-  material_emission: any[] | null;
-  production_emission_calculation: any | null;
-  packaging_emission_calculation: any | null;
-  waste_emission_calculation: any | null;
-  logistic_emission_calculation: any | null;
-  pcf_total_emission_calculation: any | null;
-  allocation_methodology: any | null;
-}
-
-// PCF Request item (main item in data.data array)
-export interface ComponentItem {
-  id: string;
-  code: string;
-  status?: string;
-  due_date?: string;
-  priority?: string;
+  status: string;
+  due_date: string | null;
+  priority: string;
   createdBy?: {
     user_id: string;
     user_name: string;
   };
-  created_by?: string;
-  update_date?: string;
-  created_date?: string;
+  created_by: string;
+  update_date: string;
+  created_date: string;
   manufacturer?: {
     id: string | null;
     code: string | null;
     name: string | null;
   };
-  product_code?: string;
-  model_version?: string | null;
-  request_title?: string;
+  product_code: string;
+  model_version: string | null;
+  request_title: string;
   component_type?: {
     id: string | null;
     code: string | null;
@@ -69,11 +40,47 @@ export interface ComponentItem {
   };
   request_description?: string | null;
   technical_specification_file?: any[] | null;
-  bom_details?: BomDetail[];
+  request_organization?: {
+    id: string | null;
+    code: string | null;
+    name: string | null;
+  } | null;
 }
 
+// BOM item (main item in data.data array - BOM-centric structure)
+export interface ComponentItem {
+  id: string;
+  code: string; // BOM code e.g., "BOM02357"
+  material_number: string;
+  component_name: string;
+  qunatity: number | null; // Note: typo in API
+  production_location: string;
+  manufacturer: string;
+  detail_description: string;
+  weight_gms: number;
+  total_weight_gms: number | null;
+  component_category: string;
+  price: number;
+  total_price: number | null;
+  economic_ratio: number;
+  supplier_id: string;
+  is_weight_gms: boolean;
+  created_date: string;
+  pcf_request: PcfRequest;
+  product_specifications: any[];
+  material_emission: any[] | null;
+  production_emission_calculation: any | null;
+  packaging_emission_calculation: any | null;
+  waste_emission_calculation: any | null;
+  logistic_emission_calculation: any | null;
+  pcf_total_emission_calculation: any | null;
+  allocation_methodology: any | null;
+}
+
+// Legacy BomDetail interface for backward compatibility
+export interface BomDetail extends Omit<ComponentItem, 'pcf_request'> {}
+
 export interface ComponentStats {
-  total_pcf_count: string;
   approved_count: string;
   in_progress_count: string;
   rejected_count: string;

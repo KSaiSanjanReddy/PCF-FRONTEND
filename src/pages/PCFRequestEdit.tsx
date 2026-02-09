@@ -18,6 +18,7 @@ const PCFRequestEdit: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pcfData, setPcfData] = useState<any>(null);
+  const [editingFromReview, setEditingFromReview] = useState(false);
 
   // Check if product code is selected (required for Save as Draft)
   const canSaveAsDraft = Boolean(formData.productCode);
@@ -167,7 +168,11 @@ const PCFRequestEdit: React.FC = () => {
       setCompletedSteps([...completedSteps, currentStep]);
     }
 
-    if (currentStep < steps.length - 1) {
+    // If editing from review screen, go back to review step
+    if (editingFromReview) {
+      setEditingFromReview(false);
+      setCurrentStep(3); // Go to Review & Submit
+    } else if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -177,6 +182,12 @@ const PCFRequestEdit: React.FC = () => {
     if (completedSteps.includes(stepIndex) || stepIndex === currentStep) {
       setCurrentStep(stepIndex);
     }
+  };
+
+  // Handle edit from Review & Submit screen
+  const handleEditFromReview = (stepIndex: number) => {
+    setEditingFromReview(true);
+    setCurrentStep(stepIndex);
   };
 
   const buildPayload = (isDraft: boolean) => {
@@ -355,7 +366,7 @@ const PCFRequestEdit: React.FC = () => {
         return (
           <ReviewSubmitStep
             formData={formData}
-            onEditStep={setCurrentStep}
+            onEditStep={handleEditFromReview}
             onSubmit={handleSubmit}
             onSaveAsDraft={canSaveAsDraft ? handleSaveAsDraft : undefined}
           />

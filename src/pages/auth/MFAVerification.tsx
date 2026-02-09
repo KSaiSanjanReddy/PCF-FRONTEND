@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   AlertCircle,
   CheckCircle,
@@ -414,7 +414,7 @@ const MFAVerification: React.FC = () => {
           </div>
 
           {/* Help Information */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-md">
+          <div className="mt-8 p-4 bg-gray-50 rounded-xl">
             <h3 className="text-sm font-medium text-gray-700 mb-2">
               Need Help?
             </h3>
@@ -427,9 +427,18 @@ const MFAVerification: React.FC = () => {
                 • Popular apps: Google Authenticator, Authy, Microsoft
                 Authenticator
               </li>
-              {/* <li>• <strong>Current Frontend URL:</strong> http://localhost:5174/</li>
-              <li>• <strong>Backend URL:</strong> http://localhost:8000/</li> */}
             </ul>
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-600">
+                Lost access to your authenticator app?{" "}
+                <Link
+                  to="/forgot-mfa"
+                  className="text-green-600 hover:text-green-500 font-medium"
+                >
+                  Reset MFA
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

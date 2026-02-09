@@ -22,6 +22,7 @@ import {
   bulkAddEcoInventData,
   getEntityConfig,
   getTreatmentTypeDropdown,
+  getWasteTreatmentTypeDropdown,
   type EcoInventItem,
   type EcoInventEntity,
 } from "../../lib/ecoInventService";
@@ -92,8 +93,9 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const [importPreview, setImportPreview] = useState<EcoInventItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
 
-  // Treatment type dropdown for packaging emission factor
+  // Treatment type dropdowns
   const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
+  const [wasteTreatmentTypes, setWasteTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
 
   const currentTabConfig = tabs.find((t) => t.key === activeTab);
   const currentEntity = currentTabConfig?.entity;
@@ -103,6 +105,9 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   // Special entity checks
   const isPackagingTreatmentType = currentEntity === "packaging-treatment-type";
   const isPackagingEmissionFactor = currentEntity === "packaging-emission-factor";
+  const isWasteTreatmentType = currentEntity === "waste-treatment-type";
+  const isWasteMaterialEmissionFactor = currentEntity === "waste-material-type-emission-factor";
+  const isTreatmentType = isPackagingTreatmentType || isWasteTreatmentType;
 
   useEffect(() => {
     if (urlTab && urlTab !== activeTab) {
@@ -128,11 +133,18 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     }
   }, [isPackagingEmissionFactor]);
 
+  // Load waste treatment types for waste material emission factor
+  useEffect(() => {
+    if (isWasteMaterialEmissionFactor) {
+      getWasteTreatmentTypeDropdown().then(setWasteTreatmentTypes);
+    }
+  }, [isWasteMaterialEmissionFactor]);
+
   // Reset new item when entity changes
   useEffect(() => {
     if (entityConfig) {
-      // Packaging treatment type only uses name and code
-      if (isPackagingTreatmentType) {
+      // Treatment types (packaging and waste) use name and code only
+      if (isTreatmentType) {
         setNewItem({
           name: "",
           code: "",
@@ -143,6 +155,19 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         setNewItem({
           [entityConfig.nameField]: "",
           ptt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      }
+      // Waste material emission factor includes wtt_id
+      else if (isWasteMaterialEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          wtt_id: "",
           ef_eu_region: "",
           ef_india_region: "",
           ef_global_region: "",
@@ -162,7 +187,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         });
       }
     }
-  }, [entityConfig, isPackagingTreatmentType, isPackagingEmissionFactor]);
+  }, [entityConfig, isTreatmentType, isPackagingEmissionFactor, isWasteMaterialEmissionFactor]);
 
   const handleDelete = async (id: string) => {
     if (!currentEntity) return;
@@ -184,8 +209,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const handleAddNew = async () => {
     if (!currentEntity || !entityConfig) return;
 
-    // Validation for packaging treatment type
-    if (isPackagingTreatmentType) {
+    // Validation for treatment types (packaging and waste)
+    if (isTreatmentType) {
       if (!newItem.name) {
         message.warning("Please enter Treatment Type name");
         return;
@@ -209,12 +234,23 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       setTabData((prev) => ({ ...prev, [activeTab]: data }));
 
       // Reset new item based on entity type
-      if (isPackagingTreatmentType) {
+      if (isTreatmentType) {
         setNewItem({ name: "", code: "" });
       } else if (isPackagingEmissionFactor) {
         setNewItem({
           [entityConfig.nameField]: "",
           ptt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      } else if (isWasteMaterialEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          wtt_id: "",
           ef_eu_region: "",
           ef_india_region: "",
           ef_global_region: "",
@@ -250,8 +286,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const handleSaveEdit = async () => {
     if (!currentEntity || !editingItem || !entityConfig) return;
 
-    // Validation for packaging treatment type
-    if (isPackagingTreatmentType) {
+    // Validation for treatment types (packaging and waste)
+    if (isTreatmentType) {
       if (!editItem.name) {
         message.warning("Please enter Treatment Type name");
         return;
@@ -272,14 +308,17 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     const originalData = tabData[activeTab] || [];
     const currentEditing = editingItem;
     const editedValues = { ...editItem };
+    const editingId = editingItem.item.id;
 
-    // Optimistic UI update
-    setTabData((prev) => ({
-      ...prev,
-      [activeTab]: (prev[activeTab] || []).map((item) =>
-        item.id === editingItem.item.id ? { ...item, ...editItem } : item
-      ),
-    }));
+    // Only do optimistic update if item has a valid ID
+    if (editingId) {
+      setTabData((prev) => ({
+        ...prev,
+        [activeTab]: (prev[activeTab] || []).map((item) =>
+          item.id === editingId ? { ...item, ...editItem } : item
+        ),
+      }));
+    }
 
     handleCancelEdit();
 
@@ -291,6 +330,9 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
 
     if (result.success) {
       message.success("Item updated successfully");
+      // Refresh data from API to get accurate state
+      const data = await listEcoInventData(currentEntity);
+      setTabData((prev) => ({ ...prev, [activeTab]: data }));
     } else {
       // Rollback on failure
       setTabData((prev) => ({ ...prev, [activeTab]: originalData }));
@@ -351,13 +393,39 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     let headers: string[];
     let rows: (string | number)[][];
 
-    // Packaging treatment type only has name and code
-    if (isPackagingTreatmentType) {
+    // Treatment types (packaging and waste) only have name and code
+    if (isTreatmentType) {
       headers = ["Treatment Type", "Code"];
       rows = currentData.map((item) => [
         item.name || "",
         item.code || "",
       ]);
+    }
+    // Waste material emission factor includes waste treatment type
+    else if (isWasteMaterialEmissionFactor) {
+      headers = [
+        entityConfig.displayName,
+        "Waste Treatment Type",
+        "EF EU Region",
+        "EF India Region",
+        "EF Global Region",
+        "Year",
+        "Unit",
+        "ISO Country Code",
+      ];
+      rows = currentData.map((item) => {
+        const wasteTreatmentType = wasteTreatmentTypes.find((t) => t.id === item.wtt_id);
+        return [
+          item[entityConfig.nameField as keyof EcoInventItem] || "",
+          wasteTreatmentType?.name || item.wtt_id || "",
+          item.ef_eu_region || "",
+          item.ef_india_region || "",
+          item.ef_global_region || "",
+          item.year?.toString() || "",
+          item.unit || "",
+          item.iso_country_code || "",
+        ];
+      });
     }
     // Packaging emission factor includes treatment type
     else if (isPackagingEmissionFactor) {
@@ -451,8 +519,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
     if (!entityConfig) return {};
 
-    // Packaging treatment type only uses name and code
-    if (isPackagingTreatmentType) {
+    // Treatment types (packaging and waste) only use name and code
+    if (isTreatmentType) {
       const mapping: Record<string, string> = {
         name: "",
         code: "",
@@ -493,6 +561,11 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     // Add ptt_id for packaging emission factor
     if (isPackagingEmissionFactor) {
       mapping.ptt_id = "";
+    }
+
+    // Add wtt_id for waste material emission factor
+    if (isWasteMaterialEmissionFactor) {
+      mapping.wtt_id = "";
     }
 
     const fieldsToMatch = [
@@ -536,6 +609,14 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       fieldsToMatch.push({
         key: "ptt_id",
         patterns: ["treatment", "treatment type", "ptt"],
+      });
+    }
+
+    // Add waste treatment type matching for waste material emission factor
+    if (isWasteMaterialEmissionFactor) {
+      fieldsToMatch.push({
+        key: "wtt_id",
+        patterns: ["waste treatment", "treatment", "wtt"],
       });
     }
 
@@ -606,8 +687,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       return headers.findIndex((h) => h === mappedHeader);
     };
 
-    // Packaging treatment type only uses name and code
-    if (isPackagingTreatmentType) {
+    // Treatment types (packaging and waste) only use name and code
+    if (isTreatmentType) {
       const nameIdx = getColumnIndex("name");
       const codeIdx = getColumnIndex("code");
 
@@ -633,6 +714,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     const unitIdx = getColumnIndex("unit");
     const isoIdx = getColumnIndex("iso_country_code");
     const pttIdx = isPackagingEmissionFactor ? getColumnIndex("ptt_id") : -1;
+    const wttIdx = isWasteMaterialEmissionFactor ? getColumnIndex("wtt_id") : -1;
 
     const previewItems: EcoInventItem[] = data
       .filter((row) => {
@@ -658,6 +740,16 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             (t) => t.name.toLowerCase() === treatmentValue?.toLowerCase() || t.id === treatmentValue
           );
           item.ptt_id = matchingType?.id || treatmentValue || "";
+        }
+
+        // Add wtt_id for waste material emission factor - try to match by name
+        if (isWasteMaterialEmissionFactor && wttIdx >= 0) {
+          const wasteTreatmentValue = row[wttIdx];
+          // Try to find matching waste treatment type by name
+          const matchingWasteType = wasteTreatmentTypes.find(
+            (t) => t.name.toLowerCase() === wasteTreatmentValue?.toLowerCase() || t.id === wasteTreatmentValue
+          );
+          item.wtt_id = matchingWasteType?.id || wasteTreatmentValue || "";
         }
 
         return item;
@@ -832,7 +924,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gradient-to-r from-green-50 to-green-100">
-                      {isPackagingTreatmentType ? (
+                      {isTreatmentType ? (
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                             Treatment Type
@@ -844,7 +936,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                             Actions
                           </th>
                         </tr>
-                      ) : isPackagingEmissionFactor ? (
+                      ) : (isPackagingEmissionFactor || isWasteMaterialEmissionFactor) ? (
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                             {entityConfig.displayName}
@@ -905,7 +997,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                             index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                           }`}
                         >
-                          {isPackagingTreatmentType ? (
+                          {isTreatmentType ? (
                             <>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                 {item.name}
@@ -921,6 +1013,30 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">
                                 {treatmentTypes.find((t) => t.id === item.ptt_id)?.name || item.ptt_id || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_eu_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_india_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.ef_global_region}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.year}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {item.unit}
+                              </td>
+                            </>
+                          ) : isWasteMaterialEmissionFactor ? (
+                            <>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {getNameValue(item)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {wasteTreatmentTypes.find((t) => t.id === item.wtt_id)?.name || item.wtt_id || "-"}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">
                                 {item.ef_eu_region}
@@ -1017,7 +1133,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             </div>
             <div>
               <div className="font-semibold text-gray-900">
-                {isPackagingTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
+                {isTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
               </div>
               <div className="text-sm text-gray-500 font-normal">
                 {isPackagingTreatmentType
@@ -1033,7 +1149,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         footer={null}
       >
         <div className="space-y-4 mt-4">
-          {isPackagingTreatmentType ? (
+          {isTreatmentType ? (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1096,12 +1212,36 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                   </Select>
                 </div>
               )}
+              {isWasteMaterialEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Waste Treatment Type
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select waste treatment type"
+                    value={newItem.wtt_id || undefined}
+                    onChange={(value) => setNewItem({ ...newItem, wtt_id: value })}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {wasteTreatmentTypes.map((tt) => (
+                      <Option key={tt.id} value={tt.id}>
+                        {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     EF EU Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={newItem.ef_eu_region || ""}
                     onChange={(e) =>
                       setNewItem({ ...newItem, ef_eu_region: e.target.value })
@@ -1114,6 +1254,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     EF India Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={newItem.ef_india_region || ""}
                     onChange={(e) =>
                       setNewItem({ ...newItem, ef_india_region: e.target.value })
@@ -1126,6 +1268,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     EF Global Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={newItem.ef_global_region || ""}
                     onChange={(e) =>
                       setNewItem({ ...newItem, ef_global_region: e.target.value })
@@ -1183,7 +1327,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               onClick={handleAddNew}
               className="!bg-green-600 hover:!bg-green-700 !border-green-600"
             >
-              {isPackagingTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
+              {isTreatmentType ? "Add Treatment Type" : "Add Emission Factor"}
             </Button>
           </div>
         </div>
@@ -1198,7 +1342,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             </div>
             <div>
               <div className="font-semibold text-gray-900">
-                {isPackagingTreatmentType ? "Edit Treatment Type" : "Edit Emission Factor"}
+                {isTreatmentType ? "Edit Treatment Type" : "Edit Emission Factor"}
               </div>
               <div className="text-sm text-gray-500 font-normal">
                 {isPackagingTreatmentType
@@ -1214,7 +1358,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         footer={null}
       >
         <div className="space-y-4 mt-4">
-          {isPackagingTreatmentType ? (
+          {isTreatmentType ? (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1274,12 +1418,36 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                   </Select>
                 </div>
               )}
+              {isWasteMaterialEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Waste Treatment Type
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select waste treatment type"
+                    value={editItem.wtt_id || undefined}
+                    onChange={(value) => setEditItem({ ...editItem, wtt_id: value })}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {wasteTreatmentTypes.map((tt) => (
+                      <Option key={tt.id} value={tt.id}>
+                        {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     EF EU Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={editItem.ef_eu_region || ""}
                     onChange={(e) =>
                       setEditItem({ ...editItem, ef_eu_region: e.target.value })
@@ -1291,6 +1459,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     EF India Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={editItem.ef_india_region || ""}
                     onChange={(e) =>
                       setEditItem({ ...editItem, ef_india_region: e.target.value })
@@ -1302,6 +1472,8 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     EF Global Region
                   </label>
                   <Input
+                    type="number"
+                    step="0.01"
                     value={editItem.ef_global_region || ""}
                     onChange={(e) =>
                       setEditItem({ ...editItem, ef_global_region: e.target.value })
@@ -1375,7 +1547,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {isPackagingTreatmentType ? "Delete Treatment Type" : "Delete Emission Factor"}
+                    {isTreatmentType ? "Delete Treatment Type" : "Delete Emission Factor"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     This action cannot be undone.
@@ -1384,7 +1556,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                {isPackagingTreatmentType ? (
+                {isTreatmentType ? (
                   <p className="text-sm text-gray-700">
                     <span className="font-medium">Treatment Type:</span>{" "}
                     {itemToDelete.item.name} ({itemToDelete.item.code})
@@ -1448,7 +1620,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
               </span>
               Map CSV Columns
             </h4>
-            {isPackagingTreatmentType ? (
+            {isTreatmentType ? (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -1520,6 +1692,27 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                       placeholder="Select"
                       value={columnMapping.ptt_id || undefined}
                       onChange={(v) => handleMappingChange("ptt_id", v)}
+                      allowClear
+                      size="small"
+                    >
+                      {csvHeaders.map((h) => (
+                        <Option key={h} value={h}>
+                          {h}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {isWasteMaterialEmissionFactor && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Waste Treatment Type
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select"
+                      value={columnMapping.wtt_id || undefined}
+                      onChange={(v) => handleMappingChange("wtt_id", v)}
                       allowClear
                       size="small"
                     >
@@ -1680,7 +1873,7 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                 <Table
                   dataSource={importPreview.slice(0, 5)}
                   columns={
-                    isPackagingTreatmentType
+                    isTreatmentType
                       ? [
                           { title: "Treatment Type", dataIndex: "name", key: "name" },
                           { title: "Code", dataIndex: "code", key: "code" },
@@ -1695,6 +1888,24 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                             render: (value: string) => {
                               const tt = treatmentTypes.find((t) => t.id === value);
                               return tt?.name || value || "-";
+                            },
+                          },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                      : isWasteMaterialEmissionFactor
+                      ? [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          {
+                            title: "Waste Treatment Type",
+                            dataIndex: "wtt_id",
+                            key: "wtt_id",
+                            render: (value: string) => {
+                              const wtt = wasteTreatmentTypes.find((t) => t.id === value);
+                              return wtt?.name || value || "-";
                             },
                           },
                           { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
