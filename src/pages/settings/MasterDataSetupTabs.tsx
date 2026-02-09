@@ -179,7 +179,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   };
 
   const handleInputChange = (value: string) => {
-    setNewItem({ name: value });
+    setNewItem((prev) => ({ ...prev, name: value }));
   };
 
   const handleEdit = (item: MasterDataItem) => {
