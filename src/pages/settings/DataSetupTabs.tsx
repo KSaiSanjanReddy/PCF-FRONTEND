@@ -19,6 +19,7 @@ import {
   updateSetup,
   deleteSetup,
   bulkAddSetup,
+  entityFieldConfigs,
   type SetupItem,
   type SetupEntity,
 } from "../../lib/dataSetupService";
@@ -34,6 +35,12 @@ interface DataSetupItem {
   code: string;
   name: string;
   description: string;
+  // Vehicle-detail specific fields
+  make?: string;
+  model?: string;
+  year?: string;
+  number?: string;
+  [key: string]: any;
 }
 
 interface TabConfig {
@@ -65,19 +72,27 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   // State for each tab's data
   const [tabData, setTabData] = useState<Record<string, DataSetupItem[]>>({});
-  const [newItem, setNewItem] = useState({
+  const [newItem, setNewItem] = useState<Record<string, string>>({
     code: "",
     name: "",
     description: "",
+    make: "",
+    model: "",
+    year: "",
+    number: "",
   });
   const [editingItem, setEditingItem] = useState<{
     item: DataSetupItem;
     tab: string;
   } | null>(null);
-  const [editItem, setEditItem] = useState({
+  const [editItem, setEditItem] = useState<Record<string, string>>({
     code: "",
     name: "",
     description: "",
+    make: "",
+    model: "",
+    year: "",
+    number: "",
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -94,6 +109,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     code: "",
     name: "",
     description: "",
+    make: "",
+    model: "",
+    year: "",
+    number: "",
   });
   const [importPreview, setImportPreview] = useState<SetupItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -101,6 +120,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   const currentTabConfig = tabs.find((t) => t.key === activeTab);
   const currentEntity = currentTabConfig?.entity;
   const currentData = tabData[activeTab] || [];
+
+  // Check if current entity is vehicle-detail
+  const isVehicleDetail = currentEntity === "vehicle-detail";
+  const entityConfig = currentEntity ? entityFieldConfigs[currentEntity] : null;
 
   useEffect(() => {
     if (urlTab && urlTab !== activeTab) {
@@ -122,6 +145,11 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           code: i.code,
           name: i.name,
           description: i.description || "",
+          // Preserve vehicle-detail fields
+          make: i.make || "",
+          model: i.model || "",
+          year: i.year || "",
+          number: i.number || "",
         })
       );
       setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
@@ -134,7 +162,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     if (!currentEntity) return;
     const result = await deleteSetup(currentEntity, id);
     if (result.success) {
-      message.success("Item deleted successfully");
+      message.success(result.message || "Item deleted successfully");
       setTabData((prev) => ({
         ...prev,
         [activeTab]: (prev[activeTab] || []).filter((item) => item.id !== id),
@@ -148,16 +176,27 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   };
 
   const handleAddNew = async () => {
-    if (
-      !currentEntity ||
-      !newItem.code ||
-      !newItem.name ||
-      !newItem.description
-    )
-      return;
-    const result = await addSetup(currentEntity, newItem);
+    // Validate required fields based on entity type
+    if (!currentEntity || !newItem.code || !newItem.name) return;
+
+    // For non-vehicle-detail entities, require description
+    if (!isVehicleDetail && !newItem.description) return;
+
+    const itemToAdd: SetupItem = {
+      code: newItem.code,
+      name: newItem.name,
+      description: newItem.description,
+      ...(isVehicleDetail && {
+        make: newItem.make,
+        model: newItem.model,
+        year: newItem.year,
+        number: newItem.number,
+      }),
+    };
+
+    const result = await addSetup(currentEntity, itemToAdd);
     if (result.success) {
-      message.success("Item added successfully");
+      message.success(result.message || "Item added successfully");
       const data = await listSetup(currentEntity);
       const normalized: DataSetupItem[] = (data as SetupItem[]).map(
         (i, idx) => ({
@@ -168,10 +207,14 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           code: i.code,
           name: i.name,
           description: i.description || "",
+          make: i.make || "",
+          model: i.model || "",
+          year: i.year || "",
+          number: i.number || "",
         })
       );
       setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
-      setNewItem({ code: "", name: "", description: "" });
+      setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -190,18 +233,19 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       code: item.code,
       name: item.name,
       description: item.description,
+      make: item.make || "",
+      model: item.model || "",
+      year: item.year || "",
+      number: item.number || "",
     });
   };
 
   const handleSaveEdit = async () => {
-    if (
-      !currentEntity ||
-      !editingItem ||
-      !editItem.code ||
-      !editItem.name ||
-      !editItem.description
-    )
-      return;
+    // Validate required fields based on entity type
+    if (!currentEntity || !editingItem || !editItem.code || !editItem.name) return;
+
+    // For non-vehicle-detail entities, require description
+    if (!isVehicleDetail && !editItem.description) return;
 
     // Store original data for rollback
     const originalData = tabData[activeTab] || [];
@@ -218,6 +262,12 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
               code: editItem.code,
               name: editItem.name,
               description: editItem.description,
+              ...(isVehicleDetail && {
+                make: editItem.make,
+                model: editItem.model,
+                year: editItem.year,
+                number: editItem.number,
+              }),
             }
           : item
       ),
@@ -225,16 +275,25 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
     handleCancelEdit();
 
-    // Process API in background
-    const result = await updateSetup(currentEntity, {
+    // Build update payload
+    const updatePayload: SetupItem & { id: string } = {
       id: currentEditing.item.id,
       code: editedValues.code,
       name: editedValues.name,
       description: editedValues.description,
-    });
+      ...(isVehicleDetail && {
+        make: editedValues.make,
+        model: editedValues.model,
+        year: editedValues.year,
+        number: editedValues.number,
+      }),
+    };
+
+    // Process API in background
+    const result = await updateSetup(currentEntity, updatePayload);
 
     if (result.success) {
-      message.success("Item updated successfully");
+      message.success(result.message || "Item updated successfully");
     } else {
       // Rollback on failure
       setTabData((prev) => ({ ...prev, [activeTab]: originalData }));
@@ -247,7 +306,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ code: "", name: "", description: "" });
+    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -288,8 +347,8 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ code: "", name: "", description: "" });
-    setNewItem({ code: "", name: "", description: "" });
+    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
+    setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map(t => t.key);
@@ -314,13 +373,22 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       return;
     }
 
-    // Convert data to CSV
-    const headers = ["Code", "Name", "Description"];
-    const rows = currentData.map((item) => [
-      item.code,
-      item.name,
-      item.description,
-    ]);
+    // Convert data to CSV - use different headers for vehicle-detail
+    const headers = isVehicleDetail
+      ? ["Code", "Name", "Make", "Model", "Year", "Number"]
+      : ["Code", "Name", "Description"];
+    const rows = currentData.map((item) =>
+      isVehicleDetail
+        ? [
+            item.code,
+            item.name,
+            item.make || "",
+            item.model || "",
+            item.year || "",
+            item.number || "",
+          ]
+        : [item.code, item.name, item.description]
+    );
 
     const csvContent = [
       headers.join(","),
@@ -367,11 +435,23 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   // Auto-detect column mapping based on header names
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = { code: "", name: "", description: "" };
+    const mapping: Record<string, string> = {
+      code: "",
+      name: "",
+      description: "",
+      make: "",
+      model: "",
+      year: "",
+      number: "",
+    };
     const fieldsToMatch = [
       { key: "code", patterns: ["code", "id", "identifier", "key"] },
       { key: "name", patterns: ["name", "title", "label"] },
       { key: "description", patterns: ["description", "desc", "details", "info"] },
+      { key: "make", patterns: ["make", "manufacturer", "brand"] },
+      { key: "model", patterns: ["model"] },
+      { key: "year", patterns: ["year"] },
+      { key: "number", patterns: ["number", "vehicle number", "reg", "registration"] },
     ];
 
     headers.forEach((header) => {
@@ -440,6 +520,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     const codeIdx = getColumnIndex("code");
     const nameIdx = getColumnIndex("name");
     const descIdx = getColumnIndex("description");
+    const makeIdx = getColumnIndex("make");
+    const modelIdx = getColumnIndex("model");
+    const yearIdx = getColumnIndex("year");
+    const numberIdx = getColumnIndex("number");
 
     const previewItems: SetupItem[] = data
       .filter((row) => {
@@ -451,6 +535,12 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         code: codeIdx >= 0 ? row[codeIdx] : "",
         name: nameIdx >= 0 ? row[nameIdx] : "",
         description: descIdx >= 0 ? row[descIdx] : "",
+        ...(isVehicleDetail && {
+          make: makeIdx >= 0 ? row[makeIdx] : "",
+          model: modelIdx >= 0 ? row[modelIdx] : "",
+          year: yearIdx >= 0 ? row[yearIdx] : "",
+          number: numberIdx >= 0 ? row[numberIdx] : "",
+        }),
       }));
 
     setImportPreview(previewItems);
@@ -475,7 +565,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       const result = await bulkAddSetup(currentEntity!, importPreview);
 
       if (result.success) {
-        message.success(`Successfully imported ${result.addedCount || importPreview.length} items`);
+        message.success(result.message || `Successfully imported ${result.addedCount || importPreview.length} items`);
 
         // Reload data
         const data = await listSetup(currentEntity!);
@@ -488,6 +578,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
             code: i.code,
             name: i.name,
             description: i.description || "",
+            make: i.make || "",
+            model: i.model || "",
+            year: i.year || "",
+            number: i.number || "",
           })
         );
         setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
@@ -496,7 +590,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         setShowImportModal(false);
         setCsvHeaders([]);
         setCsvData([]);
-        setColumnMapping({ code: "", name: "", description: "" });
+        setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
         setImportPreview([]);
       } else {
         // Show backend error message in toast
@@ -520,7 +614,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     setShowImportModal(false);
     setCsvHeaders([]);
     setCsvData([]);
-    setColumnMapping({ code: "", name: "", description: "" });
+    setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     setImportPreview([]);
   };
 
@@ -661,9 +755,26 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Name
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                          Description
-                        </th>
+                        {isVehicleDetail ? (
+                          <>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                              Make
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                              Model
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                              Year
+                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                              Number
+                            </th>
+                          </>
+                        ) : (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Description
+                          </th>
+                        )}
                         <th className="px-6 py-4 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-32">
                           Actions
                         </th>
@@ -717,21 +828,74 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                   placeholder="Enter name"
                                 />
                               </td>
-                              <td className="px-6 py-4">
-                                <input
-                                  type="text"
-                                  value={editItem.description}
-                                  onChange={(e) =>
-                                    handleEditInputChange(
-                                      "description",
-                                      e.target.value
-                                    )
-                                  }
-                                  onKeyDown={handleKeyDown}
-                                  className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
-                                  placeholder="Enter description"
-                                />
-                              </td>
+                              {isVehicleDetail ? (
+                                <>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={editItem.make}
+                                      onChange={(e) =>
+                                        handleEditInputChange("make", e.target.value)
+                                      }
+                                      onKeyDown={handleKeyDown}
+                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                      placeholder="Enter make"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={editItem.model}
+                                      onChange={(e) =>
+                                        handleEditInputChange("model", e.target.value)
+                                      }
+                                      onKeyDown={handleKeyDown}
+                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                      placeholder="Enter model"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={editItem.year}
+                                      onChange={(e) =>
+                                        handleEditInputChange("year", e.target.value)
+                                      }
+                                      onKeyDown={handleKeyDown}
+                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                      placeholder="Enter year"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <input
+                                      type="text"
+                                      value={editItem.number}
+                                      onChange={(e) =>
+                                        handleEditInputChange("number", e.target.value)
+                                      }
+                                      onKeyDown={handleKeyDown}
+                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                      placeholder="Enter number"
+                                    />
+                                  </td>
+                                </>
+                              ) : (
+                                <td className="px-6 py-4">
+                                  <input
+                                    type="text"
+                                    value={editItem.description}
+                                    onChange={(e) =>
+                                      handleEditInputChange(
+                                        "description",
+                                        e.target.value
+                                      )
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                    placeholder="Enter description"
+                                  />
+                                </td>
+                              )}
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-2">
                                   <button
@@ -739,7 +903,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                     disabled={
                                       !editItem.code ||
                                       !editItem.name ||
-                                      !editItem.description
+                                      (!isVehicleDetail && !editItem.description)
                                     }
                                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                                     title="Save (Ctrl+Enter)"
@@ -771,11 +935,36 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                   {item.name}
                                 </div>
                               </td>
-                              <td className="px-6 py-4">
-                                <div className="text-sm text-gray-600 max-w-xs">
-                                  {item.description}
-                                </div>
-                              </td>
+                              {isVehicleDetail ? (
+                                <>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-600">
+                                      {item.make || "-"}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-600">
+                                      {item.model || "-"}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-600">
+                                      {item.year || "-"}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-600">
+                                      {item.number || "-"}
+                                    </div>
+                                  </td>
+                                </>
+                              ) : (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600 max-w-xs">
+                                    {item.description}
+                                  </div>
+                                </td>
+                              )}
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                   {canUpdate("data configuration") && (
@@ -828,17 +1017,66 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
                             />
                           </td>
-                          <td className="px-6 py-4">
-                            <input
-                              type="text"
-                              placeholder="Enter description"
-                              value={newItem.description}
-                              onChange={(e) =>
-                                handleInputChange("description", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                            />
-                          </td>
+                          {isVehicleDetail ? (
+                            <>
+                              <td className="px-6 py-4">
+                                <input
+                                  type="text"
+                                  placeholder="Enter make"
+                                  value={newItem.make}
+                                  onChange={(e) =>
+                                    handleInputChange("make", e.target.value)
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                                />
+                              </td>
+                              <td className="px-6 py-4">
+                                <input
+                                  type="text"
+                                  placeholder="Enter model"
+                                  value={newItem.model}
+                                  onChange={(e) =>
+                                    handleInputChange("model", e.target.value)
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                                />
+                              </td>
+                              <td className="px-6 py-4">
+                                <input
+                                  type="text"
+                                  placeholder="Enter year"
+                                  value={newItem.year}
+                                  onChange={(e) =>
+                                    handleInputChange("year", e.target.value)
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                                />
+                              </td>
+                              <td className="px-6 py-4">
+                                <input
+                                  type="text"
+                                  placeholder="Enter number"
+                                  value={newItem.number}
+                                  onChange={(e) =>
+                                    handleInputChange("number", e.target.value)
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                                />
+                              </td>
+                            </>
+                          ) : (
+                            <td className="px-6 py-4">
+                              <input
+                                type="text"
+                                placeholder="Enter description"
+                                value={newItem.description}
+                                onChange={(e) =>
+                                  handleInputChange("description", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                              />
+                            </td>
+                          )}
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center space-x-2">
                               <button
@@ -846,7 +1084,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                 disabled={
                                   !newItem.code ||
                                   !newItem.name ||
-                                  !newItem.description
+                                  (!isVehicleDetail && !newItem.description)
                                 }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
@@ -859,6 +1097,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                     code: "",
                                     name: "",
                                     description: "",
+                                    make: "",
+                                    model: "",
+                                    year: "",
+                                    number: "",
                                   })
                                 }
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -975,7 +1217,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
               <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
               Map CSV Columns
             </h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isVehicleDetail ? 'grid-cols-3' : 'grid-cols-3'}`}>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Code <span className="text-red-500">*</span>
@@ -1012,24 +1254,101 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                   ))}
                 </Select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                  Description
-                </label>
-                <Select
-                  className="w-full"
-                  placeholder="Select column"
-                  value={columnMapping.description || undefined}
-                  onChange={(value) => handleMappingChange("description", value)}
-                  allowClear
-                >
-                  {csvHeaders.map((header) => (
-                    <Option key={header} value={header}>
-                      {header}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
+              {isVehicleDetail ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Make
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select column"
+                      value={columnMapping.make || undefined}
+                      onChange={(value) => handleMappingChange("make", value)}
+                      allowClear
+                    >
+                      {csvHeaders.map((header) => (
+                        <Option key={header} value={header}>
+                          {header}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Model
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select column"
+                      value={columnMapping.model || undefined}
+                      onChange={(value) => handleMappingChange("model", value)}
+                      allowClear
+                    >
+                      {csvHeaders.map((header) => (
+                        <Option key={header} value={header}>
+                          {header}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Year
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select column"
+                      value={columnMapping.year || undefined}
+                      onChange={(value) => handleMappingChange("year", value)}
+                      allowClear
+                    >
+                      {csvHeaders.map((header) => (
+                        <Option key={header} value={header}>
+                          {header}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                      Number
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select column"
+                      value={columnMapping.number || undefined}
+                      onChange={(value) => handleMappingChange("number", value)}
+                      allowClear
+                    >
+                      {csvHeaders.map((header) => (
+                        <Option key={header} value={header}>
+                          {header}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Description
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select column"
+                    value={columnMapping.description || undefined}
+                    onChange={(value) => handleMappingChange("description", value)}
+                    allowClear
+                  >
+                    {csvHeaders.map((header) => (
+                      <Option key={header} value={header}>
+                        {header}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1055,27 +1374,75 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <Table
                   dataSource={importPreview.slice(0, 10)}
-                  columns={[
-                    {
-                      title: "Code",
-                      dataIndex: "code",
-                      key: "code",
-                      render: (text: string) => (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                          {text}
-                        </span>
-                      ),
-                    },
-                    { title: "Name", dataIndex: "name", key: "name" },
-                    {
-                      title: "Description",
-                      dataIndex: "description",
-                      key: "description",
-                      render: (text: string) => (
-                        <span className="text-gray-600">{text || "-"}</span>
-                      ),
-                    },
-                  ]}
+                  columns={
+                    isVehicleDetail
+                      ? [
+                          {
+                            title: "Code",
+                            dataIndex: "code",
+                            key: "code",
+                            render: (text: string) => (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                {text}
+                              </span>
+                            ),
+                          },
+                          { title: "Name", dataIndex: "name", key: "name" },
+                          {
+                            title: "Make",
+                            dataIndex: "make",
+                            key: "make",
+                            render: (text: string) => (
+                              <span className="text-gray-600">{text || "-"}</span>
+                            ),
+                          },
+                          {
+                            title: "Model",
+                            dataIndex: "model",
+                            key: "model",
+                            render: (text: string) => (
+                              <span className="text-gray-600">{text || "-"}</span>
+                            ),
+                          },
+                          {
+                            title: "Year",
+                            dataIndex: "year",
+                            key: "year",
+                            render: (text: string) => (
+                              <span className="text-gray-600">{text || "-"}</span>
+                            ),
+                          },
+                          {
+                            title: "Number",
+                            dataIndex: "number",
+                            key: "number",
+                            render: (text: string) => (
+                              <span className="text-gray-600">{text || "-"}</span>
+                            ),
+                          },
+                        ]
+                      : [
+                          {
+                            title: "Code",
+                            dataIndex: "code",
+                            key: "code",
+                            render: (text: string) => (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                {text}
+                              </span>
+                            ),
+                          },
+                          { title: "Name", dataIndex: "name", key: "name" },
+                          {
+                            title: "Description",
+                            dataIndex: "description",
+                            key: "description",
+                            render: (text: string) => (
+                              <span className="text-gray-600">{text || "-"}</span>
+                            ),
+                          },
+                        ]
+                  }
                   pagination={false}
                   size="small"
                   rowKey={(record, index) => `preview-${index}`}

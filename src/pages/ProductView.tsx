@@ -33,7 +33,6 @@ import {
   Edit,
   Leaf,
   Puzzle,
-  Link2,
   BarChart3,
   Clock,
   Home,
@@ -48,7 +47,6 @@ import {
   ChevronDown,
   Eye,
   Trash2,
-  Share2,
   Plus,
   CircleDot,
   Layers,
@@ -62,6 +60,8 @@ import {
   X,
   Save,
   Download,
+  Link2,
+  Share2,
 } from "lucide-react";
 import productService from "../lib/productService";
 import { usePermissions } from "../contexts/PermissionContext";
@@ -3413,12 +3413,6 @@ const ProductView: React.FC = () => {
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-3">
                   <Button
-                    icon={<Share2 size={16} />}
-                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-600 rounded-xl px-5 h-10 font-medium"
-                  >
-                    Share
-                  </Button>
-                  <Button
                     type="primary"
                     icon={<Plus size={16} />}
                     className="bg-emerald-500 hover:bg-emerald-600 border-0 rounded-xl px-5 h-10 font-medium shadow-lg shadow-emerald-500/25"
@@ -4093,15 +4087,30 @@ const ProductView: React.FC = () => {
                   <Button
                     icon={<Download size={16} />}
                     className="flex-1 rounded-xl"
+                    onClick={() => {
+                      const data = {
+                        component_name: selectedSecondaryDataItem.component_name,
+                        material_number: selectedSecondaryDataItem.material_number,
+                        data_source: selectedSecondaryDataItem.data_source || "Ecoinvent",
+                        total_pcf_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.total_pcf_value,
+                        material_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.material_value,
+                        production_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.production_value,
+                        logistic_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.logistic_value,
+                        dqr_rating: selectedSecondaryDataItem.dqr_rating,
+                      };
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${selectedSecondaryDataItem.component_name || "secondary-data"}-emission-data.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      message.success("Data downloaded successfully");
+                    }}
                   >
                     Download
-                  </Button>
-                  <Button
-                    type="primary"
-                    icon={<Link2 size={16} />}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
-                  >
-                    Link to Component
                   </Button>
                 </div>
               </div>

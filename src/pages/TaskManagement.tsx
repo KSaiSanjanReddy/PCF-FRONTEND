@@ -60,6 +60,11 @@ const TaskManagement: React.FC = () => {
   const [categoryOptions, setCategoryOptions] = useState<{ label: string; value: string }[]>([
     { label: "All Categories", value: "all" },
   ]);
+  const [apiStats, setApiStats] = useState<{
+    to_do_count?: string;
+    inprogress_count?: string;
+    completed_count?: string;
+  } | null>(null);
   const navigate = useNavigate();
   // Helper function to format date
   const formatDate = (dateString: string): string => {
@@ -152,6 +157,11 @@ const TaskManagement: React.FC = () => {
         setTasks(transformedData);
         setTotalCount(result.total_count || 0);
         setTotalPages(result.total_pages || 1);
+
+        // Set API stats for KPI cards
+        if (result.stats) {
+          setApiStats(result.stats);
+        }
       } else {
         message.error(result.message || "Failed to fetch tasks");
         setTasks([]);
@@ -170,12 +180,11 @@ const TaskManagement: React.FC = () => {
     fetchTaskList();
   }, [fetchTaskList]);
 
-  // Calculate status counts from current data
+  // Use stats from API response for KPI cards
   const statusCounts = {
-    toDo: tasks.filter((item) => item.status === "To Do").length,
-    underReview: tasks.filter((item) => item.status === "Under Review").length,
-    inProgress: tasks.filter((item) => item.status === "In Progress").length,
-    completed: tasks.filter((item) => item.status === "Completed").length,
+    toDo: parseInt(apiStats?.to_do_count || "0", 10),
+    inProgress: parseInt(apiStats?.inprogress_count || "0", 10),
+    completed: parseInt(apiStats?.completed_count || "0", 10),
   };
 
   // Handle filter changes - reset to page 1
@@ -368,21 +377,6 @@ const TaskManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Under Review Card */}
-              <div className="bg-amber-50 rounded-xl p-4 min-w-[140px] border border-amber-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-amber-600 font-medium">Review</div>
-                    <div className="text-xl font-bold text-amber-700">
-                      {statusCounts.underReview}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* In Progress Card */}
               <div className="bg-blue-50 rounded-xl p-4 min-w-[140px] border border-blue-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
@@ -390,7 +384,7 @@ const TaskManagement: React.FC = () => {
                     <Clock className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-blue-600 font-medium">Progress</div>
+                    <div className="text-xs text-blue-600 font-medium">In Progress</div>
                     <div className="text-xl font-bold text-blue-700">
                       {statusCounts.inProgress}
                     </div>
@@ -405,7 +399,7 @@ const TaskManagement: React.FC = () => {
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <div className="text-xs text-green-600 font-medium">Done</div>
+                    <div className="text-xs text-green-600 font-medium">Completed</div>
                     <div className="text-xl font-bold text-green-700">
                       {statusCounts.completed}
                     </div>

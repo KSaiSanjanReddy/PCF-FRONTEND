@@ -92,6 +92,7 @@ const SupplierQuestionnaire: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasCalledStageUpdateRef = useRef<boolean>(false);
   const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(
     new Set(),
   );
@@ -1417,6 +1418,22 @@ const SupplierQuestionnaire: React.FC = () => {
                 onValuesChange={(changedValues, allValues) => {
                   // Update formData when values change to trigger progress recalculation
                   setFormData((prev) => ({ ...prev, ...allValues }));
+
+                  // Call stage update API when supplier first inputs data (only for supplier mode)
+                  if (sup_id && bom_pcf_id && !hasCalledStageUpdateRef.current && !isClientMode) {
+                    hasCalledStageUpdateRef.current = true;
+                    supplierQuestionnaireService.updateDataCollectionQuestionStage(bom_pcf_id, sup_id)
+                      .then((result) => {
+                        if (result.success) {
+                          console.log("Data collection stage updated successfully");
+                        } else {
+                          console.warn("Failed to update data collection stage:", result.message);
+                        }
+                      })
+                      .catch((error) => {
+                        console.error("Error updating data collection stage:", error);
+                      });
+                  }
                 }}
                 autoPopulatedFields={autoPopulatedFields}
                 formErrors={formErrors}

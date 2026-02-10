@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -28,7 +28,6 @@ import {
   AlertTriangle,
   Video,
   Wifi,
-  LogOut,
   Menu,
   X,
   ChevronLeft,
@@ -85,7 +84,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isMinimized, setIsMinimized] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const { hasModuleAccess, loading: permissionsLoading } = usePermissions();
 
   // Filter menu items based on permissions
@@ -149,12 +147,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (newMinimized) {
       setExpandedItems(new Set());
     }
-  };
-
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log("Logging out...");
-    navigate("/login");
   };
 
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
@@ -386,26 +378,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div
           className={cn(
             "border-t border-slate-700/50 transition-all duration-300 flex items-center",
-            isMinimized ? "p-3 justify-center" : "p-4 justify-between gap-2"
+            isMinimized ? "p-3 justify-center" : "p-4 justify-end"
           )}
         >
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex items-center text-sm font-semibold text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 group",
-              isMinimized ? "justify-center p-2.5 hidden" : "flex-1 px-4 py-2.5"
-            )}
-            title={isMinimized ? "Logout" : undefined}
-          >
-            {!isMinimized && <span className="flex-1 text-left">Logout</span>}
-            <LogOut
-              className={cn(
-                "text-white group-hover:scale-110 transition-transform duration-200",
-                isMinimized ? "h-5 w-5" : "h-4 w-4"
-              )}
-            />
-          </button>
-
           <button
             onClick={toggleMinimized}
             className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all duration-200"
