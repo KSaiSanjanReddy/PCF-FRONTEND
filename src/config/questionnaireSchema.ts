@@ -185,12 +185,32 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         placeholder: "Select range",
       },
       {
+        name: "organization_details.number_of_employees_other",
+        label: "Specify the exact number of employees",
+        type: "number",
+        placeholder: "Enter exact number",
+        dependency: {
+          field: "organization_details.number_of_employees",
+          value: "Other (Specify the exact number)",
+        },
+      },
+      {
         name: "organization_details.annual_revenue",
         label: "6. What is your organization's annual revenue?",
         type: "select",
         options: QUESTIONNAIRE_OPTIONS.ANNUAL_REVENUE,
         required: true,
         placeholder: "Select revenue range",
+      },
+      {
+        name: "organization_details.annual_revenue_other",
+        label: "Specify the exact annual revenue",
+        type: "text",
+        placeholder: "Enter exact amount (e.g., $2.5M)",
+        dependency: {
+          field: "organization_details.annual_revenue",
+          value: "Other (Specify the exact amount)",
+        },
       },
       {
         name: "organization_details.annual_reporting_period",
@@ -210,7 +230,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: "organization_details.emission_data",
-        label: "9. provide the emission data?",
+        label: "9. Provide the emission data?",
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
@@ -262,7 +282,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: "product_details.pcf_methodology",
         label:
-          "11. share methodology (ISO 14067, GHG Protocol, Catena-X, etc.)",
+          "11. Share methodology (ISO 14067, GHG Protocol, Catena-X, etc.)",
         type: "text",
         placeholder: "Open Text",
         required: true,
@@ -274,7 +294,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: "product_details.pcf_report_file",
         label:
-          "12. please provide/upload the Product Carbon Footprint (PCF) report for your product(s)?",
+          "12. Please provide/upload the Product Carbon Footprint (PCF) report for your product(s)?",
         type: "file",
         required: true,
         dependency: {
@@ -298,13 +318,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "component_name",
-            label: "component/Product Name",
+            label: "Component/Product Name",
             type: "text",
             placeholder: "Enter name",
           },
           {
             name: "location",
-            label: "location",
+            label: "Location",
             type: "text",
             placeholder: "Enter location",
           },
@@ -317,6 +337,17 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "checkbox",
         options: QUESTIONNAIRE_OPTIONS.REQUIRED_ENVIRONMENTAL_IMPACT_METHODS,
         required: true,
+      },
+      {
+        name: "product_details.required_environmental_impact_methods_other",
+        label: "Specify Custom Method",
+        type: "text",
+        placeholder: "Enter your custom method",
+        dependency: {
+          field: "product_details.required_environmental_impact_methods",
+          value: "Other (Add Custom Method)",
+          operator: "contains",
+        },
       },
       {
         name: "product_details.products_manufactured",
@@ -381,7 +412,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: "product_details.co_products",
-        label: "15.2 specify type of Co-products details?",
+        label: "15.2 Specify type of Co-products details?",
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
@@ -410,7 +441,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "price_per_product",
-            label: "Price per product",
+            label: "Price per Product",
             type: "number",
             placeholder: "0.00",
           },
@@ -453,7 +484,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "quantity",
-            label: "consumption Quantity of fuel",
+            label: "Consumption Quantity of fuel",
             type: "number",
             placeholder: "0.00",
           },
@@ -525,15 +556,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "quantity",
-            label: "consumption quantity",
+            label: "Consumption Quantity",
             type: "number",
             placeholder: "0.00",
           },
           {
             name: "unit",
             label: "Unit of Measure",
-            type: "text",
-            placeholder: "Enter unit",
+            type: "select",
+            options: QUESTIONNAIRE_OPTIONS.REFRIGERANT_UNITS,
+            placeholder: "Select unit",
           },
         ],
       },
@@ -622,8 +654,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "unit",
             label: "Unit of Measure",
-            type: "text",
-            placeholder: "e.g. MWh",
+            type: "select",
+            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            placeholder: "Select unit",
           },
         ],
       },
@@ -685,14 +718,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "date_of_generation",
             label: "Date of Generation",
-            type: "text",
-            placeholder: "Enter date",
+            type: "date",
+            placeholder: "Select date",
           },
           {
             name: "issuance_date",
             label: "Issuance Date",
-            type: "text",
-            placeholder: "Enter date",
+            type: "date",
+            placeholder: "Select date",
           },
         ],
       },
@@ -713,8 +746,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: "scope_2.manufacturing_process_specific_energy.methodology_document",
         label: "26. Provide detailed Methodology?",
-        type: "text",
-        placeholder: "Link or document to upload",
+        type: "file",
+        placeholder: "Upload methodology document",
         required: true,
         dependency: {
           field:
@@ -883,9 +916,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            options: ["pcs", "units", "sets"],
+            placeholder: "Select unit",
           },
           {
             name: "operating_hours",
@@ -988,15 +1022,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            options: QUESTIONNAIRE_OPTIONS.WEIGHT_UNITS,
+            placeholder: "Select unit",
           },
           {
             name: "period",
             label: "Period",
             type: "select",
-            options: ["monthly", "annually"],
+            options: ["Monthly", "Annually"],
             placeholder: "Select period",
           },
         ],
@@ -1454,8 +1489,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: "scope_3.materials.msds",
         label:
           "54. Please provide material safety data sheets (MSDS) or composition breakdowns if available?",
-        type: "text",
-        placeholder: "Link or attach MSDS copy",
+        type: "file",
+        placeholder: "Upload MSDS document",
       },
       {
         name: "scope_3.materials.recycled_materials_used",

@@ -70,6 +70,7 @@ const PCFRequest: React.FC = () => {
   // API Stats
   const [apiStats, setApiStats] = useState<{
     total_pcf_count?: string;
+    completed_count?: string;
     approved_count?: string;
     in_progress_count?: string;
     rejected_count?: string;
@@ -277,6 +278,7 @@ const PCFRequest: React.FC = () => {
   // Use stats from API response for KPI cards
   const statusCounts = {
     total: parseInt(apiStats?.total_pcf_count || "0", 10),
+    completed: parseInt(apiStats?.completed_count || "0", 10),
     inProgress: parseInt(apiStats?.in_progress_count || "0", 10),
     approved: parseInt(apiStats?.approved_count || "0", 10),
     rejected: parseInt(apiStats?.rejected_count || "0", 10),
@@ -434,6 +436,21 @@ const PCFRequest: React.FC = () => {
                 </div>
               </div>
 
+              {/* Completed Card */}
+              <div className="bg-teal-50 rounded-xl p-4 min-w-[120px] border border-teal-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="bg-teal-100 w-10 h-10 rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-teal-600 font-medium">Completed</div>
+                    <div className="text-xl font-bold text-teal-700">
+                      {statusCounts.completed}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Approved Card */}
               <div className="bg-green-50 rounded-xl p-4 min-w-[120px] border border-green-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
@@ -531,6 +548,7 @@ const PCFRequest: React.FC = () => {
                 options={[
                   { label: "All Status", value: "all" },
                   { label: "In Progress", value: "In Progress" },
+                  { label: "Completed", value: "Completed" },
                   { label: "Open", value: "Open" },
                   { label: "Draft", value: "Draft" },
                   { label: "Approved", value: "Approved" },

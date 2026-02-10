@@ -2477,6 +2477,51 @@ class SupplierQuestionnaireService {
       };
     }
   }
+
+  /**
+   * Update data collection question stage when supplier starts filling the questionnaire
+   */
+  async updateDataCollectionQuestionStage(
+    bom_pcf_id: string,
+    sup_id: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/supplier/update-data-collection-question-stage`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authService.getToken() || "",
+          },
+          body: JSON.stringify({
+            bom_pcf_id,
+            sup_id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status) {
+        return {
+          success: true,
+          message: data.message,
+        };
+      }
+
+      return {
+        success: false,
+        message: data.message || "Failed to update data collection stage",
+      };
+    } catch (error) {
+      console.error("Error updating data collection question stage:", error);
+      return {
+        success: false,
+        message: "An error occurred while updating data collection stage",
+      };
+    }
+  }
 }
 
 export const supplierQuestionnaireService = new SupplierQuestionnaireService();

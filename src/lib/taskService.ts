@@ -54,7 +54,9 @@ export interface TaskListResponse {
     current_page: number;
     total_pages: number;
     total_count: number;
+    stats?: any;
   };
+  stats?: any;
 }
 
 class TaskService {
@@ -84,6 +86,11 @@ class TaskService {
     current_page?: number;
     total_pages?: number;
     total_count?: number;
+    stats?: {
+      to_do_count?: string;
+      inprogress_count?: string;
+      completed_count?: string;
+    };
   }> {
     try {
       let url = `${API_BASE_URL}/api/task-management/list?pageNumber=${pageNumber}&pageSize=${pageSize}`;
@@ -157,6 +164,7 @@ class TaskService {
           current_page: pagination.page || result.data?.current_page || 1,
           total_pages: pagination.totalPages || result.data?.total_pages || 1,
           total_count: pagination.total || result.data?.total_count || dataArray.length,
+          stats: (result.data as any)?.stats || result.stats,
         };
       } else {
         return {

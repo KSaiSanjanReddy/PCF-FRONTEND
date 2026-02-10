@@ -35,6 +35,7 @@ export const QUESTIONNAIRE_OPTIONS = {
     "5001–7000",
     "7001–10,000",
     "> 10,000",
+    "Other (Specify the exact number)",
   ],
   ANNUAL_REVENUE: [
     "≤ $1M",
@@ -43,6 +44,7 @@ export const QUESTIONNAIRE_OPTIONS = {
     "$3M–$4M",
     "$4M–$5M",
     "> $5M",
+    "Other (Specify the exact amount)",
   ],
   // Generate years 2020-2050
   ANNUAL_REPORTING_PERIOD: Array.from({ length: 31 }, (_, i) => (2020 + i).toString()),
@@ -60,7 +62,7 @@ export const QUESTIONNAIRE_OPTIONS = {
     "Particulate Matter Formation",
     "Resource Depletion – Fossil Fuels",
     "Resource Depletion – Minerals & Metals",
-    "Other",
+    "Other (Add Custom Method)",
   ],
 
   FUEL_TYPES: [
@@ -199,6 +201,27 @@ export const QUESTIONNAIRE_OPTIONS = {
     "MJ",
     "GJ",
     "BTU",
+  ],
+
+  WEIGHT_UNITS: [
+    "kg",
+    "g",
+    "mg",
+    "Tons",
+    "lbs",
+  ],
+
+  VOLUME_UNITS: [
+    "liters",
+    "m³",
+    "gallons",
+    "ml",
+  ],
+
+  REFRIGERANT_UNITS: [
+    "kg",
+    "g",
+    "lbs",
   ],
 };
 
