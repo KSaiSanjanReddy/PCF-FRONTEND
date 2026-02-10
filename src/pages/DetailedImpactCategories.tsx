@@ -86,23 +86,9 @@ const DetailedImpactCategories: React.FC = () => {
                 />
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">From Date</label>
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
-                            <Calendar className="w-4 h-4" />
-                            <span>mm/dd/yyyy</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">To Date</label>
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
-                            <Calendar className="w-4 h-4" />
-                            <span>mm/dd/yyyy</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">Select Client</label>
+                <div className="flex justify-start mb-8">
+                    <div className="w-full md:w-64 space-y-2">
+                        <label className="text-xs font-bold text-gray-500 block mb-2">Select Client</label>
                         <div className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
                             <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4" />

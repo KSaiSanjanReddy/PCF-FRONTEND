@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     Calendar,
     Users,
@@ -22,81 +22,282 @@ import {
     ChartCard,
     ChartModal
 } from "../components/DashboardComponents";
+import dashboardService from "../lib/dashboardService";
 
-const transportModeData = [
-    { name: "Truck (Diesel)", distance: 12500, emission: 8500, share: 65 },
-    { name: "Rail", distance: 8200, emission: 1200, share: 15 },
-    { name: "Ship", distance: 25000, emission: 4500, share: 12 },
-    { name: "Air Freight", distance: 4200, emission: 15500, share: 8 },
-];
+interface Client {
+    user_id: string;
+    user_name: string;
+}
 
-const regionTransportData = [
-    { name: "Asia - Road", distance: 5000, factor: 100, total: 4300 },
-    { name: "Europe - Rail", distance: 3200, factor: 50, total: 450 },
-    { name: "N. America - Road", distance: 4800, factor: 120, total: 3800 },
-    { name: "S. America - Sea", distance: 12000, factor: 80, total: 650 },
-    { name: "Middle East - Air", distance: 6000, factor: 200, total: 7500 },
-    { name: "Africa - Road/Sea", distance: 8800, factor: 140, total: 4400 },
-];
+interface Supplier {
+    sup_id: string;
+    supplier_name: string;
+}
 
-const distanceCorrelationData = [
-    { name: "Road (500)", km: 500, emission: 90, color: "#1A5D1A" },
-    { name: "Road (1000)", km: 1000, emission: 180, color: "#347C17" },
-    { name: "Road (2000)", km: 2000, emission: 360, color: "#52C41A" },
-    { name: "Rail (500)", km: 500, emission: 25, color: "#D9F5C5" },
-    { name: "Rail (1000)", km: 1000, emission: 50, color: "#B3E699" },
-    { name: "Sea (5000)", km: 5000, emission: 100, color: "#8CD76D" },
-    { name: "Sea (10000)", km: 10000, emission: 200, color: "#66C841" },
-    { name: "Air (1000)", km: 1000, emission: 850, color: "#1A5D1A" },
-    { name: "Air (2000)", km: 2000, emission: 1700, color: "#347C17" },
-];
+interface ModeData {
+    name: string;
+    distance: number;
+    emission: number;
+    share: number;
+}
+
+interface CorrelationData {
+    name: string;
+    km: number;
+    emission: number;
+    color?: string;
+}
+
+const COLOR_PALETTE = ["#D9F5C5", "#B3E699", "#8CD76D", "#66C841", "#40B915", "#1A5D1A", "#347C17"];
 
 const DetailedTransportationEmission: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [expandedChart, setExpandedChart] = useState<string | null>(null);
 
-    const renderTransportMode = (isModal = false) => (
-        <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={transportModeData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} tickFormatter={(value) => value >= 1000 ? `${value / 1000}k` : value} />
-                <Tooltip />
-                <Legend verticalAlign="bottom" align="center" iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
-                <Bar dataKey="distance" fill="#52C41A" radius={[4, 4, 0, 0]} name="Distance (km)" />
-                <Bar dataKey="emission" fill="#B3E699" radius={[4, 4, 0, 0]} name="CO₂e (kg)" />
-                <Bar dataKey="share" fill="#1A5D1A" radius={[4, 4, 0, 0]} name="Share (%)" />
-            </BarChart>
-        </ResponsiveContainer>
-    );
+    // Dropdown State
+    const [clients, setClients] = useState<Client[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+    const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+    const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
 
-    const renderRegionTransport = (isModal = false) => (
-        <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={regionTransportData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9CA3AF' }} angle={-20} textAnchor="end" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} tickFormatter={(value) => value >= 1000 ? `${value / 1000}k` : value} />
-                <Tooltip />
-                <Legend verticalAlign="bottom" align="center" iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
-                <Bar dataKey="distance" fill="#52C41A" radius={[4, 4, 0, 0]} name="Distance (km)" />
-                <Bar dataKey="factor" fill="#B3E699" radius={[4, 4, 0, 0]} name="Emission Factor" />
-                <Bar dataKey="total" fill="#1A5D1A" radius={[4, 4, 0, 0]} name="Total Emission" />
-            </BarChart>
-        </ResponsiveContainer>
-    );
+    // Chart Data State
+    const [modeData, setModeData] = useState<ModeData[]>([]);
+    const [correlationData, setCorrelationData] = useState<CorrelationData[]>([]);
+    const [isLoadingMode, setIsLoadingMode] = useState(false);
+    const [isLoadingCorrelation, setIsLoadingCorrelation] = useState(false);
 
-    const renderDistanceCorrelation = (isModal = false) => (
-        <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={distanceCorrelationData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#9CA3AF' }} angle={-25} textAnchor="end" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} tickFormatter={(value) => value >= 1000 ? `${value / 1000}k` : value} />
-                <Tooltip />
-                <Legend verticalAlign="bottom" align="center" iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
-                <Bar dataKey="km" fill="#52C41A" radius={[4, 4, 0, 0]} name="Distance (km)" />
-                <Bar dataKey="emission" fill="#B3E699" radius={[4, 4, 0, 0]} name="Emission (kg CO₂e/ton)" />
-            </BarChart>
-        </ResponsiveContainer>
+    // Set Client from Navigation
+    useEffect(() => {
+        if (location.state?.selectedClient) {
+            setSelectedClient(location.state.selectedClient);
+        }
+    }, [location.state]);
+
+    // Fetch Clients on Mount
+    useEffect(() => {
+        const fetchClients = async () => {
+            const result = await dashboardService.getClientsDropdown();
+            if (result.success && result.data) {
+                setClients(result.data);
+            }
+        };
+        fetchClients();
+    }, []);
+
+    // Fetch Suppliers and Mode Data when Client changes
+    useEffect(() => {
+        if (selectedClient) {
+            const fetchSuppliers = async () => {
+                const result = await dashboardService.getSupplierDropdown(selectedClient.user_id);
+                if (result.success && result.data) {
+                    setSuppliers(result.data);
+                }
+            };
+
+            const fetchModeData = async () => {
+                setIsLoadingMode(true);
+                const result = await dashboardService.getModeOfTransportationEmission(selectedClient.user_id);
+                if (result.success && result.data) {
+                    const formatted = result.data.map((item: any) => ({
+                        name: item.mode_of_transport || item.name || "Unknown",
+                        distance: parseFloat(item.distance_km) || 0,
+                        emission: parseFloat(item.co2e_kg) || 0,
+                        share: parseFloat(item.share_percentage) || 0
+                    }));
+                    setModeData(formatted);
+                }
+                setIsLoadingMode(false);
+            };
+
+            fetchSuppliers();
+            fetchModeData();
+            setSelectedSupplier(null);
+            setCorrelationData([]);
+        } else {
+            setSuppliers([]);
+            setModeData([]);
+            setCorrelationData([]);
+        }
+    }, [selectedClient]);
+
+    // Fetch Correlation Data when Client or Supplier changes
+    useEffect(() => {
+        if (selectedClient) {
+            const fetchCorrelationData = async () => {
+                setIsLoadingCorrelation(true);
+                const result = await dashboardService.getDistanceVsCorrelationEmission(
+                    selectedClient.user_id,
+                    selectedSupplier?.sup_id
+                );
+                if (result.success && result.data) {
+                    const formatted = result.data.map((item: any, index: number) => ({
+                        name: item.mode_of_transport || item.name || "Unknown",
+                        km: parseFloat(item.distance_km) || 0,
+                        emission: parseFloat(item.transport_mode_emission_factor_value_kg_co2e_t_km) || 0,
+                        color: COLOR_PALETTE[index % COLOR_PALETTE.length]
+                    }));
+                    setCorrelationData(formatted);
+                }
+                setIsLoadingCorrelation(false);
+            };
+            fetchCorrelationData();
+        }
+    }, [selectedClient, selectedSupplier]);
+
+    const formatYAxis = (value: number) => {
+        if (value >= 1000) return `${(value / 1000).toFixed(1)}k`.replace('.0k', 'k');
+        return value.toString();
+    };
+
+    const renderTransportMode = (isModal = false) => {
+        if (isLoadingMode) {
+            return (
+                <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                </div>
+            );
+        }
+
+        if (modeData.length === 0) {
+            return (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
+                    {selectedClient ? "No data found for this selection" : "Select a client to view emission data"}
+                </div>
+            );
+        }
+
+        return (
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={modeData} margin={{ top: 20, right: 30, left: 100, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                    <YAxis
+                        yAxisId="left"
+                        width={45}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                        tickFormatter={formatYAxis}
+                    />
+                    <YAxis
+                        yAxisId="percent"
+                        orientation="left"
+                        domain={[0, 100]}
+                        width={45}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#1A5D1A' }}
+                        tickFormatter={(val) => `${val}%`}
+                    />
+                    <Tooltip cursor={{ fill: '#F9FAFB' }} />
+                    <Legend verticalAlign="bottom" align="center" iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
+                    <Bar yAxisId="left" dataKey="distance" fill="#52C41A" radius={[4, 4, 0, 0]} name="Distance (km)" />
+                    <Bar yAxisId="left" dataKey="emission" fill="#B3E699" radius={[4, 4, 0, 0]} name="CO₂e (kg)" />
+                    <Bar yAxisId="percent" dataKey="share" fill="#1A5D1A" radius={[4, 4, 0, 0]} name="Share (%)" />
+                </BarChart>
+            </ResponsiveContainer>
+        );
+    };
+
+    const renderDistanceCorrelation = (isModal = false) => {
+        if (isLoadingCorrelation) {
+            return (
+                <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                </div>
+            );
+        }
+
+        if (correlationData.length === 0) {
+            return (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm italic">
+                    {selectedClient ? "No correlation data found" : "Select a client to view correlation data"}
+                </div>
+            );
+        }
+
+        return (
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={correlationData} margin={{ top: 20, right: 30, left: 40, bottom: 80 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F3F5" />
+                    <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 8, fill: '#9CA3AF' }}
+                        angle={-25}
+                        textAnchor="end"
+                        interval={0}
+                    />
+                    <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                        tickFormatter={formatYAxis}
+                    />
+                    <Tooltip cursor={{ fill: '#F9FAFB' }} />
+                    <Legend
+                        verticalAlign="bottom"
+                        align="center"
+                        iconType="square"
+                        iconSize={10}
+                        wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '40px' }}
+                    />
+                    <Bar dataKey="km" fill="#52C41A" radius={[4, 4, 0, 0]} name="Distance (km)" />
+                    <Bar dataKey="emission" fill="#B3E699" radius={[4, 4, 0, 0]} name="Emission (kg CO₂e/ton)" />
+                </BarChart>
+            </ResponsiveContainer>
+        );
+    };
+
+    const renderDropdown = (
+        label: string,
+        options: any[],
+        selected: any,
+        setSelected: (val: any) => void,
+        isOpen: boolean,
+        setIsOpen: (val: boolean) => void,
+        icon: React.ReactNode,
+        placeholder: string,
+        displayKey: string,
+        valueKey: string
+    ) => (
+        <div className="w-full md:w-64 space-y-2 relative">
+            <label className="text-xs font-bold text-gray-500 block mb-2">{label}</label>
+            <div
+                className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-600 cursor-pointer shadow-sm hover:border-green-200 transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-2">
+                    <span className="text-gray-400">{icon}</span>
+                    <span>{selected ? selected[displayKey] : placeholder}</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {options.map((option) => (
+                        <div
+                            key={option[valueKey]}
+                            className="px-4 py-2.5 text-sm text-gray-600 hover:bg-green-50 hover:text-green-600 cursor-pointer transition-colors"
+                            onClick={() => {
+                                setSelected(option);
+                                setIsOpen(false);
+                            }}
+                        >
+                            {option[displayKey]}
+                        </div>
+                    ))}
+                    {options.length === 0 && (
+                        <div className="px-4 py-2.5 text-sm text-gray-400">No {label.toLowerCase()} available</div>
+                    )}
+                </div>
+            )}
+        </div>
     );
 
     return (
@@ -110,39 +311,37 @@ const DetailedTransportationEmission: React.FC = () => {
                 />
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">From Date</label>
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
-                            <Calendar className="w-4 h-4" />
-                            <span>mm/dd/yyyy</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">To Date</label>
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
-                            <Calendar className="w-4 h-4" />
-                            <span>mm/dd/yyyy</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500">Select Client</label>
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-400 cursor-pointer">
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4" />
-                                <span>Select Client</span>
-                            </div>
-                            <ChevronDown className="w-4 h-4" />
-                        </div>
-                    </div>
+                <div className="flex flex-wrap gap-4 mb-8">
+                    {renderDropdown(
+                        "Select Client",
+                        clients,
+                        selectedClient,
+                        setSelectedClient,
+                        isClientDropdownOpen,
+                        setIsClientDropdownOpen,
+                        <Users className="w-4 h-4" />,
+                        "Select Client",
+                        "user_name",
+                        "user_id"
+                    )}
+
+                    {renderDropdown(
+                        "Supplier",
+                        suppliers,
+                        selectedSupplier,
+                        setSelectedSupplier,
+                        isSupplierDropdownOpen,
+                        setIsSupplierDropdownOpen,
+                        <Truck className="w-4 h-4" />,
+                        "Select Supplier",
+                        "supplier_name",
+                        "sup_id"
+                    )}
                 </div>
 
                 <div className="space-y-6">
                     <ChartCard title="Mode of Transportation Emission" showExpand onExpand={() => setExpandedChart("mode")}>
                         {renderTransportMode()}
-                    </ChartCard>
-                    <ChartCard title="Region Wise Transportation Emission" showExpand onExpand={() => setExpandedChart("region")}>
-                        {renderRegionTransport()}
                     </ChartCard>
                     <ChartCard title="Distance vs Emission Correlation" showExpand onExpand={() => setExpandedChart("correlation")}>
                         {renderDistanceCorrelation()}
@@ -153,9 +352,6 @@ const DetailedTransportationEmission: React.FC = () => {
             {/* Expansion Modals */}
             <ChartModal isOpen={expandedChart === "mode"} onClose={() => setExpandedChart(null)} title="Mode of Transportation Emission">
                 {renderTransportMode(true)}
-            </ChartModal>
-            <ChartModal isOpen={expandedChart === "region"} onClose={() => setExpandedChart(null)} title="Region Wise Transportation Emission">
-                {renderRegionTransport(true)}
             </ChartModal>
             <ChartModal isOpen={expandedChart === "correlation"} onClose={() => setExpandedChart(null)} title="Distance vs Emission Correlation">
                 {renderDistanceCorrelation(true)}
