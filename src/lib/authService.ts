@@ -201,10 +201,12 @@ class AuthService {
     userData: SignupRequest
   ): Promise<{ success: boolean; message: string }> {
     try {
+      const token = this.getToken();
       const response = await fetch(`${API_BASE_URL}/api/user/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: token } : {}),
         },
         body: JSON.stringify(userData),
       });
@@ -271,8 +273,8 @@ class AuthService {
 
       const data: ApiResponse = await response.json();
 
-      if (data.success) {
-        return { success: true, message: data.message };
+      if (data.success || (data as any).status) {
+        return { success: true, message: data.message || "Password reset successful" };
       } else {
         return {
           success: false,
@@ -281,6 +283,35 @@ class AuthService {
       }
     } catch (error) {
       console.error("Reset password error:", error);
+      return { success: false, message: "Network error occurred" };
+    }
+  }
+
+  // Forgot MFA - Request MFA reset
+  async forgotMFA(
+    email: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/forgot/mfa`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_email: email }),
+      });
+
+      const data: ApiResponse = await response.json();
+
+      if (data.success || (data as any).status) {
+        return { success: true, message: data.message || "MFA reset email sent" };
+      } else {
+        return {
+          success: false,
+          message: data.message || "Failed to send MFA reset email",
+        };
+      }
+    } catch (error) {
+      console.error("Forgot MFA error:", error);
       return { success: false, message: "Network error occurred" };
     }
   }

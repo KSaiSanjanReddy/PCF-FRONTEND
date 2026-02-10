@@ -74,7 +74,6 @@ class TaskService {
     pageSize: number = 10,
     filters?: {
       priority?: string;
-      assignee?: string;
       category?: string;
       status?: string;
     }
@@ -95,11 +94,8 @@ class TaskService {
           // Send priority as-is (already in correct format: Low, Medium, High)
           params.append("priority", filters.priority);
         }
-        if (filters.assignee && filters.assignee !== "all") {
-          params.append("assigned_user_name", filters.assignee);
-        }
         if (filters.category && filters.category !== "all") {
-          params.append("category_name", filters.category);
+          params.append("category", filters.category);
         }
         const queryString = params.toString();
         if (queryString) {

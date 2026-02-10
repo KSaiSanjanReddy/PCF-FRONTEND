@@ -52,6 +52,7 @@ export interface PCFDocumentItem {
 export interface DocumentStats {
   total_pcf_count: string;
   approved_count: string;
+  in_progress_count: string;
   rejected_count: string;
   draft_count: string;
   pending_count: string;

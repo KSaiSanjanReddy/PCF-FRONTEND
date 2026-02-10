@@ -14,7 +14,7 @@ const UsersEdit: React.FC = () => {
 
   // Redirect if user doesn't have update permission
   useEffect(() => {
-    if (!canUpdate("Users")) {
+    if (!canUpdate("manage users")) {
       message.error("You don't have permission to edit users");
       navigate("/settings/users");
     }
@@ -66,12 +66,12 @@ const UsersEdit: React.FC = () => {
           });
         }
       } else {
-        alert("Failed to load user data");
+        message.error("Failed to load user data");
         navigate("/settings/users");
       }
     } catch (error) {
       console.error("Error loading user:", error);
-      alert("Error loading user data");
+      message.error("Error loading user data");
       navigate("/settings/users");
     } finally {
       setLoading(false);
@@ -87,7 +87,7 @@ const UsersEdit: React.FC = () => {
         }/api/roles/get`,
         {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: token } : {}),
           },
         }
       );
@@ -102,6 +102,7 @@ const UsersEdit: React.FC = () => {
       }
     } catch (error) {
       console.error("Error loading roles:", error);
+      message.error("Failed to load roles");
     }
   };
 
@@ -114,7 +115,7 @@ const UsersEdit: React.FC = () => {
         }/api/department/get`,
         {
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: token } : {}),
           },
         }
       );
@@ -129,6 +130,7 @@ const UsersEdit: React.FC = () => {
       }
     } catch (error) {
       console.error("Error loading departments:", error);
+      message.error("Failed to load departments");
     }
   };
 
@@ -158,17 +160,17 @@ const UsersEdit: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.status) {
-          alert("User updated successfully!");
+          message.success("User updated successfully!");
           navigate("/settings/users");
         } else {
-          alert("Failed to update user: " + data.message);
+          message.error(data.message || "Failed to update user");
         }
       } else {
-        alert("Failed to update user");
+        message.error("Failed to update user");
       }
     } catch (error) {
       console.error("Error updating user:", error);
-      alert("Error updating user");
+      message.error("Error updating user");
     } finally {
       setSaving(false);
     }

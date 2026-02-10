@@ -11,7 +11,7 @@ class UserManagementService {
     const token = localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: token } : {}),
     };
   }
 
@@ -483,7 +483,7 @@ class UserManagementService {
         {
           method: "POST",
           headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(token ? { Authorization: token } : {}),
           },
           body: formData,
         }

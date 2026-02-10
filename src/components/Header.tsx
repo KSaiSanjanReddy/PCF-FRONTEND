@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all">
+          <button className="relative p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all hidden">
             <Bell className="h-5 w-5" />
             <span className="absolute top-2 right-2 h-2 w-2 bg-green-500 rounded-full ring-2 ring-white"></span>
           </button>
@@ -62,7 +62,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 <div className="font-medium text-gray-900">
                   {user?.name || "User"}
                 </div>
-                <div className="text-xs text-gray-500">{user?.role || "Role"}</div>
+                <div className="text-xs text-gray-500">
+                  {user?.role || "Role"}
+                </div>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400 hidden sm:block" />
             </button>

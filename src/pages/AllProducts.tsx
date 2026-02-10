@@ -44,13 +44,15 @@ const AllProducts: React.FC = () => {
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchText !== debouncedSearch) {
-        setDebouncedSearch(searchText);
-        setCurrentPage(1);
-      }
+      setDebouncedSearch(searchText);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchText]);
+
+  // Reset page to 1 when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, categoryFilter, dateRange]);
 
   // Fetch categories for dropdown
   useEffect(() => {
@@ -340,7 +342,6 @@ const AllProducts: React.FC = () => {
                   } else {
                     setDateRange(null);
                   }
-                  setCurrentPage(1);
                 }}
                 className="w-[240px]"
                 allowClear
@@ -350,10 +351,7 @@ const AllProducts: React.FC = () => {
                 className="w-[150px]"
                 size="large"
                 value={statusFilter}
-                onChange={(value) => {
-                  setStatusFilter(value);
-                  setCurrentPage(1);
-                }}
+                onChange={(value) => setStatusFilter(value)}
                 options={[
                   { label: "All Status", value: "all" },
                   { label: "PCF Available", value: "available" },
@@ -366,10 +364,7 @@ const AllProducts: React.FC = () => {
                 className="w-[180px]"
                 size="large"
                 value={categoryFilter}
-                onChange={(value) => {
-                  setCategoryFilter(value || "all");
-                  setCurrentPage(1);
-                }}
+                onChange={(value) => setCategoryFilter(value || "all")}
                 options={categories}
                 allowClear
                 onClear={() => setCategoryFilter("all")}

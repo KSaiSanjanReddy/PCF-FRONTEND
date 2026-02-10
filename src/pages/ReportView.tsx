@@ -189,6 +189,7 @@ const ReportView: React.FC = () => {
             }
         } catch (error) {
             console.error("Error fetching report data:", error);
+            message.error("Failed to fetch report data");
         } finally {
             setLoading(false);
         }

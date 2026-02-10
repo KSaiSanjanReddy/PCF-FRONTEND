@@ -20,10 +20,11 @@ export interface EcoInventItem {
   element_name?: string; // materials-emission-factor
   type_of_energy?: string; // electricity-emission-factor
   fuel_type?: string; // fuel-emission-factor
-  packaging_type?: string; // packaging-emission-factor
-  treatment_type?: string; // packaging-treatment-type, waste-treatment-type
+  material_type?: string; // packaging-emission-factor
+  name?: string; // packaging-treatment-type, waste-treatment-type
+  code?: string; // packaging-treatment-type, waste-treatment-type
   vehicle_type?: string; // vehicle-type-emission-factor
-  waste_material_type?: string; // waste-material-type-emission-factor
+  waste_type?: string; // waste-material-type-emission-factor
   // Common emission factor fields
   ef_eu_region?: string;
   ef_india_region?: string;
@@ -31,6 +32,9 @@ export interface EcoInventItem {
   year?: number;
   unit?: string;
   iso_country_code?: string;
+  // Foreign keys
+  ptt_id?: string; // packaging-emission-factor -> treatment type
+  wtt_id?: string; // waste-material-type-emission-factor -> waste treatment type
 }
 
 // Entity-specific configuration
@@ -58,27 +62,27 @@ export const entityConfigs: Record<EcoInventEntity, EcoInventEntityConfig> = {
     idField: "fef_id",
   },
   "packaging-emission-factor": {
-    nameField: "packaging_type",
-    displayName: "Packaging Type",
+    nameField: "material_type",
+    displayName: "Material Type",
     idField: "pef_id",
   },
   "packaging-treatment-type": {
-    nameField: "treatment_type",
+    nameField: "name",
     displayName: "Treatment Type",
     idField: "ptt_id",
   },
   "vehicle-type-emission-factor": {
     nameField: "vehicle_type",
     displayName: "Vehicle Type",
-    idField: "vtef_id",
+    idField: "wtef_id",
   },
   "waste-material-type-emission-factor": {
-    nameField: "waste_material_type",
-    displayName: "Waste Material Type",
-    idField: "wmtef_id",
+    nameField: "waste_type",
+    displayName: "Waste Type",
+    idField: "wmttef_id",
   },
   "waste-treatment-type": {
-    nameField: "treatment_type",
+    nameField: "name",
     displayName: "Treatment Type",
     idField: "wtt_id",
   },
@@ -124,6 +128,46 @@ function extractName(entity: EcoInventEntity, item: any): string {
 // Normalize item from API response
 function normalizeItem(entity: EcoInventEntity, item: any): EcoInventItem {
   const config = entityConfigs[entity];
+
+  // Treatment types (packaging and waste) use name and code only
+  if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
+    return {
+      id: extractId(entity, item),
+      name: item.name || "",
+      code: item.code || "",
+    };
+  }
+
+  // Packaging emission factor includes ptt_id
+  if (entity === "packaging-emission-factor") {
+    return {
+      id: extractId(entity, item),
+      [config.nameField]: extractName(entity, item),
+      ptt_id: item.ptt_id || "",
+      ef_eu_region: item.ef_eu_region || "",
+      ef_india_region: item.ef_india_region || "",
+      ef_global_region: item.ef_global_region || "",
+      year: item.year || new Date().getFullYear(),
+      unit: item.unit || "",
+      iso_country_code: item.iso_country_code || "",
+    };
+  }
+
+  // Waste material type emission factor includes wtt_id
+  if (entity === "waste-material-type-emission-factor") {
+    return {
+      id: extractId(entity, item),
+      [config.nameField]: extractName(entity, item),
+      wtt_id: item.wtt_id || "",
+      ef_eu_region: item.ef_eu_region || "",
+      ef_india_region: item.ef_india_region || "",
+      ef_global_region: item.ef_global_region || "",
+      year: item.year || new Date().getFullYear(),
+      unit: item.unit || "",
+      iso_country_code: item.iso_country_code || "",
+    };
+  }
+
   return {
     id: extractId(entity, item),
     [config.nameField]: extractName(entity, item),
@@ -169,15 +213,51 @@ export async function addEcoInventData(
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const config = entityConfigs[entity];
-    const payload: any = {
-      [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-      ef_eu_region: item.ef_eu_region || "0",
-      ef_india_region: item.ef_india_region || "0",
-      ef_global_region: item.ef_global_region || "0",
-      year: item.year || new Date().getFullYear(),
-      unit: item.unit || "",
-      iso_country_code: item.iso_country_code || "",
-    };
+    let payload: any;
+
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
+      payload = {
+        name: item.name || "",
+        code: item.code || "",
+      };
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    } else {
+      payload = {
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
 
     const res = await fetch(endpoint(entity, "add"), {
       method: "POST",
@@ -204,16 +284,55 @@ export async function updateEcoInventData(
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const config = entityConfigs[entity];
-    const payload: any = {
-      [config.idField]: item.id,
-      [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-      ef_eu_region: item.ef_eu_region || "0",
-      ef_india_region: item.ef_india_region || "0",
-      ef_global_region: item.ef_global_region || "0",
-      year: item.year || new Date().getFullYear(),
-      unit: item.unit || "",
-      iso_country_code: item.iso_country_code || "",
-    };
+    let payload: any;
+
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
+      payload = {
+        [config.idField]: item.id,
+        name: item.name || "",
+        code: item.code || "",
+      };
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    } else {
+      payload = {
+        [config.idField]: item.id,
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      };
+    }
 
     const res = await fetch(endpoint(entity, "update"), {
       method: "POST",
@@ -265,20 +384,56 @@ export async function bulkAddEcoInventData(
 ): Promise<{ success: boolean; message: string; addedCount?: number }> {
   try {
     const config = entityConfigs[entity];
+    let payloadItems: any[];
+
+    // Treatment types (packaging and waste) use name and code only
+    if (entity === "packaging-treatment-type" || entity === "waste-treatment-type") {
+      payloadItems = items.map((item) => ({
+        name: item.name || "",
+        code: item.code || "",
+      }));
+    }
+    // Packaging emission factor includes ptt_id
+    else if (entity === "packaging-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ptt_id: item.ptt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+    // Waste material type emission factor includes wtt_id
+    else if (entity === "waste-material-type-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        wtt_id: item.wtt_id || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    } else {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+
     const res = await fetch(endpoint(entity, "bulk/add"), {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(
-        items.map((item) => ({
-          [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
-          ef_eu_region: item.ef_eu_region || "0",
-          ef_india_region: item.ef_india_region || "0",
-          ef_global_region: item.ef_global_region || "0",
-          year: item.year || new Date().getFullYear(),
-          unit: item.unit || "",
-          iso_country_code: item.iso_country_code || "",
-        }))
-      ),
+      body: JSON.stringify(payloadItems),
     });
     const data = await res.json();
     if (data?.success || data?.status) {
@@ -313,6 +468,46 @@ export async function getDropdownList(
       return (data.data as any[]).map((item) => ({
         id: extractId(entity, item),
         name: extractName(entity, item),
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get treatment types dropdown for packaging emission factor
+export async function getTreatmentTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(endpoint("packaging-treatment-type", "drop-down-list"), {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.ptt_id || item.id || "",
+        name: item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get waste treatment types dropdown for waste material type emission factor
+export async function getWasteTreatmentTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(endpoint("waste-treatment-type", "drop-down-list"), {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.wtt_id || item.id || "",
+        name: item.name || "",
       }));
     }
     return [];
