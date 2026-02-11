@@ -5,6 +5,8 @@
 
 export interface DQRQuestionConfig {
   key: string;
+  // Key to use when sending data to API (if different from key)
+  apiKey?: string;
   label: string;
   category: string;
   description?: string;
@@ -64,8 +66,9 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Product manufacturing details including weight and quantity',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  q151: {
-    key: 'q151',
+  q15_1: {
+    key: 'q15_1',
+    apiKey: 'q151',
     label: 'Co-Products Economic Value',
     category: DQR_CATEGORIES.PRODUCT,
     description: 'Co-product details and economic value',
@@ -92,8 +95,9 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Types and quantities of refrigerants used',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  dq21: {
-    key: 'dq21',
+  q21: {
+    key: 'q21',
+    apiKey: 'dq21',
     label: 'Process Emissions',
     category: DQR_CATEGORIES.SCOPE_1,
     description: 'Process-related emissions from manufacturing',
@@ -169,8 +173,9 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
     description: 'Quality control process consumption',
     dqiRequired: ['TeR', 'TiR', 'GR', 'C', 'PDS'],
   },
-  q341: {
-    key: 'q341',
+  q34_pressure: {
+    key: 'q34_pressure',
+    apiKey: 'q341',
     label: 'QC Pressure Flow',
     category: DQR_CATEGORIES.QUALITY_CONTROL,
     description: 'Quality control pressure flow usage',
@@ -384,6 +389,12 @@ export const DQR_QUESTIONS_CONFIG: Record<string, DQRQuestionConfig> = {
 // Helper function to get question config by key
 export function getQuestionConfig(key: string): DQRQuestionConfig | undefined {
   return DQR_QUESTIONS_CONFIG[key];
+}
+
+// Helper function to get API key for sending updates (returns apiKey if defined, otherwise returns key)
+export function getApiKey(key: string): string {
+  const config = DQR_QUESTIONS_CONFIG[key];
+  return config?.apiKey || key;
 }
 
 // Helper function to get questions by category

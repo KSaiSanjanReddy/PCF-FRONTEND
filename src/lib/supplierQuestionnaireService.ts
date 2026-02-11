@@ -3,6 +3,7 @@
  */
 
 import authService from "./authService";
+import { getApiKey } from "../config/dqrQuestionsConfig";
 
 const API_BASE_URL = "https://enviguide.nextechltd.in";
 
@@ -2128,8 +2129,10 @@ class SupplierQuestionnaireService {
     records: Array<Record<string, any>>
   ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
+      // Convert display key to API key (e.g., q15_1 -> q151)
+      const apiType = getApiKey(type);
       const payload = {
-        type,
+        type: apiType,
         records,
       };
 
