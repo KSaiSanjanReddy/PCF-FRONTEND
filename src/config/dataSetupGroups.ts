@@ -19,33 +19,6 @@ export interface DataSetupGroup {
 
 export const dataSetupGroups: DataSetupGroup[] = [
   {
-    key: "emissions",
-    title: "Emissions Configuration",
-    description: "Configure emission types and calculation methods",
-    tabs: [
-      {
-        key: "calculation-method",
-        label: "Calculation Method",
-        entity: "calculation-method",
-      },
-      {
-        key: "fuel-combustion",
-        label: "Fuel Combustion",
-        entity: "fuel-combustion",
-      },
-      {
-        key: "process-emission",
-        label: "Process Emission",
-        entity: "process-emission",
-      },
-      {
-        key: "fugitive-emission",
-        label: "Fugitive Emission",
-        entity: "fugitive-emission",
-      },
-    ],
-  },
-  {
     key: "electricity",
     title: "Electricity Configuration",
     description: "Configure electricity sources and methods",
@@ -96,38 +69,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
         key: "iron-type",
         label: "Iron Type",
         entity: "iron-type",
-      },
-      {
-        key: "material-composition-metal",
-        label: "Composition Metal",
-        entity: "material-composition-metal",
-      },
-      {
-        key: "material-composition-metal-type",
-        label: "Composition Metal Type",
-        entity: "material-composition-metal-type",
-      },
-    ],
-  },
-  {
-    key: "transport",
-    title: "Transport Configuration",
-    description: "Configure transport modes and vehicles",
-    tabs: [
-      {
-        key: "transport-mode",
-        label: "Transport Mode",
-        entity: "transport-mode",
-      },
-      {
-        key: "fuel-type",
-        label: "Fuel Type",
-        entity: "fuel-type",
-      },
-      {
-        key: "vehicle-detail",
-        label: "Vehicle Detail",
-        entity: "vehicle-detail",
       },
     ],
   },
@@ -202,6 +143,11 @@ export const masterDataSetupGroups: MasterDataSetupGroup[] = [
         key: "material-composition-metal",
         label: "Composition Metal",
         entity: "material-composition-metal",
+      },
+      {
+        key: "material-composition-metal-type",
+        label: "Composition Metal Type",
+        entity: "material-composition-metal-type",
       },
     ],
   },
@@ -330,6 +276,16 @@ export const masterDataSetupGroups: MasterDataSetupGroup[] = [
         key: "ef-unit",
         label: "EF Unit",
         entity: "ef-unit",
+      },
+      {
+        key: "qc-equipment",
+        label: "QC Equipment Unit",
+        entity: "qc-equipment",
+      },
+      {
+        key: "packing-unit",
+        label: "Packing Unit",
+        entity: "packing-unit",
       },
     ],
   },

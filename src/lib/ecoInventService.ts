@@ -35,6 +35,7 @@ export interface EcoInventItem {
   // Foreign keys
   ptt_id?: string; // packaging-emission-factor -> treatment type
   wtt_id?: string; // waste-material-type-emission-factor -> waste treatment type
+  vt_id?: string; // vehicle-type-emission-factor -> vehicle type
 }
 
 // Entity-specific configuration
@@ -508,6 +509,86 @@ export async function getWasteTreatmentTypeDropdown(): Promise<{ id: string; nam
       return (data.data as any[]).map((item) => ({
         id: item.wtt_id || item.id || "",
         name: item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get vehicle types dropdown for vehicle type emission factor
+export async function getVehicleTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/master-data-setup/vehicle-type/drop-down-list`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.vt_id || item.id || "",
+        name: item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get materials (material + material type) dropdown for materials emission factor
+export async function getMaterialsMaterialTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/ecoinvent-emission-factor-data-setup/materials-emission-factor/material-materialtype-drop-down-list`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.mcm_id || item.id || "",
+        name: item.combined_name || item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get energy source + energy type dropdown for electricity emission factor
+export async function getEnergySourceEnergyTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/ecoinvent-emission-factor-data-setup/electricity-emission-factor/energysource-energytype-drop-down-list`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.es_id || item.id || "",
+        name: item.combined_name || item.name || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Get fuel type + sub fuel type dropdown for fuel emission factor
+export async function getFuelTypeSubTypeDropdown(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/ecoinvent-emission-factor-data-setup/fuel-emission-factor/fueltype-fuelsubtype-drop-down-list`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (Array.isArray(data?.data)) {
+      return (data.data as any[]).map((item) => ({
+        id: item.ft_id || item.id || "",
+        name: item.combined_name || item.name || "",
       }));
     }
     return [];

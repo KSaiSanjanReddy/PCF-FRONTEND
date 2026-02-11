@@ -24,6 +24,7 @@ const getFileNameFromKey = (key: string): string => {
 const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  const [methodologyInput, setMethodologyInput] = useState("");
 
   // Sync uploadedFiles state when data.pcf_report_file changes (e.g., from localStorage draft)
   useEffect(() => {
@@ -120,6 +121,30 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => 
     updateData({ ...data, products_manufactured: newProducts });
   };
 
+  // PCF Methodology Helpers
+  const handleAddMethodology = () => {
+    const trimmed = methodologyInput.trim();
+    if (trimmed) {
+      const currentMethods = Array.isArray(data.pcf_methodology) ? data.pcf_methodology : [];
+      if (!currentMethods.includes(trimmed)) {
+        handleChange("pcf_methodology", [...currentMethods, trimmed]);
+      }
+      setMethodologyInput("");
+    }
+  };
+
+  const handleRemoveMethodology = (methodToRemove: string) => {
+    const currentMethods = Array.isArray(data.pcf_methodology) ? data.pcf_methodology : [];
+    handleChange("pcf_methodology", currentMethods.filter((m) => m !== methodToRemove));
+  };
+
+  const handleMethodologyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddMethodology();
+    }
+  };
+
   // Impact Methods Helper
   const handleImpactMethodChange = (method: string, checked: boolean) => {
     const currentMethods = data.required_environmental_impact_methods || [];
@@ -163,15 +188,49 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ data, updateData }) => 
                 PCF Methodology Used
               </label>
               <div className="mt-1">
-                <input
-                  type="text"
-                  name="pcf_methodology"
-                  id="pcf_methodology"
-                  value={data.pcf_methodology || ""}
-                  onChange={(e) => handleChange("pcf_methodology", e.target.value)}
-                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  placeholder="e.g., ISO 14067, GHG Protocol"
-                />
+                {/* Pills display */}
+                {Array.isArray(data.pcf_methodology) && data.pcf_methodology.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {data.pcf_methodology.map((method, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-800"
+                      >
+                        {method}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMethodology(method)}
+                          className="ml-1 hover:text-indigo-600 focus:outline-none"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* Input field */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="pcf_methodology"
+                    id="pcf_methodology"
+                    value={methodologyInput}
+                    onChange={(e) => setMethodologyInput(e.target.value)}
+                    onKeyDown={handleMethodologyKeyDown}
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Type methodology and press Enter"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddMethodology}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Add
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">e.g., ISO 14067, GHG Protocol</p>
               </div>
             </div>
 

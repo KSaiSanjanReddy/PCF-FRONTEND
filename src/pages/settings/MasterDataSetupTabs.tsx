@@ -21,6 +21,7 @@ import {
   bulkAddMasterData,
   getFuelTypeDropdown,
   getEnergySourceDropdown,
+  getCompositionMetalDropdown,
   type MasterDataItem,
   type MasterDataEntity,
 } from "../../lib/masterDataSetupService";
@@ -60,17 +61,19 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // State for each tab's data
   const [tabData, setTabData] = useState<Record<string, MasterDataItem[]>>({});
-  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "" });
+  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "" });
   const [editingItem, setEditingItem] = useState<{
     item: MasterDataItem;
     tab: string;
   } | null>(null);
-  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "" });
+  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   // Fuel type dropdown for sub-fuel-type entity
   const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
   // Energy source dropdown for energy-type entity
   const [energySources, setEnergySources] = useState<{ id: string; name: string }[]>([]);
+  // Composition metal dropdown for material-composition-metal-type entity
+  const [compositionMetals, setCompositionMetals] = useState<{ id: string; name: string }[]>([]);
   const [itemToDelete, setItemToDelete] = useState<{
     item: MasterDataItem;
     tab: string;
@@ -85,6 +88,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     name: "",
     fuel_type_name: "",
     energy_source_name: "",
+    composition_metal_name: "",
   });
   const [importPreview, setImportPreview] = useState<MasterDataItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -113,6 +117,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       if (currentEntity === "energy-type") {
         const energySourceData = await getEnergySourceDropdown();
         setEnergySources(energySourceData);
+      }
+      // Load composition metals if entity is material-composition-metal-type
+      if (currentEntity === "material-composition-metal-type") {
+        const compositionMetalData = await getCompositionMetalDropdown();
+        setCompositionMetals(compositionMetalData);
       }
 
       const data = await listMasterData(currentEntity);
@@ -156,10 +165,16 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       message.error("Please select an energy source");
       return;
     }
+    // Validate mcm_id for material-composition-metal-type
+    if (currentEntity === "material-composition-metal-type" && !newItem.mcm_id) {
+      message.error("Please select a composition metal");
+      return;
+    }
     const result = await addMasterData(currentEntity, {
       name: newItem.name,
       ft_id: newItem.ft_id || undefined,
       es_id: newItem.es_id || undefined,
+      mcm_id: newItem.mcm_id || undefined,
     });
     if (result.success) {
       message.success("Item added successfully");
@@ -169,7 +184,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
         id: item.id || `temp-${idx + 1}`,
       }));
       setTabData((prev) => ({ ...prev, [activeTab]: dataWithIds }));
-      setNewItem({ name: "", ft_id: "", es_id: "" });
+      setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -184,7 +199,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleEdit = (item: MasterDataItem) => {
     setEditingItem({ item, tab: activeTab });
-    setEditItem({ name: item.name, ft_id: item.ft_id || "", es_id: item.es_id || "" });
+    setEditItem({ name: item.name, ft_id: item.ft_id || "", es_id: item.es_id || "", mcm_id: item.mcm_id || "" });
   };
 
   const handleSaveEdit = async () => {
@@ -198,6 +213,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     // Validate es_id for energy-type
     if (currentEntity === "energy-type" && !editItem.es_id) {
       message.error("Please select an energy source");
+      return;
+    }
+    // Validate mcm_id for material-composition-metal-type
+    if (currentEntity === "material-composition-metal-type" && !editItem.mcm_id) {
+      message.error("Please select a composition metal");
       return;
     }
 
@@ -216,6 +236,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       ? energySources.find(es => es.id === editItem.es_id)?.name || ""
       : "";
 
+    // Get composition metal name for optimistic UI update
+    const compositionMetalName = currentEntity === "material-composition-metal-type"
+      ? compositionMetals.find(cm => cm.id === editItem.mcm_id)?.name || ""
+      : "";
+
     // Optimistic UI update
     setTabData((prev) => ({
       ...prev,
@@ -228,6 +253,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
               fuel_type_name: fuelTypeName || item.fuel_type_name,
               es_id: editItem.es_id || item.es_id,
               energy_source_name: energySourceName || item.energy_source_name,
+              mcm_id: editItem.mcm_id || item.mcm_id,
+              composition_metal_name: compositionMetalName || item.composition_metal_name,
             }
           : item
       ),
@@ -241,6 +268,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       name: editedValues.name,
       ft_id: editedValues.ft_id || undefined,
       es_id: editedValues.es_id || undefined,
+      mcm_id: editedValues.mcm_id || undefined,
     });
 
     if (result.success) {
@@ -257,7 +285,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -291,8 +319,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "" });
-    setNewItem({ name: "", ft_id: "", es_id: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+    setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map((t) => t.key);
@@ -362,11 +390,12 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // Auto-detect column mapping based on header names
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = { name: "", fuel_type_name: "", energy_source_name: "" };
+    const mapping: Record<string, string> = { name: "", fuel_type_name: "", energy_source_name: "", composition_metal_name: "" };
     const fieldsToMatch = [
-      { key: "name", patterns: ["name", "title", "label", "value", "sub fuel type", "sub-fuel-type", "energy type", "energy-type"] },
+      { key: "name", patterns: ["name", "title", "label", "value", "sub fuel type", "sub-fuel-type", "energy type", "energy-type", "composition metal type"] },
       { key: "fuel_type_name", patterns: ["fuel type", "fuel_type", "fuel-type", "fueltype", "fuel type name"] },
       { key: "energy_source_name", patterns: ["energy source", "energy_source", "energy-source", "energysource", "energy source name"] },
+      { key: "composition_metal_name", patterns: ["composition metal", "composition_metal", "composition-metal", "compositionmetal", "composition metal name"] },
     ];
 
     headers.forEach((header) => {
@@ -440,6 +469,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     const nameIdx = getColumnIndex("name");
     const fuelTypeNameIdx = getColumnIndex("fuel_type_name");
     const energySourceNameIdx = getColumnIndex("energy_source_name");
+    const compositionMetalNameIdx = getColumnIndex("composition_metal_name");
 
     const previewItems: MasterDataItem[] = data
       .filter((row) => {
@@ -454,6 +484,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
           const energySourceName = energySourceNameIdx >= 0 ? row[energySourceNameIdx] : "";
           return name && energySourceName;
         }
+        // For material-composition-metal-type, also require composition_metal_name
+        if (currentEntity === "material-composition-metal-type") {
+          const compositionMetalName = compositionMetalNameIdx >= 0 ? row[compositionMetalNameIdx] : "";
+          return name && compositionMetalName;
+        }
         return name; // At least name required
       })
       .map((row) => {
@@ -467,6 +502,10 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
         // Include energy_source_name for energy-type bulk import
         if (currentEntity === "energy-type" && energySourceNameIdx >= 0) {
           item.energy_source_name = row[energySourceNameIdx];
+        }
+        // Include composition_metal_name for material-composition-metal-type bulk import
+        if (currentEntity === "material-composition-metal-type" && compositionMetalNameIdx >= 0) {
+          item.composition_metal_name = row[compositionMetalNameIdx];
         }
         return item;
       });
@@ -675,6 +714,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                             Energy Source
                           </th>
                         )}
+                        {currentEntity === "material-composition-metal-type" && (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Composition Metal
+                          </th>
+                        )}
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Name
                         </th>
@@ -740,6 +784,25 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   </Select>
                                 </td>
                               )}
+                              {currentEntity === "material-composition-metal-type" && (
+                                <td className="px-6 py-4">
+                                  <Select
+                                    value={editItem.mcm_id || undefined}
+                                    onChange={(value) =>
+                                      setEditItem({ ...editItem, mcm_id: value })
+                                    }
+                                    className="w-full"
+                                    placeholder="Select composition metal"
+                                    size="middle"
+                                  >
+                                    {compositionMetals.map((cm) => (
+                                      <Option key={cm.id} value={cm.id}>
+                                        {cm.name}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </td>
+                              )}
                               <td className="px-6 py-4">
                                 <div className="relative">
                                   <input
@@ -763,7 +826,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                     disabled={
                                       !editItem.name ||
                                       (currentEntity === "sub-fuel-type" && !editItem.ft_id) ||
-                                      (currentEntity === "energy-type" && !editItem.es_id)
+                                      (currentEntity === "energy-type" && !editItem.es_id) ||
+                                      (currentEntity === "material-composition-metal-type" && !editItem.mcm_id)
                                     }
                                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                                     title="Save (Ctrl+Enter)"
@@ -799,6 +863,13 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 <td className="px-6 py-4">
                                   <div className="text-sm text-gray-600">
                                     {item.energy_source_name || "-"}
+                                  </div>
+                                </td>
+                              )}
+                              {currentEntity === "material-composition-metal-type" && (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600">
+                                    {item.composition_metal_name || "-"}
                                   </div>
                                 </td>
                               )}
@@ -878,6 +949,25 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                               </Select>
                             </td>
                           )}
+                          {currentEntity === "material-composition-metal-type" && (
+                            <td className="px-6 py-4">
+                              <Select
+                                value={newItem.mcm_id || undefined}
+                                onChange={(value) =>
+                                  setNewItem({ ...newItem, mcm_id: value })
+                                }
+                                className="w-full"
+                                placeholder="Select composition metal"
+                                size="middle"
+                              >
+                                {compositionMetals.map((cm) => (
+                                  <Option key={cm.id} value={cm.id}>
+                                    {cm.name}
+                                  </Option>
+                                ))}
+                              </Select>
+                            </td>
+                          )}
                           <td className="px-6 py-4">
                             <input
                               type="text"
@@ -894,7 +984,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 disabled={
                                   !newItem.name ||
                                   (currentEntity === "sub-fuel-type" && !newItem.ft_id) ||
-                                  (currentEntity === "energy-type" && !newItem.es_id)
+                                  (currentEntity === "energy-type" && !newItem.es_id) ||
+                                  (currentEntity === "material-composition-metal-type" && !newItem.mcm_id)
                                 }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
@@ -902,7 +993,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 <span>Add</span>
                               </button>
                               <button
-                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "" })}
+                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" })}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Clear form"
                               >
@@ -1021,7 +1112,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
               </span>
               Map CSV Columns
             </h4>
-            <div className={(currentEntity === "sub-fuel-type" || currentEntity === "energy-type") ? "grid grid-cols-2 gap-4" : ""}>
+            <div className={(currentEntity === "sub-fuel-type" || currentEntity === "energy-type" || currentEntity === "material-composition-metal-type") ? "grid grid-cols-2 gap-4" : ""}>
               {currentEntity === "sub-fuel-type" && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
@@ -1052,6 +1143,26 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                     placeholder="Select column"
                     value={columnMapping.energy_source_name || undefined}
                     onChange={(value) => handleMappingChange("energy_source_name", value)}
+                    allowClear
+                  >
+                    {csvHeaders.map((header) => (
+                      <Option key={header} value={header}>
+                        {header}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {currentEntity === "material-composition-metal-type" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Composition Metal <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select column"
+                    value={columnMapping.composition_metal_name || undefined}
+                    onChange={(value) => handleMappingChange("composition_metal_name", value)}
                     allowClear
                   >
                     {csvHeaders.map((header) => (
@@ -1107,6 +1218,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       ? "Please map both Fuel Type and Name columns"
                       : currentEntity === "energy-type"
                       ? "Please map both Energy Source and Name columns"
+                      : currentEntity === "material-composition-metal-type"
+                      ? "Please map both Composition Metal and Name columns"
                       : "Please map the Name column"}
                   </p>
                 </div>
@@ -1124,6 +1237,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       : currentEntity === "energy-type"
                       ? [
                           { title: "Energy Source", dataIndex: "energy_source_name", key: "energy_source_name" },
+                          { title: "Name", dataIndex: "name", key: "name" },
+                        ]
+                      : currentEntity === "material-composition-metal-type"
+                      ? [
+                          { title: "Composition Metal", dataIndex: "composition_metal_name", key: "composition_metal_name" },
                           { title: "Name", dataIndex: "name", key: "name" },
                         ]
                       : [{ title: "Name", dataIndex: "name", key: "name" }]
