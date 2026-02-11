@@ -86,6 +86,22 @@ interface WasteTreatmentTypeApiItem {
   [key: string]: any;
 }
 
+interface ProductUnitApiItem {
+  pu_id?: string;
+  product_unit_id?: string;
+  id?: string;
+  name: string;
+  [key: string]: any;
+}
+
+interface TransportModeApiItem {
+  tm_id?: string;
+  transport_mode_id?: string;
+  id?: string;
+  name: string;
+  [key: string]: any;
+}
+
 // Helper function to make authenticated GET requests
 async function fetchDropdown<T>(endpoint: string): Promise<T[]> {
   const token = authService.getToken();
@@ -245,6 +261,32 @@ export async function getWasteTreatmentTypeDropdown(): Promise<DropdownItem[]> {
   }));
 }
 
+/**
+ * Unit of Measure Dropdown (Product Unit)
+ * GET /api/master-data-setup/product-unit/drop-down-list
+ */
+export async function getProductUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<ProductUnitApiItem>("/api/master-data-setup/product-unit/drop-down-list");
+  return data.map(item => ({
+    ...item,
+    id: item.pu_id || item.product_unit_id || item.id || '',
+    name: item.name || '',
+  }));
+}
+
+/**
+ * Transport Mode Dropdown
+ * GET /api/master-data-setup/transport-modes/drop-down-list
+ */
+export async function getTransportModeDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<TransportModeApiItem>("/api/master-data-setup/transport-modes/drop-down-list");
+  return data.map(item => ({
+    ...item,
+    id: item.tm_id || item.transport_mode_id || item.id || '',
+    name: item.name || '',
+  }));
+}
+
 // Export all functions as a service object
 const questionnaireDropdownService = {
   getFuelTypeDropdown,
@@ -257,6 +299,8 @@ const questionnaireDropdownService = {
   getEnergyTypeDropdown,
   getWasteTypeDropdown,
   getWasteTreatmentTypeDropdown,
+  getProductUnitDropdown,
+  getTransportModeDropdown,
 };
 
 export default questionnaireDropdownService;

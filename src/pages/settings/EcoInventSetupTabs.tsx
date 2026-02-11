@@ -23,6 +23,10 @@ import {
   getEntityConfig,
   getTreatmentTypeDropdown,
   getWasteTreatmentTypeDropdown,
+  getVehicleTypeDropdown,
+  getMaterialsMaterialTypeDropdown,
+  getEnergySourceEnergyTypeDropdown,
+  getFuelTypeSubTypeDropdown,
   type EcoInventItem,
   type EcoInventEntity,
 } from "../../lib/ecoInventService";
@@ -96,6 +100,10 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   // Treatment type dropdowns
   const [treatmentTypes, setTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
   const [wasteTreatmentTypes, setWasteTreatmentTypes] = useState<{ id: string; name: string }[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<{ id: string; name: string }[]>([]);
+  const [materialsMaterialTypes, setMaterialsMaterialTypes] = useState<{ id: string; name: string }[]>([]);
+  const [energySourceTypes, setEnergySourceTypes] = useState<{ id: string; name: string }[]>([]);
+  const [fuelSubTypes, setFuelSubTypes] = useState<{ id: string; name: string }[]>([]);
 
   const currentTabConfig = tabs.find((t) => t.key === activeTab);
   const currentEntity = currentTabConfig?.entity;
@@ -107,6 +115,10 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
   const isPackagingEmissionFactor = currentEntity === "packaging-emission-factor";
   const isWasteTreatmentType = currentEntity === "waste-treatment-type";
   const isWasteMaterialEmissionFactor = currentEntity === "waste-material-type-emission-factor";
+  const isVehicleTypeEmissionFactor = currentEntity === "vehicle-type-emission-factor";
+  const isMaterialsEmissionFactor = currentEntity === "materials-emission-factor";
+  const isElectricityEmissionFactor = currentEntity === "electricity-emission-factor";
+  const isFuelEmissionFactor = currentEntity === "fuel-emission-factor";
   const isTreatmentType = isPackagingTreatmentType || isWasteTreatmentType;
 
   useEffect(() => {
@@ -140,6 +152,34 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     }
   }, [isWasteMaterialEmissionFactor]);
 
+  // Load vehicle types for vehicle type emission factor
+  useEffect(() => {
+    if (isVehicleTypeEmissionFactor) {
+      getVehicleTypeDropdown().then(setVehicleTypes);
+    }
+  }, [isVehicleTypeEmissionFactor]);
+
+  // Load materials + material types for materials emission factor
+  useEffect(() => {
+    if (isMaterialsEmissionFactor) {
+      getMaterialsMaterialTypeDropdown().then(setMaterialsMaterialTypes);
+    }
+  }, [isMaterialsEmissionFactor]);
+
+  // Load energy source + energy types for electricity emission factor
+  useEffect(() => {
+    if (isElectricityEmissionFactor) {
+      getEnergySourceEnergyTypeDropdown().then(setEnergySourceTypes);
+    }
+  }, [isElectricityEmissionFactor]);
+
+  // Load fuel type + sub fuel types for fuel emission factor
+  useEffect(() => {
+    if (isFuelEmissionFactor) {
+      getFuelTypeSubTypeDropdown().then(setFuelSubTypes);
+    }
+  }, [isFuelEmissionFactor]);
+
   // Reset new item when entity changes
   useEffect(() => {
     if (entityConfig) {
@@ -168,6 +208,19 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         setNewItem({
           [entityConfig.nameField]: "",
           wtt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      }
+      // Vehicle type emission factor includes vt_id
+      else if (isVehicleTypeEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          vt_id: "",
           ef_eu_region: "",
           ef_india_region: "",
           ef_global_region: "",
@@ -251,6 +304,17 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
         setNewItem({
           [entityConfig.nameField]: "",
           wtt_id: "",
+          ef_eu_region: "",
+          ef_india_region: "",
+          ef_global_region: "",
+          year: new Date().getFullYear(),
+          unit: "",
+          iso_country_code: "",
+        });
+      } else if (isVehicleTypeEmissionFactor) {
+        setNewItem({
+          [entityConfig.nameField]: "",
+          vt_id: "",
           ef_eu_region: "",
           ef_india_region: "",
           ef_global_region: "",
@@ -1178,18 +1242,92 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             </>
           ) : (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {entityConfig.displayName} <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, [entityConfig.nameField]: e.target.value })
-                  }
-                  placeholder={`Enter ${entityConfig.displayName.toLowerCase()}`}
-                />
-              </div>
+              {!isVehicleTypeEmissionFactor && !isMaterialsEmissionFactor && !isElectricityEmissionFactor && !isFuelEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {entityConfig.displayName} <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, [entityConfig.nameField]: e.target.value })
+                    }
+                    placeholder={`Enter ${entityConfig.displayName.toLowerCase()}`}
+                  />
+                </div>
+              )}
+              {isMaterialsEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Element Name <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select element name"
+                    value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setNewItem({ ...newItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {materialsMaterialTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isElectricityEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type of Energy <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select type of energy"
+                    value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setNewItem({ ...newItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {energySourceTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isFuelEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fuel Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select fuel type"
+                    value={newItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setNewItem({ ...newItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {fuelSubTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               {isPackagingEmissionFactor && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1229,6 +1367,35 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     {wasteTreatmentTypes.map((tt) => (
                       <Option key={tt.id} value={tt.id}>
                         {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isVehicleTypeEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select vehicle type"
+                    value={newItem.vt_id || undefined}
+                    onChange={(value) => {
+                      const selectedVehicle = vehicleTypes.find((vt) => vt.id === value);
+                      setNewItem({
+                        ...newItem,
+                        vt_id: value,
+                        vehicle_type: selectedVehicle?.name || ""
+                      });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {vehicleTypes.map((vt) => (
+                      <Option key={vt.id} value={vt.id}>
+                        {vt.name}
                       </Option>
                     ))}
                   </Select>
@@ -1385,17 +1552,91 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             </>
           ) : (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {entityConfig.displayName} <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
-                  onChange={(e) =>
-                    setEditItem({ ...editItem, [entityConfig.nameField]: e.target.value })
-                  }
-                />
-              </div>
+              {!isVehicleTypeEmissionFactor && !isMaterialsEmissionFactor && !isElectricityEmissionFactor && !isFuelEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {entityConfig.displayName} <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || ""}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, [entityConfig.nameField]: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+              {isMaterialsEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Element Name <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select element name"
+                    value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setEditItem({ ...editItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {materialsMaterialTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isElectricityEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type of Energy <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select type of energy"
+                    value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setEditItem({ ...editItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {energySourceTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isFuelEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fuel Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select fuel type"
+                    value={editItem[entityConfig.nameField as keyof EcoInventItem] as string || undefined}
+                    onChange={(value) => {
+                      setEditItem({ ...editItem, [entityConfig.nameField]: value });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {fuelSubTypes.map((item) => (
+                      <Option key={item.id} value={item.name}>
+                        {item.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               {isPackagingEmissionFactor && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1435,6 +1676,35 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     {wasteTreatmentTypes.map((tt) => (
                       <Option key={tt.id} value={tt.id}>
                         {tt.name}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              {isVehicleTypeEmissionFactor && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    className="w-full"
+                    placeholder="Select vehicle type"
+                    value={editItem.vt_id || vehicleTypes.find((vt) => vt.name === editItem.vehicle_type)?.id || undefined}
+                    onChange={(value) => {
+                      const selectedVehicle = vehicleTypes.find((vt) => vt.id === value);
+                      setEditItem({
+                        ...editItem,
+                        vt_id: value,
+                        vehicle_type: selectedVehicle?.name || ""
+                      });
+                    }}
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                  >
+                    {vehicleTypes.map((vt) => (
+                      <Option key={vt.id} value={vt.id}>
+                        {vt.name}
                       </Option>
                     ))}
                   </Select>

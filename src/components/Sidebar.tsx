@@ -152,8 +152,18 @@ const Sidebar: React.FC<SidebarProps> = ({
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
     const isExpanded = expandedItems.has(item.id);
     const hasChildren = item.children && item.children.length > 0;
+
+    // Get base path for matching (e.g., /product-portfolio from /product-portfolio/all-products)
+    const getBasePath = (path: string) => {
+      const segments = path.split('/').filter(Boolean);
+      return segments.length > 0 ? `/${segments[0]}` : path;
+    };
+
+    const basePath = getBasePath(item.path);
     const isActive =
       location.pathname === item.path ||
+      location.pathname.startsWith(basePath + '/') ||
+      location.pathname === basePath ||
       (hasChildren &&
         item.children?.some((child) => location.pathname === child.path));
 

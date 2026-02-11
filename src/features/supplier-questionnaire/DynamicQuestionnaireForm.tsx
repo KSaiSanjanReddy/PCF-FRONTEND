@@ -10,6 +10,84 @@ import supplierQuestionnaireService from '../../lib/supplierQuestionnaireService
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+// TagsInput component for pill-based multi-input
+interface TagsInputProps {
+  placeholder?: string;
+  form: any;
+  fieldName: string;
+  value?: string[];
+  onChange?: (value: string[]) => void;
+}
+
+const TagsInput: React.FC<TagsInputProps> = ({ placeholder, form, fieldName, value = [], onChange }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  // Get current tags from form or prop
+  const tags = value || form.getFieldValue(fieldName.split('.')) || [];
+
+  const handleAddTag = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      const newTags = [...tags, trimmed];
+      if (onChange) {
+        onChange(newTags);
+      } else {
+        form.setFieldValue(fieldName.split('.'), newTags);
+      }
+      setInputValue('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = tags.filter((tag: string) => tag !== tagToRemove);
+    if (onChange) {
+      onChange(newTags);
+    } else {
+      form.setFieldValue(fieldName.split('.'), newTags);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  return (
+    <div className="w-full">
+      {/* Pills display */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {tags.map((tag: string, index: number) => (
+            <Tag
+              key={index}
+              closable
+              onClose={() => handleRemoveTag(tag)}
+              className="px-3 py-1 text-sm bg-indigo-50 text-indigo-700 border-indigo-200"
+            >
+              {tag}
+            </Tag>
+          ))}
+        </div>
+      )}
+      {/* Input field */}
+      <Space.Compact style={{ width: '100%' }}>
+        <Input
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          style={{ flex: 1 }}
+        />
+        <Button type="primary" onClick={handleAddTag} className="!bg-indigo-600 hover:!bg-indigo-700">
+          Add
+        </Button>
+      </Space.Compact>
+    </div>
+  );
+};
+
 interface DynamicQuestionnaireFormProps {
   section: QuestionnaireSection;
   initialValues: any;
@@ -76,6 +154,58 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     setCharCounts(counts);
   }, [section, form]);
 
+  // Auto-populate tables with products_manufactured data
+  useEffect(() => {
+    if (!section) return;
+
+    // Get products_manufactured from form
+    const productsManufactured = form.getFieldValue(['product_details', 'products_manufactured']) || [];
+
+    if (productsManufactured.length === 0) return;
+
+    // Find tables that need auto-population
+    const autoPopulateTables = section.fields.filter(
+      (field) => field.type === 'table' && field.autoPopulateFromProducts
+    );
+
+    autoPopulateTables.forEach((field) => {
+      const fieldPath = field.name.split('.');
+      const currentValues = form.getFieldValue(fieldPath) || [];
+
+      // Only auto-populate if table is empty
+      if (currentValues.length === 0) {
+        const autoPopulatedRows = productsManufactured.map((product: any) => {
+          const row: Record<string, any> = {};
+
+          // Set MPN from product
+          const mpn = product.material_number || product.mpn || '';
+          if (mpn) {
+            row.mpn = mpn;
+          }
+
+          // Set component_name or product_name from product
+          const productName = product.product_name || '';
+          if (productName) {
+            row.component_name = productName;
+            row.product_name = productName;
+          }
+
+          // Set bom_id if available
+          if (product.bom_id) {
+            row.bom_id = product.bom_id;
+          }
+
+          return row;
+        }).filter((row: Record<string, any>) => row.mpn); // Only include rows with MPN
+
+        if (autoPopulatedRows.length > 0) {
+          console.log(`Auto-populating ${field.name} with ${autoPopulatedRows.length} products`);
+          form.setFieldValue(fieldPath, autoPopulatedRows);
+        }
+      }
+    });
+  }, [section, form, initialValues]);
+
   // Fetch API dropdown data when section changes
   useEffect(() => {
     if (!section) return;
@@ -141,6 +271,12 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               break;
             case 'wasteTreatmentType':
               data = await questionnaireDropdownService.getWasteTreatmentTypeDropdown();
+              break;
+            case 'productUnit':
+              data = await questionnaireDropdownService.getProductUnitDropdown();
+              break;
+            case 'transportMode':
+              data = await questionnaireDropdownService.getTransportModeDropdown();
               break;
           }
 
@@ -438,6 +574,16 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               })}
             </Space>
           </Radio.Group>
+        );
+        break;
+      case 'tags':
+        // Pill-based multi-input for array of strings
+        inputComponent = (
+          <TagsInput
+            placeholder={field.placeholder || 'Type and press Enter to add'}
+            form={form}
+            fieldName={field.name}
+          />
         );
         break;
       case 'file':
@@ -856,6 +1002,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           id: item.material_number || item.mpn || '',
                           name: `${item.material_number || item.mpn || ''} - ${item.product_name || ''}`,
                           bom_id: item.bom_id || '',
+                          product_name: item.product_name || '',
                         })).filter((opt: DropdownItem) => opt.id);
 
                         return (
@@ -879,11 +1026,19 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
-                                // Find the selected item to get the bom_id
+                                // Find the selected item to get the bom_id and product_name
                                 const selectedItem = bomMaterialOptions.find((opt: any) => opt.id === value);
-                                if (selectedItem && selectedItem.bom_id) {
+                                if (selectedItem) {
                                   // Set the bom_id in the row data
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, 'bom_id'], selectedItem.bom_id);
+                                  if (selectedItem.bom_id) {
+                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'bom_id'], selectedItem.bom_id);
+                                  }
+                                  // Auto-fill component_name or product_name with the product name
+                                  if (selectedItem.product_name) {
+                                    // Try common field names for component/product name
+                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'component_name'], selectedItem.product_name);
+                                    form.setFieldValue([...fieldPath, fieldRecord.name, 'product_name'], selectedItem.product_name);
+                                  }
                                 }
                               }}
                             >

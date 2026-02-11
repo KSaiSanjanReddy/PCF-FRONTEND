@@ -11,7 +11,8 @@ export type FieldType =
   | "file"
   | "table"
   | "group"
-  | "info"; // For static text/info blocks
+  | "info" // For static text/info blocks
+  | "tags"; // For pill-based multi-input (array of strings)
 
 export interface QuestionnaireOption {
   label: string;
@@ -30,7 +31,9 @@ export type ApiDropdownType =
   | "energyType" // Q28 - Energy types (all)
   | "bomMaterials" // Q28 - BOM materials from products_manufactured
   | "wasteType" // Q40, Q68 - Waste types
-  | "wasteTreatmentType"; // Q40, Q68 - Waste treatment types
+  | "wasteTreatmentType" // Q40, Q68 - Waste treatment types
+  | "productUnit" // Unit of Measure dropdown
+  | "transportMode"; // Transport Mode dropdown
 
 export interface QuestionnaireField {
   name: string; // Data key (path in the data object)
@@ -63,6 +66,8 @@ export interface QuestionnaireField {
   apiDropdown?: ApiDropdownType;
   // For cascading/dependent dropdowns - the field name this depends on
   dependsOnField?: string;
+  // Auto-populate table rows from products_manufactured (Q15)
+  autoPopulateFromProducts?: boolean;
 }
 
 export interface QuestionnaireSection {
@@ -283,8 +288,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: "product_details.pcf_methodology",
         label:
           "11. Share methodology (ISO 14067, GHG Protocol, Catena-X, etc.)",
-        type: "text",
-        placeholder: "Open Text",
+        type: "tags",
+        placeholder: "Type methodology and press Enter to add",
         required: true,
         dependency: {
           field: "product_details.existing_pcf_report",
@@ -391,7 +396,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "price",
-            label: "Price of each component / Product",
+            label: "Price of each component / Product (₹)",
             type: "number",
             placeholder: "0.00",
           },
@@ -441,7 +446,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "price_per_product",
-            label: "Price per Product",
+            label: "Price per Product (₹)",
             type: "number",
             placeholder: "0.00",
           },
@@ -610,9 +615,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
-            type: "text",
-            placeholder: "Enter unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
         ],
       },
@@ -761,18 +767,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           "27. Please write the energy intensity of production estimated kWh or MJ per unit of product (if available)?",
         type: "table",
         addButtonLabel: "Add Row",
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "product_name",
             label: "Product/Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "energy_intensity",
@@ -1049,6 +1057,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "scope_2.quality_control.destructive_testing",
           value: "Yes",
@@ -1057,14 +1066,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
-            label: "component Name",
+            label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "weight",
@@ -1074,15 +1084,16 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
           {
             name: "period",
             label: "Period",
             type: "select",
-            options: ["monthly", "annually"],
+            options: ["Monthly", "Annually"],
             placeholder: "Select period",
           },
         ],
@@ -1094,18 +1105,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
-            label: "component Name",
+            label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "percentage",
@@ -1121,18 +1134,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
-            label: "component Name",
+            label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "processes_involved",
@@ -1155,18 +1170,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "waste_type",
@@ -1183,9 +1200,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measurement",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
           {
             name: "treatment_type",
@@ -1213,7 +1231,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       {
         name: "scope_2.it_for_production.hardware_energy_consumption_tracked",
         label:
-          "42. What is the total energy consumption of IT hardware or on-site servers or data centres related to production?",
+          "42. Do you have the energy consumption of IT hardware or on-site servers or data centres related to production?",
         type: "radio",
         options: ["Yes", "No"],
         required: true,
@@ -1375,9 +1393,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
         ],
       },
@@ -1454,12 +1473,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "material",
@@ -1507,6 +1528,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "scope_3.materials.recycled_materials_used",
           value: "Yes",
@@ -1515,8 +1537,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "material_type",
@@ -1611,18 +1634,20 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "packaging_type",
@@ -1639,8 +1664,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "unit",
             label: "Unit of Measure",
-            type: "text",
-            placeholder: "Unit",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
         ],
       },
@@ -1650,30 +1676,33 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "weight",
-            label: "packaging weight per product",
+            label: "Packaging weight per product",
             type: "number",
             placeholder: "0.00",
           },
           {
             name: "unit",
             label: "Unit of Measure",
-            type: "text",
-            placeholder: "Unit",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
         ],
       },
@@ -1683,30 +1712,33 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         columns: [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "size",
-            label: "size of the package",
-            type: "text",
-            placeholder: "Size",
+            label: "Size of the package",
+            type: "number",
+            placeholder: "0.00",
           },
           {
             name: "unit",
             label: "Unit of Measure",
-            type: "text",
-            placeholder: "Unit",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
         ],
       },
@@ -1814,9 +1846,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measurement",
-            type: "text",
-            placeholder: "Unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
           },
           {
             name: "treatment_type",
@@ -1844,10 +1877,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: "scope_3.waste_disposal.by_product_details",
-        label: "71. specify type of byproduct?",
+        label: "71. Specify type of By product?",
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "scope_3.waste_disposal.by_products_generated",
           value: "Yes",
@@ -1856,24 +1890,25 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
-            label: "Name of component",
+            label: "Name of Component",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "by_product",
-            label: "byproduct",
+            label: "By Product",
             type: "text",
             placeholder: "By-product",
           },
           {
             name: "price",
-            label: "Price per product",
+            label: "Price per product (₹)",
             type: "number",
             placeholder: "0.00",
           },
@@ -1895,10 +1930,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
       },
       {
         name: "scope_3.logistics.estimated_emissions",
-        label: "73. provide estimated CO₂ emissions for your raw materials?",
+        label: "73. Provide estimated CO₂ emissions for your raw materials?",
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "scope_3.logistics.emissions_tracked",
           value: "Yes",
@@ -1907,14 +1943,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "raw_material",
@@ -1930,9 +1967,10 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "transport_mode",
-            label: "Transport mode",
-            type: "text",
-            placeholder: "Mode",
+            label: "Transport Mode",
+            type: "select",
+            apiDropdown: "transportMode",
+            placeholder: "Select mode",
           },
           {
             name: "source",
@@ -2020,13 +2058,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         columns: [
           {
             name: "country",
-            label: "country",
+            label: "Country",
             type: "text",
             placeholder: "Country",
           },
           {
             name: "state",
-            label: "state",
+            label: "State",
             type: "text",
             placeholder: "State",
           },
