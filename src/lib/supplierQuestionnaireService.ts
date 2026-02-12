@@ -123,9 +123,9 @@ export interface SupplierQuestionnaireData {
       serial_id: string;
       generator_id: string;
       generator_name: string;
-      location: string;
-      generation_date: string;
-      issuance_date: string;
+      generator_location: string;
+      date_of_generation: any; // Can be dayjs, Date, string, or timestamp
+      issuance_date: any; // Can be dayjs, Date, string, or timestamp
     }[];
     manufacturing_process_specific_energy: {
       allocation_methodology: boolean;
@@ -430,6 +430,8 @@ interface SupplierQuestionnaireApiPayload {
         }[];
         any_co_product_have_economic_value: boolean;
         co_product_component_economic_value_questions: {
+            bom_id?: string;
+            mpn?: string;
             product_name: string;
             co_product_name: string;
             weight: number;
@@ -480,8 +482,8 @@ interface SupplierQuestionnaireApiPayload {
             generator_id: string;
             generator_name: string;
             generator_location: string;
-            date_of_generation: string;
-            issuance_date: string;
+            date_of_generation: number | null;
+            issuance_date: number | null;
         }[];
         methodology_to_allocate_factory_energy_to_product_level: boolean;
         methodology_details_document_url: string[];
@@ -732,7 +734,30 @@ class SupplierQuestionnaireService {
   // Helper to ensure a value is an array (handles undefined, null, objects, strings, etc.)
   private ensureArray(value: any): any[] {
       if (Array.isArray(value)) return value;
+      // Handle single string values (e.g., file paths) by wrapping in array
+      if (typeof value === 'string' && value.trim() !== '') return [value];
       return [];
+  }
+
+  // Helper to convert date/dayjs to timestamp (milliseconds)
+  private convertToTimestamp(value: any): number | null {
+      if (!value) return null;
+      // If already a number (timestamp), return as is
+      if (typeof value === 'number') return value;
+      // If it's a dayjs object
+      if (value && typeof value === 'object' && typeof value.valueOf === 'function') {
+          return value.valueOf();
+      }
+      // If it's a string date, try to parse it
+      if (typeof value === 'string') {
+          const parsed = new Date(value);
+          return isNaN(parsed.getTime()) ? null : parsed.getTime();
+      }
+      // If it's a Date object
+      if (value instanceof Date) {
+          return value.getTime();
+      }
+      return null;
   }
 
   // Helper function to filter out empty objects from arrays
@@ -779,7 +804,7 @@ class SupplierQuestionnaireService {
           supplier_product_questions: {
               do_you_have_an_existing_pcf_report: this.convertToBoolean(data.product_details?.existing_pcf_report),
               pcf_methodology_used: data.product_details?.pcf_methodology || [],
-              upload_pcf_report: data.product_details?.pcf_report_file || [],
+              upload_pcf_report: this.ensureArray(data.product_details?.pcf_report_file),
               production_site_details_questions: this.ensureArray(data.product_details?.production_site_details)
                   .filter(item => item.location || item.component_name || item.product_name || item.mpn || item.material_number || item.bom_id)
                   .map(item => ({
@@ -808,7 +833,7 @@ class SupplierQuestionnaireService {
                   .filter(item => item.product_name && item.co_product_name)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
-                      ...(item.material_number && { material_number: item.material_number }),
+                      ...(item.mpn && { mpn: item.mpn }),
                       product_name: item.product_name,
                       co_product_name: item.co_product_name,
                       weight: item.weight,
@@ -874,12 +899,12 @@ class SupplierQuestionnaireService {
                       serial_id: item.serial_id,
                       generator_id: item.generator_id,
                       generator_name: item.generator_name,
-                      generator_location: item.location,
-                      date_of_generation: item.generation_date,
-                      issuance_date: item.issuance_date
+                      generator_location: item.generator_location,
+                      date_of_generation: this.convertToTimestamp(item.date_of_generation),
+                      issuance_date: this.convertToTimestamp(item.issuance_date)
                   })),
               methodology_to_allocate_factory_energy_to_product_level: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.allocation_methodology || false),
-              methodology_details_document_url: data.scope_2?.manufacturing_process_specific_energy?.methodology_document || [],
+              methodology_details_document_url: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.methodology_document),
               energy_intensity_of_production_estimated_kwhor_mj: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.energy_intensity_estimated || false),
               energy_intensity_of_production_estimated_kwhor_mj_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.energy_intensity)
                   .filter(item => item.product_name && item.intensity)
@@ -1306,8 +1331,8 @@ class SupplierQuestionnaireService {
                   serial_id: item.serial_id,
                   generator_id: item.generator_id,
                   generator_name: item.generator_name,
-                  location: item.generator_location,
-                  generation_date: item.date_of_generation,
+                  generator_location: item.generator_location,
+                  date_of_generation: item.date_of_generation,
                   issuance_date: item.issuance_date
               })),
               manufacturing_process_specific_energy: {

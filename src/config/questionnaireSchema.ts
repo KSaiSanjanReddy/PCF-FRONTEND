@@ -68,6 +68,8 @@ export interface QuestionnaireField {
   dependsOnField?: string;
   // Auto-populate table rows from products_manufactured (Q15)
   autoPopulateFromProducts?: boolean;
+  // For file uploads - allow multiple files
+  multiple?: boolean;
 }
 
 export interface QuestionnaireSection {
@@ -301,6 +303,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         label:
           "12. Please provide/upload the Product Carbon Footprint (PCF) report for your product(s)?",
         type: "file",
+        multiple: true,
         required: true,
         dependency: {
           field: "product_details.existing_pcf_report",
@@ -421,16 +424,24 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "product_details.any_co_product_have_economic_value",
           value: "Yes",
         },
         columns: [
           {
+            name: "mpn",
+            label: "MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
+          },
+          {
             name: "product_name",
-            label: "Name of component",
+            label: "Name of Component",
             type: "text",
-            placeholder: "Select from Q15 or enter name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "co_product_name",
@@ -753,7 +764,8 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         name: "scope_2.manufacturing_process_specific_energy.methodology_document",
         label: "26. Provide detailed Methodology?",
         type: "file",
-        placeholder: "Upload methodology document",
+        multiple: true,
+        placeholder: "Upload methodology document(s)",
         required: true,
         dependency: {
           field:

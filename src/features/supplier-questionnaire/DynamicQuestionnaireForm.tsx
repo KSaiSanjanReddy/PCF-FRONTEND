@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin, Upload, message } from 'antd';
+import dayjs from 'dayjs';
+import { Form, Input, Select, Checkbox, Radio, InputNumber, Button, Table, Space, Typography, Tooltip, Badge, Empty, Tag, Spin, Upload, message, DatePicker } from 'antd';
 import type { UploadFile, UploadProps } from 'antd';
 import { QUESTIONNAIRE_OPTIONS } from '../../config/questionnaireConfig';
 import { PlusOutlined, DeleteOutlined, UploadOutlined, QuestionCircleOutlined, CheckCircleOutlined, InfoCircleOutlined, LoadingOutlined, FileOutlined } from '@ant-design/icons';
@@ -155,7 +156,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
   }, [section, form]);
 
   // Auto-populate tables with products_manufactured data
-  useEffect(() => {
+  const autoPopulateTables = useCallback((forceFieldName?: string) => {
     if (!section) return;
 
     // Get products_manufactured from form
@@ -164,20 +165,22 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     if (productsManufactured.length === 0) return;
 
     // Find tables that need auto-population
-    const autoPopulateTables = section.fields.filter(
+    const tablesNeedingAutoPopulate = section.fields.filter(
       (field) => field.type === 'table' && field.autoPopulateFromProducts
     );
 
-    autoPopulateTables.forEach((field) => {
+    tablesNeedingAutoPopulate.forEach((field) => {
       const fieldPath = field.name.split('.');
       const currentValues = form.getFieldValue(fieldPath) || [];
 
-      // Only auto-populate if table is empty
-      if (currentValues.length === 0) {
+      // Only auto-populate if table is empty OR if specifically forced for this field
+      const shouldAutoPopulate = currentValues.length === 0 || forceFieldName === field.name;
+
+      if (shouldAutoPopulate && currentValues.length === 0) {
         const autoPopulatedRows = productsManufactured.map((product: any) => {
           const row: Record<string, any> = {};
 
-          // Set MPN from product
+          // Set MPN from product (use material_number which matches bomMaterials dropdown ID)
           const mpn = product.material_number || product.mpn || '';
           if (mpn) {
             row.mpn = mpn;
@@ -196,7 +199,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           }
 
           return row;
-        }).filter((row: Record<string, any>) => row.mpn); // Only include rows with MPN
+        }).filter((row: Record<string, any>) => row.mpn || row.product_name); // Include rows with MPN or product_name
 
         if (autoPopulatedRows.length > 0) {
           console.log(`Auto-populating ${field.name} with ${autoPopulatedRows.length} products`);
@@ -204,7 +207,38 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         }
       }
     });
-  }, [section, form, initialValues]);
+  }, [section, form]);
+
+  // Run auto-populate on section load
+  useEffect(() => {
+    autoPopulateTables();
+  }, [autoPopulateTables, initialValues]);
+
+  // Watch for dependency field changes to trigger auto-populate
+  // This handles cases where conditional tables become visible
+  useEffect(() => {
+    if (!section) return;
+
+    // Find all tables with autoPopulateFromProducts that have dependencies
+    const conditionalTables = section.fields.filter(
+      (field) => field.type === 'table' && field.autoPopulateFromProducts && field.dependency
+    );
+
+    conditionalTables.forEach((field) => {
+      if (field.dependency) {
+        const dependencyFieldPath = field.dependency.field.split('.');
+        const dependencyValue = form.getFieldValue(dependencyFieldPath);
+
+        // If the dependency condition is met, try to auto-populate
+        if (dependencyValue === field.dependency.value) {
+          // Small delay to allow form to render the table
+          setTimeout(() => {
+            autoPopulateTables(field.name);
+          }, 100);
+        }
+      }
+    });
+  }, [section, form, autoPopulateTables]);
 
   // Fetch API dropdown data when section changes
   useEffect(() => {
@@ -586,9 +620,24 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           />
         );
         break;
+      case 'date':
+        // Date picker with DD/MM/YYYY format, sends timestamp to backend
+        inputComponent = (
+          <DatePicker
+            {...commonProps}
+            format="DD/MM/YYYY"
+            className="h-8"
+            style={{ width: '100%' }}
+          />
+        );
+        break;
       case 'file':
-        // Get current file key from form if exists (from draft or previous upload)
-        const currentFileKey = form.getFieldValue(field.name.split('.'));
+        // Get current file keys from form (can be string or array)
+        const currentFileValue = form.getFieldValue(field.name.split('.'));
+        const currentFileKeys: string[] = Array.isArray(currentFileValue)
+          ? currentFileValue
+          : (currentFileValue ? [currentFileValue] : []);
+        const isMultiple = field.multiple === true;
 
         const fileUploadProps: UploadProps = {
           customRequest: async (options) => {
@@ -601,8 +650,17 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                 onProgress?.({ percent: 100 });
                 onSuccess?.({ url: result.url, key: result.key }, file as any);
                 message.success(`File uploaded successfully`);
+
                 // Store the file key in form
-                form.setFieldValue(field.name.split('.'), result.key);
+                if (isMultiple) {
+                  // For multiple files, add to array
+                  const existingKeys = form.getFieldValue(field.name.split('.')) || [];
+                  const keysArray = Array.isArray(existingKeys) ? existingKeys : (existingKeys ? [existingKeys] : []);
+                  form.setFieldValue(field.name.split('.'), [...keysArray, result.key]);
+                } else {
+                  // For single file, replace
+                  form.setFieldValue(field.name.split('.'), result.key);
+                }
               } else {
                 onError?.(new Error(result.message || 'Upload failed'));
                 message.error(result.message || 'Upload failed');
@@ -612,7 +670,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
               message.error('Upload failed');
             }
           },
-          maxCount: 1,
+          maxCount: isMultiple ? undefined : 1,
+          multiple: isMultiple,
           accept: '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg',
           showUploadList: false,
         };
@@ -627,40 +686,51 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           return match ? match[1] : fileName;
         };
 
+        // Remove a file from the array
+        const removeFile = (keyToRemove: string) => {
+          if (isMultiple) {
+            const updatedKeys = currentFileKeys.filter(k => k !== keyToRemove);
+            form.setFieldValue(field.name.split('.'), updatedKeys.length > 0 ? updatedKeys : undefined);
+          } else {
+            form.setFieldValue(field.name.split('.'), undefined);
+          }
+          // Force re-render
+          form.validateFields([field.name.split('.')]);
+        };
+
         inputComponent = (
           <div>
-            {currentFileKey ? (
-              <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                <CheckCircleOutlined className="text-green-600" />
-                <span className="flex-1 text-sm text-gray-700 truncate" title={getFileName(currentFileKey)}>
-                  {getFileName(currentFileKey)}
-                </span>
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => {
-                    form.setFieldValue(field.name.split('.'), undefined);
-                    // Force re-render
-                    form.validateFields([field.name.split('.')]);
-                  }}
-                />
-                <Upload {...fileUploadProps}>
-                  <Button size="small" icon={<UploadOutlined />}>
-                    Replace
-                  </Button>
-                </Upload>
+            {currentFileKeys.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {currentFileKeys.map((fileKey, index) => (
+                  <div key={fileKey || index} className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <FileOutlined className="text-green-600" />
+                    <span className="flex-1 text-sm text-gray-700 truncate" title={getFileName(fileKey)}>
+                      {getFileName(fileKey)}
+                    </span>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => removeFile(fileKey)}
+                    />
+                  </div>
+                ))}
               </div>
-            ) : (
-              <Upload {...fileUploadProps}>
-                <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
-                  Click to Upload
-                </Button>
-              </Upload>
             )}
+            <Upload {...fileUploadProps}>
+              <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
+                {currentFileKeys.length > 0
+                  ? (isMultiple ? 'Add More Files' : 'Replace File')
+                  : 'Click to Upload'}
+              </Button>
+            </Upload>
             {field.placeholder && (
               <div className="text-xs text-gray-500 mt-2">{field.placeholder}</div>
+            )}
+            {isMultiple && (
+              <div className="text-xs text-gray-400 mt-1">You can upload multiple files</div>
             )}
           </div>
         );
@@ -1111,9 +1181,9 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                           className="mb-0"
                         >
                           {col.type === 'select' ? (
-                            <Select 
-                              placeholder={col.placeholder} 
-                              style={{ minWidth: 120, width: '100%' }} 
+                            <Select
+                              placeholder={col.placeholder}
+                              style={{ minWidth: 120, width: '100%' }}
                               mode={col.mode}
                               showSearch={col.options && col.options.length > 5}
                               filterOption={(input, option) =>
@@ -1127,14 +1197,21 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               })}
                             </Select>
                           ) : col.type === 'number' ? (
-                            <InputNumber 
-                              placeholder={col.placeholder} 
+                            <InputNumber
+                              placeholder={col.placeholder}
                               style={{ width: '100%' }}
                               min={col.min}
                               max={col.max}
                             />
+                          ) : col.type === 'date' ? (
+                            <DatePicker
+                              placeholder={col.placeholder}
+                              format="DD/MM/YYYY"
+                              className="h-8"
+                              style={{ width: '100%' }}
+                            />
                           ) : (
-                            <Input 
+                            <Input
                               placeholder={col.placeholder}
                               className={isAutoPopulatedCol ? 'bg-green-50' : ''}
                             />
@@ -1242,7 +1319,35 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         layout="vertical"
         initialValues={initialValues}
         onFinish={onFinish}
-        onValuesChange={onValuesChange}
+        onValuesChange={(changedValues, allValues) => {
+          // Call parent's onValuesChange if provided
+          onValuesChange?.(changedValues, allValues);
+
+          // Check if any dependency field changed - trigger auto-populate for conditional tables
+          if (section) {
+            const conditionalTables = section.fields.filter(
+              (field) => field.type === 'table' && field.autoPopulateFromProducts && field.dependency
+            );
+
+            conditionalTables.forEach((field) => {
+              if (field.dependency) {
+                const dependencyFieldPath = field.dependency.field;
+                // Check if the changed value is the dependency field
+                const changedPath = Object.keys(changedValues).join('.');
+                if (dependencyFieldPath.includes(changedPath) || changedPath.includes(dependencyFieldPath.split('.')[0])) {
+                  // Get the dependency value
+                  const dependencyValue = form.getFieldValue(dependencyFieldPath.split('.'));
+                  if (dependencyValue === field.dependency.value) {
+                    // Trigger auto-populate after a small delay
+                    setTimeout(() => {
+                      autoPopulateTables(field.name);
+                    }, 200);
+                  }
+                }
+              }
+            });
+          }
+        }}
         scrollToFirstError
         className="space-y-2"
       >

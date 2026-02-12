@@ -33,14 +33,14 @@ const Scope2: React.FC<Scope2Props> = ({ data, updateData }) => {
   const handleCertificateChange = (index: number, field: string, value: any) => {
     const newCertificates = [...(data.certificates || [])];
     if (!newCertificates[index]) {
-        newCertificates[index] = { name: "", procurement_mechanism: "", serial_id: "", generator_id: "", generator_name: "", location: "", generation_date: "", issuance_date: "" };
+        newCertificates[index] = { name: "", procurement_mechanism: "", serial_id: "", generator_id: "", generator_name: "", generator_location: "", date_of_generation: "", issuance_date: "" };
     }
     (newCertificates[index] as any)[field] = value;
     updateData({ ...data, certificates: newCertificates });
   };
 
   const addCertificateRow = () => {
-    const newCertificates = [...(data.certificates || []), { name: "", procurement_mechanism: "", serial_id: "", generator_id: "", generator_name: "", location: "", generation_date: "", issuance_date: "" }];
+    const newCertificates = [...(data.certificates || []), { name: "", procurement_mechanism: "", serial_id: "", generator_id: "", generator_name: "", generator_location: "", date_of_generation: "", issuance_date: "" }];
     updateData({ ...data, certificates: newCertificates });
   };
 
