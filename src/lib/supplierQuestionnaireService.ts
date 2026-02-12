@@ -431,7 +431,7 @@ interface SupplierQuestionnaireApiPayload {
         any_co_product_have_economic_value: boolean;
         co_product_component_economic_value_questions: {
             bom_id?: string;
-            mpn?: string;
+            material_number?: string;
             product_name: string;
             co_product_name: string;
             weight: number;
@@ -482,8 +482,8 @@ interface SupplierQuestionnaireApiPayload {
             generator_id: string;
             generator_name: string;
             generator_location: string;
-            date_of_generation: number | null;
-            issuance_date: number | null;
+            date_of_generation: string | null;
+            issuance_date: string | null;
         }[];
         methodology_to_allocate_factory_energy_to_product_level: boolean;
         methodology_details_document_url: string[];
@@ -739,23 +739,29 @@ class SupplierQuestionnaireService {
       return [];
   }
 
-  // Helper to convert date/dayjs to timestamp (milliseconds)
-  private convertToTimestamp(value: any): number | null {
+  // Helper to convert date/dayjs to ISO string format for backend
+  private convertToISOString(value: any): string | null {
       if (!value) return null;
-      // If already a number (timestamp), return as is
-      if (typeof value === 'number') return value;
-      // If it's a dayjs object
-      if (value && typeof value === 'object' && typeof value.valueOf === 'function') {
-          return value.valueOf();
-      }
-      // If it's a string date, try to parse it
+      // If already a string in ISO format, return as is
       if (typeof value === 'string') {
+          // Check if it's already in the expected format
+          if (value.includes('T') || value.includes('+')) return value;
+          // Try to parse and convert
           const parsed = new Date(value);
-          return isNaN(parsed.getTime()) ? null : parsed.getTime();
+          return isNaN(parsed.getTime()) ? null : parsed.toISOString().replace('T', ' ').replace('Z', '+00');
+      }
+      // If it's a number (timestamp), convert to ISO string
+      if (typeof value === 'number') {
+          const date = new Date(value);
+          return date.toISOString().replace('T', ' ').replace('Z', '+00');
+      }
+      // If it's a dayjs object
+      if (value && typeof value === 'object' && typeof value.toISOString === 'function') {
+          return value.toISOString().replace('T', ' ').replace('Z', '+00');
       }
       // If it's a Date object
       if (value instanceof Date) {
-          return value.getTime();
+          return value.toISOString().replace('T', ' ').replace('Z', '+00');
       }
       return null;
   }
@@ -833,7 +839,7 @@ class SupplierQuestionnaireService {
                   .filter(item => item.product_name && item.co_product_name)
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
-                      ...(item.mpn && { mpn: item.mpn }),
+                      ...((item.material_number || item.mpn) && { material_number: item.material_number || item.mpn }),
                       product_name: item.product_name,
                       co_product_name: item.co_product_name,
                       weight: item.weight,
@@ -900,8 +906,8 @@ class SupplierQuestionnaireService {
                       generator_id: item.generator_id,
                       generator_name: item.generator_name,
                       generator_location: item.generator_location,
-                      date_of_generation: this.convertToTimestamp(item.date_of_generation),
-                      issuance_date: this.convertToTimestamp(item.issuance_date)
+                      date_of_generation: this.convertToISOString(item.date_of_generation),
+                      issuance_date: this.convertToISOString(item.issuance_date)
                   })),
               methodology_to_allocate_factory_energy_to_product_level: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.allocation_methodology || false),
               methodology_details_document_url: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.methodology_document),

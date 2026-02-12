@@ -431,7 +431,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         },
         columns: [
           {
-            name: "mpn",
+            name: "material_number",
             label: "MPN",
             type: "select",
             apiDropdown: "bomMaterials",
@@ -986,7 +986,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         ],
       },
       {
-        name: "scope_2.quality_control.compressed_air",
+        name: "scope_2.quality_control.utilities",
         label:
           "34. Do your quality control processes use compressed air, nitrogen, or other utilities?",
         type: "table",
@@ -994,7 +994,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         required: true,
         columns: [
           {
-            name: "process_name",
+            name: "name",
             label: "Process Name",
             type: "text",
             placeholder: "Name",
@@ -1007,16 +1007,52 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           },
           {
             name: "unit",
-            label: "Unit of measure",
+            label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "productUnit",
             placeholder: "Select unit",
           },
           {
             name: "period",
             label: "Period",
             type: "select",
-            options: ["monthly", "annually"],
+            options: ["Annual", "Monthly"],
+            placeholder: "Select period",
+          },
+        ],
+      },
+      {
+        name: "scope_2.quality_control.utilities_pressure_flow",
+        label:
+          "34.1 Do your quality control processes use pressure or flow-based utilities?",
+        type: "table",
+        addButtonLabel: "Add Row",
+        required: true,
+        columns: [
+          {
+            name: "name",
+            label: "Flow Name",
+            type: "text",
+            placeholder: "Name",
+          },
+          {
+            name: "quantity",
+            label: "Quantity",
+            type: "number",
+            placeholder: "Numerical value",
+          },
+          {
+            name: "unit",
+            label: "Unit of Measure",
+            type: "select",
+            apiDropdown: "productUnit",
+            placeholder: "Select unit",
+          },
+          {
+            name: "period",
+            label: "Period",
+            type: "select",
+            options: ["Annual", "Monthly"],
             placeholder: "Select period",
           },
         ],
@@ -1509,6 +1545,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             placeholder: "0-100",
           },
         ],
+      },
+      {
+        name: "scope_3.materials.raw_materials_contact_support",
+        label:
+          "52.1 Would you like EnviGuide support to help identify material compositions?",
+        type: "radio",
+        options: ["Yes", "No"],
+        required: false,
       },
       {
         name: "scope_3.materials.metal_grade",
@@ -2060,6 +2104,14 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             placeholder: "0",
           },
         ],
+      },
+      {
+        name: "scope_3.logistics.enviguide_support",
+        label:
+          "74.1 Would you like EnviGuide support to help calculate transport emissions?",
+        type: "radio",
+        options: ["Yes", "No"],
+        required: false,
       },
       {
         name: "scope_3.logistics.destination_plant",
