@@ -19,7 +19,6 @@ import {
   updateSetup,
   deleteSetup,
   bulkAddSetup,
-  getSetupDropdown,
   entityFieldConfigs,
   type SetupItem,
   type SetupEntity,
@@ -41,9 +40,6 @@ interface DataSetupItem {
   model?: string;
   year?: string;
   number?: string;
-  // Composition metal type fields
-  mcm_id?: string;
-  mcm_name?: string;
   [key: string]: any;
 }
 
@@ -84,9 +80,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     model: "",
     year: "",
     number: "",
-    mcm_id: "",
   });
-  const [compositionMetalOptions, setCompositionMetalOptions] = useState<{ id: string; name: string }[]>([]);
   const [editingItem, setEditingItem] = useState<{
     item: DataSetupItem;
     tab: string;
@@ -99,7 +93,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     model: "",
     year: "",
     number: "",
-    mcm_id: "",
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -120,7 +113,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     model: "",
     year: "",
     number: "",
-    mcm_name: "",
   });
   const [importPreview, setImportPreview] = useState<SetupItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -129,9 +121,8 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   const currentEntity = currentTabConfig?.entity;
   const currentData = tabData[activeTab] || [];
 
-  // Check if current entity is vehicle-detail or composition-metal-type
+  // Check if current entity is vehicle-detail
   const isVehicleDetail = currentEntity === "vehicle-detail";
-  const isMaterialCompositionMetalType = currentEntity === "master-material-composition-metal-type";
   const entityConfig = currentEntity ? entityFieldConfigs[currentEntity] : null;
 
   useEffect(() => {
@@ -139,17 +130,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       setActiveTab(urlTab);
     }
   }, [urlTab, activeTab]);
-
-  // Load composition metal dropdown options
-  useEffect(() => {
-    const loadCompositionMetalOptions = async () => {
-      if (isMaterialCompositionMetalType) {
-        const options = await getSetupDropdown("material-composition-metal");
-        setCompositionMetalOptions(options);
-      }
-    };
-    loadCompositionMetalOptions();
-  }, [isMaterialCompositionMetalType]);
 
   useEffect(() => {
     const load = async () => {
@@ -170,9 +150,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           model: i.model || "",
           year: i.year || "",
           number: i.number || "",
-          // Preserve composition metal type fields
-          mcm_id: i.mcm_id || "",
-          mcm_name: i.mcm_name || "",
         })
       );
       setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
@@ -202,11 +179,8 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     // Validate required fields based on entity type
     if (!currentEntity || !newItem.code || !newItem.name) return;
 
-    // For non-vehicle-detail and non-composition-metal-type entities, require description
-    if (!isVehicleDetail && !isMaterialCompositionMetalType && !newItem.description) return;
-
-    // For composition metal type, require mcm_id
-    if (isMaterialCompositionMetalType && !newItem.mcm_id) return;
+    // For non-vehicle-detail entities, require description
+    if (!isVehicleDetail && !newItem.description) return;
 
     const itemToAdd: SetupItem = {
       code: newItem.code,
@@ -217,9 +191,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         model: newItem.model,
         year: newItem.year,
         number: newItem.number,
-      }),
-      ...(isMaterialCompositionMetalType && {
-        mcm_id: newItem.mcm_id,
       }),
     };
 
@@ -240,12 +211,10 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           model: i.model || "",
           year: i.year || "",
           number: i.number || "",
-          mcm_id: i.mcm_id || "",
-          mcm_name: i.mcm_name || "",
         })
       );
       setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
-      setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_id: "" });
+      setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -268,7 +237,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       model: item.model || "",
       year: item.year || "",
       number: item.number || "",
-      mcm_id: item.mcm_id || "",
     });
   };
 
@@ -276,11 +244,8 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     // Validate required fields based on entity type
     if (!currentEntity || !editingItem || !editItem.code || !editItem.name) return;
 
-    // For non-vehicle-detail and non-composition-metal-type entities, require description
-    if (!isVehicleDetail && !isMaterialCompositionMetalType && !editItem.description) return;
-
-    // For composition metal type, require mcm_id
-    if (isMaterialCompositionMetalType && !editItem.mcm_id) return;
+    // For non-vehicle-detail entities, require description
+    if (!isVehicleDetail && !editItem.description) return;
 
     // Store original data for rollback
     const originalData = tabData[activeTab] || [];
@@ -303,10 +268,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                 year: editItem.year,
                 number: editItem.number,
               }),
-              ...(isMaterialCompositionMetalType && {
-                mcm_id: editItem.mcm_id,
-                mcm_name: compositionMetalOptions.find(o => o.id === editItem.mcm_id)?.name || "",
-              }),
             }
           : item
       ),
@@ -325,9 +286,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         model: editedValues.model,
         year: editedValues.year,
         number: editedValues.number,
-      }),
-      ...(isMaterialCompositionMetalType && {
-        mcm_id: editedValues.mcm_id,
       }),
     };
 
@@ -348,7 +306,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_id: "" });
+    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -369,8 +327,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       const canAdd =
         newItem.code &&
         newItem.name &&
-        (isVehicleDetail || isMaterialCompositionMetalType || newItem.description) &&
-        (!isMaterialCompositionMetalType || newItem.mcm_id);
+        (isVehicleDetail || newItem.description);
       if (canAdd) {
         handleAddNew();
       }
@@ -405,8 +362,8 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_id: "" });
-    setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_id: "" });
+    setEditItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
+    setNewItem({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map(t => t.key);
@@ -444,14 +401,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         item.model || "",
         item.year || "",
         item.number || "",
-      ]);
-    } else if (isMaterialCompositionMetalType) {
-      headers = ["Code", "Name", "Description", "Composition Metal"];
-      rows = currentData.map((item) => [
-        item.code,
-        item.name,
-        item.description || "",
-        item.mcm_name || "",
       ]);
     } else {
       headers = ["Code", "Name", "Description"];
@@ -511,7 +460,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       model: "",
       year: "",
       number: "",
-      mcm_name: "",
     };
     const fieldsToMatch = [
       { key: "code", patterns: ["code", "id", "identifier", "key"] },
@@ -521,7 +469,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
       { key: "model", patterns: ["model"] },
       { key: "year", patterns: ["year"] },
       { key: "number", patterns: ["number", "vehicle number", "reg", "registration"] },
-      { key: "mcm_name", patterns: ["composition metal", "metal", "mcm"] },
     ];
 
     headers.forEach((header) => {
@@ -594,7 +541,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     const modelIdx = getColumnIndex("model");
     const yearIdx = getColumnIndex("year");
     const numberIdx = getColumnIndex("number");
-    const mcmNameIdx = getColumnIndex("mcm_name");
 
     const previewItems: SetupItem[] = data
       .filter((row) => {
@@ -614,16 +560,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
           baseItem.model = modelIdx >= 0 ? row[modelIdx] : "";
           baseItem.year = yearIdx >= 0 ? row[yearIdx] : "";
           baseItem.number = numberIdx >= 0 ? row[numberIdx] : "";
-        }
-
-        if (isMaterialCompositionMetalType && mcmNameIdx >= 0) {
-          const mcmNameValue = row[mcmNameIdx];
-          // Find mcm_id by matching name from dropdown options
-          const matchedOption = compositionMetalOptions.find(
-            (opt) => opt.name.toLowerCase() === mcmNameValue?.toLowerCase()
-          );
-          baseItem.mcm_id = matchedOption?.id || "";
-          baseItem.mcm_name = mcmNameValue || "";
         }
 
         return baseItem;
@@ -668,8 +604,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
             model: i.model || "",
             year: i.year || "",
             number: i.number || "",
-            mcm_id: i.mcm_id || "",
-            mcm_name: i.mcm_name || "",
           })
         );
         setTabData((prev) => ({ ...prev, [activeTab]: normalized }));
@@ -678,7 +612,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
         setShowImportModal(false);
         setCsvHeaders([]);
         setCsvData([]);
-        setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_name: "" });
+        setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
         setImportPreview([]);
       } else {
         // Show backend error message in toast
@@ -702,7 +636,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
     setShowImportModal(false);
     setCsvHeaders([]);
     setCsvData([]);
-    setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "", mcm_name: "" });
+    setColumnMapping({ code: "", name: "", description: "", make: "", model: "", year: "", number: "" });
     setImportPreview([]);
   };
 
@@ -858,15 +792,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                               Number
                             </th>
                           </>
-                        ) : isMaterialCompositionMetalType ? (
-                          <>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                              Description
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
-                              Composition Metal
-                            </th>
-                          </>
                         ) : (
                           <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                             Description
@@ -976,35 +901,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                     />
                                   </td>
                                 </>
-                              ) : isMaterialCompositionMetalType ? (
-                                <>
-                                  <td className="px-6 py-4">
-                                    <input
-                                      type="text"
-                                      value={editItem.description}
-                                      onChange={(e) =>
-                                        handleEditInputChange("description", e.target.value)
-                                      }
-                                      onKeyDown={handleKeyDown}
-                                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all duration-200 bg-white shadow-sm"
-                                      placeholder="Enter description"
-                                    />
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <Select
-                                      className="w-full"
-                                      value={editItem.mcm_id || undefined}
-                                      onChange={(value) => handleEditInputChange("mcm_id", value)}
-                                      placeholder="Select Composition Metal"
-                                    >
-                                      {compositionMetalOptions.map((opt) => (
-                                        <Option key={opt.id} value={opt.id}>
-                                          {opt.name}
-                                        </Option>
-                                      ))}
-                                    </Select>
-                                  </td>
-                                </>
                               ) : (
                                 <td className="px-6 py-4">
                                   <input
@@ -1029,8 +925,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                     disabled={
                                       !editItem.code ||
                                       !editItem.name ||
-                                      (!isVehicleDetail && !isMaterialCompositionMetalType && !editItem.description) ||
-                                      (isMaterialCompositionMetalType && !editItem.mcm_id)
+                                      (!isVehicleDetail && !editItem.description)
                                     }
                                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                                     title="Save (Ctrl+Enter)"
@@ -1082,19 +977,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                   <td className="px-6 py-4">
                                     <div className="text-sm text-gray-600">
                                       {item.number || "-"}
-                                    </div>
-                                  </td>
-                                </>
-                              ) : isMaterialCompositionMetalType ? (
-                                <>
-                                  <td className="px-6 py-4">
-                                    <div className="text-sm text-gray-600 max-w-xs">
-                                      {item.description || "-"}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="text-sm text-gray-600">
-                                      {item.mcm_name || "-"}
                                     </div>
                                   </td>
                                 </>
@@ -1210,35 +1092,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                 />
                               </td>
                             </>
-                          ) : isMaterialCompositionMetalType ? (
-                            <>
-                              <td className="px-6 py-4">
-                                <input
-                                  type="text"
-                                  placeholder="Enter description"
-                                  value={newItem.description}
-                                  onChange={(e) =>
-                                    handleInputChange("description", e.target.value)
-                                  }
-                                  onKeyDown={handleNewItemKeyDown}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                                />
-                              </td>
-                              <td className="px-6 py-4">
-                                <Select
-                                  className="w-full"
-                                  value={newItem.mcm_id || undefined}
-                                  onChange={(value) => handleInputChange("mcm_id", value)}
-                                  placeholder="Select Composition Metal"
-                                >
-                                  {compositionMetalOptions.map((opt) => (
-                                    <Option key={opt.id} value={opt.id}>
-                                      {opt.name}
-                                    </Option>
-                                  ))}
-                                </Select>
-                              </td>
-                            </>
                           ) : (
                             <td className="px-6 py-4">
                               <input
@@ -1260,8 +1113,7 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                 disabled={
                                   !newItem.code ||
                                   !newItem.name ||
-                                  (!isVehicleDetail && !isMaterialCompositionMetalType && !newItem.description) ||
-                                  (isMaterialCompositionMetalType && !newItem.mcm_id)
+                                  (!isVehicleDetail && !newItem.description)
                                 }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
@@ -1278,7 +1130,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                                     model: "",
                                     year: "",
                                     number: "",
-                                    mcm_id: "",
                                   })
                                 }
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -1507,45 +1358,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                     </Select>
                   </div>
                 </>
-              ) : isMaterialCompositionMetalType ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                      Description
-                    </label>
-                    <Select
-                      className="w-full"
-                      placeholder="Select column"
-                      value={columnMapping.description || undefined}
-                      onChange={(value) => handleMappingChange("description", value)}
-                      allowClear
-                    >
-                      {csvHeaders.map((header) => (
-                        <Option key={header} value={header}>
-                          {header}
-                        </Option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                      Composition Metal
-                    </label>
-                    <Select
-                      className="w-full"
-                      placeholder="Select column"
-                      value={columnMapping.mcm_name || undefined}
-                      onChange={(value) => handleMappingChange("mcm_name", value)}
-                      allowClear
-                    >
-                      {csvHeaders.map((header) => (
-                        <Option key={header} value={header}>
-                          {header}
-                        </Option>
-                      ))}
-                    </Select>
-                  </div>
-                </>
               ) : (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
@@ -1633,36 +1445,6 @@ const DataSetupTabs: React.FC<DataSetupTabsProps> = ({
                             title: "Number",
                             dataIndex: "number",
                             key: "number",
-                            render: (text: string) => (
-                              <span className="text-gray-600">{text || "-"}</span>
-                            ),
-                          },
-                        ]
-                      : isMaterialCompositionMetalType
-                      ? [
-                          {
-                            title: "Code",
-                            dataIndex: "code",
-                            key: "code",
-                            render: (text: string) => (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                {text}
-                              </span>
-                            ),
-                          },
-                          { title: "Name", dataIndex: "name", key: "name" },
-                          {
-                            title: "Description",
-                            dataIndex: "description",
-                            key: "description",
-                            render: (text: string) => (
-                              <span className="text-gray-600">{text || "-"}</span>
-                            ),
-                          },
-                          {
-                            title: "Composition Metal",
-                            dataIndex: "mcm_name",
-                            key: "mcm_name",
                             render: (text: string) => (
                               <span className="text-gray-600">{text || "-"}</span>
                             ),

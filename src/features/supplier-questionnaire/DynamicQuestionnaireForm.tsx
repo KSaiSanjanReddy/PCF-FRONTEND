@@ -811,12 +811,20 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
     // For single checkbox (without options), use valuePropName="checked"
     const isSingleCheckbox = field.type === 'checkbox' && !field.options;
-    
+
+    // For date fields, convert string values to dayjs objects
+    const getDateValueProps = field.type === 'date' ? {
+      getValueProps: (value: any) => ({
+        value: value ? (typeof value === 'string' || typeof value === 'number' ? dayjs(value) : value) : undefined,
+      }),
+    } : {};
+
     return (
       <Form.Item
         key={field.name}
         name={field.name.split('.')}
         valuePropName={isSingleCheckbox ? "checked" : undefined}
+        {...getDateValueProps}
         label={
           <div className="flex items-center gap-2">
             <span>{field.label}</span>
@@ -1227,13 +1235,20 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       }
 
                       // Default rendering for columns without API dropdown
+                      // For date columns, add getValueProps to convert string values to dayjs objects
+                      const dateValueProps = col.type === 'date' ? {
+                        getValueProps: (value: any) => ({
+                          value: value ? (typeof value === 'string' || typeof value === 'number' ? dayjs(value) : value) : undefined,
+                        }),
+                      } : {};
+
                       return (
                         <Form.Item
                           name={[fieldRecord.name, col.name]}
                           rules={[
-                            { 
-                              required: col.required, 
-                              message: col.required 
+                            {
+                              required: col.required,
+                              message: col.required
                                 ? `Please fill in "${col.label}" for this row. This field is required.`
                                 : undefined
                             },
@@ -1249,6 +1264,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                             }] : [])
                           ].filter(Boolean)}
                           className="mb-0"
+                          {...dateValueProps}
                         >
                           {col.type === 'select' ? (
                             <Select
