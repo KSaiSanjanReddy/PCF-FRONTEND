@@ -9,7 +9,6 @@ import {
   Divider,
   Spin,
   message,
-  Progress,
   Popconfirm,
 } from "antd";
 import { ConfigProvider } from "antd";
@@ -37,7 +36,6 @@ interface TaskManagementItem {
   assignee: string;
   category: string;
   dueDate: string;
-  progress: number;
 }
 
 const PRIORITY_OPTIONS = [
@@ -149,7 +147,6 @@ const TaskManagement: React.FC = () => {
               assignee: assigneeNames,
               category: item.category_name || "N/A",
               dueDate: item.due_date ? formatDate(item.due_date) : "N/A",
-              progress: item.progress ?? 0,
             };
           }
         );
@@ -219,13 +216,6 @@ const TaskManagement: React.FC = () => {
     return <Tag color={config.color}>{config.label}</Tag>;
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress === 0) return "#d9d9d9";
-    if (progress < 50) return "#faad14";
-    if (progress < 100) return "#1890ff";
-    return "#52c41a";
-  };
-
   // Handle task deletion
   const handleDelete = async (taskId: string) => {
     try {
@@ -286,23 +276,6 @@ const TaskManagement: React.FC = () => {
       dataIndex: "dueDate",
       key: "dueDate",
       width: 150,
-    },
-    {
-      title: "Progress",
-      dataIndex: "progress",
-      key: "progress",
-      width: 200,
-      render: (progress) => (
-        <Space direction="vertical" size={4} style={{ width: "100%" }}>
-          <Progress
-            percent={progress}
-            strokeColor={getProgressColor(progress)}
-            showInfo={false}
-            size="small"
-          />
-          <span className="text-xs text-gray-600">{progress}%</span>
-        </Space>
-      ),
     },
     {
       title: "Actions",

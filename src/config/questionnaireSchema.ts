@@ -32,8 +32,21 @@ export type ApiDropdownType =
   | "bomMaterials" // Q28 - BOM materials from products_manufactured
   | "wasteType" // Q40, Q68 - Waste types
   | "wasteTreatmentType" // Q40, Q68 - Waste treatment types
-  | "productUnit" // Unit of Measure dropdown
-  | "transportMode"; // Transport Mode dropdown
+  | "productUnit" // Q15 - Unit of Measure dropdown
+  | "transportMode" // Transport Mode dropdown
+  // UOM dropdowns for specific questions
+  | "liquidGaseousSolidWaterUnit" // Q16, Q17 - Liquid/Gaseous/Solid/Water units
+  | "liquidGaseousSolidUnit" // Q19, Q35 - Liquid/Gaseous/Solid units
+  | "gaseousFuelUnit" // Q21 - Gaseous fuel units
+  | "energyUnit" // Q22, Q27, Q28, Q30, Q33, Q44, Q47, Q51, Q67 - Energy units
+  | "qcEquipmentUnit" // Q32, Q48 - QC Equipment units
+  | "liquidGaseousUnit" // Q34 - Liquid/Gaseous units
+  | "solidFuelUnit" // Q37, Q61, Q68 - Solid fuel units
+  | "liquidSolidUnit" // Q40 - Liquid/Solid units
+  | "packingUnit" // Q60, Q62 - Packing units
+  | "materialType" // Q52 - Material/Material Type
+  | "packingType" // Q60 - Packing type
+  | "packagingTreatmentType"; // Q60 - Packaging treatment type
 
 export interface QuestionnaireField {
   name: string; // Data key (path in the data object)
@@ -508,7 +521,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: ["liters", "kg", "m3", "kWh"],
+            apiDropdown: "liquidGaseousSolidWaterUnit",
             placeholder: "Select unit",
           },
         ],
@@ -538,7 +551,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: ["Litres", "m3"],
+            apiDropdown: "liquidGaseousSolidWaterUnit",
             placeholder: "Select unit",
           },
         ],
@@ -580,7 +593,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.REFRIGERANT_UNITS,
+            apiDropdown: "liquidGaseousSolidUnit",
             placeholder: "Select unit",
           },
         ],
@@ -628,7 +641,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "gaseousFuelUnit",
             placeholder: "Select unit",
           },
         ],
@@ -672,7 +685,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -804,7 +817,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -855,7 +868,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -896,7 +909,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -938,7 +951,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: ["pcs", "units", "sets"],
+            apiDropdown: "qcEquipmentUnit",
             placeholder: "Select unit",
           },
           {
@@ -973,7 +986,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
           {
@@ -1009,7 +1022,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "liquidGaseousUnit",
             placeholder: "Select unit",
           },
           {
@@ -1045,7 +1058,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "liquidGaseousUnit",
             placeholder: "Select unit",
           },
           {
@@ -1080,7 +1093,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.WEIGHT_UNITS,
+            apiDropdown: "liquidGaseousSolidUnit",
             placeholder: "Select unit",
           },
           {
@@ -1134,7 +1147,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "solidFuelUnit",
             placeholder: "Select unit",
           },
           {
@@ -1250,7 +1263,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "liquidSolidUnit",
             placeholder: "Select unit",
           },
           {
@@ -1333,7 +1346,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1414,7 +1427,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1443,7 +1456,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "qcEquipmentUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1503,7 +1516,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1534,7 +1547,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "material",
             label: "Material",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.RAW_MATERIALS,
+            apiDropdown: "materialType",
             placeholder: "Material selected above will be default",
           },
           {
@@ -1708,8 +1721,9 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "packaging_type",
             label: "Packing Type",
-            type: "text",
-            placeholder: "Type",
+            type: "select",
+            apiDropdown: "packingType",
+            placeholder: "Select type",
           },
           {
             name: "packing_size",
@@ -1721,8 +1735,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "packingUnit",
             placeholder: "Select unit",
+          },
+          {
+            name: "treatment_type",
+            label: "Treatment Type",
+            type: "select",
+            apiDropdown: "packagingTreatmentType",
+            placeholder: "Select treatment",
           },
         ],
       },
@@ -1757,7 +1778,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "solidFuelUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1793,7 +1814,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "packingUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1874,7 +1895,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: QUESTIONNAIRE_OPTIONS.ENERGY_UNITS,
+            apiDropdown: "energyUnit",
             placeholder: "Select unit",
           },
         ],
@@ -1904,7 +1925,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            apiDropdown: "productUnit",
+            apiDropdown: "solidFuelUnit",
             placeholder: "Select unit",
           },
           {

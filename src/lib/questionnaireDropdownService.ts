@@ -287,6 +287,121 @@ export async function getTransportModeDropdown(): Promise<DropdownItem[]> {
   }));
 }
 
+// Generic unit API item interface
+interface UnitApiItem {
+  id?: string;
+  name: string;
+  [key: string]: any;
+}
+
+/**
+ * Q16, Q17 - Liquid/Gaseous/Solid/Water Unit Dropdown
+ * GET /api/master-data-setup/liquid-gaseous-solid-water-unit/drop-down-list
+ */
+export async function getLiquidGaseousSolidWaterUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/liquid-gaseous-solid-water-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q19, Q35 - Liquid/Gaseous/Solid Unit Dropdown
+ * GET /api/master-data-setup/liquid-gaseous-solid-unit/drop-down-list
+ */
+export async function getLiquidGaseousSolidUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/liquid-gaseous-solid-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q21 - Gaseous Fuel Unit Dropdown
+ * GET /api/master-data-setup/gaseous-fuel-unit/drop-down-list
+ */
+export async function getGaseousFuelUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/gaseous-fuel-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q22, Q27, Q28, Q30, Q33, Q44, Q47, Q51, Q67 - Energy Unit Dropdown
+ * GET /api/master-data-setup/energy-unit/drop-down-list
+ */
+export async function getEnergyUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/energy-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q32, Q48 - QC Equipment Unit Dropdown
+ * GET /api/master-data-setup/qc-equipment/drop-down-list
+ */
+export async function getQcEquipmentUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/qc-equipment/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q34 - Liquid/Gaseous Unit Dropdown
+ * GET /api/master-data-setup/liquid-gaseous-unit/drop-down-list
+ */
+export async function getLiquidGaseousUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/liquid-gaseous-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q37, Q61, Q68 - Solid Fuel Unit Dropdown
+ * GET /api/master-data-setup/solid-fuel-unit/drop-down-list
+ */
+export async function getSolidFuelUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/solid-fuel-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q40 - Liquid/Solid Unit Dropdown
+ * GET /api/master-data-setup/liquid-solid-unit/drop-down-list
+ */
+export async function getLiquidSolidUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/liquid-solid-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q60, Q62 - Packing Unit Dropdown
+ * GET /api/master-data-setup/packing-unit/drop-down-list
+ */
+export async function getPackingUnitDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/packing-unit/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q52 - Material/Material Type Dropdown
+ * GET /api/ecoinvent-emission-factor-data-setup/materials-emission-factor/material-materialtype-drop-down-list
+ */
+export async function getMaterialTypeDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/materials-emission-factor/material-materialtype-drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q60 - Packing Type Dropdown
+ * GET /api/ecoinvent-emission-factor-data-setup/packaging-emission-factor/drop-down-list-only-packing-type
+ */
+export async function getPackingTypeDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/packaging-emission-factor/drop-down-list-only-packing-type");
+  return normalizeItems(data, 'id');
+}
+
+/**
+ * Q60 - Packaging Treatment Type Dropdown
+ * GET /api/ecoinvent-emission-factor-data-setup/packaging-treatment-type/drop-down-list
+ */
+export async function getPackagingTreatmentTypeDropdown(): Promise<DropdownItem[]> {
+  const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/packaging-treatment-type/drop-down-list");
+  return normalizeItems(data, 'id');
+}
+
 // Export all functions as a service object
 const questionnaireDropdownService = {
   getFuelTypeDropdown,
@@ -301,6 +416,20 @@ const questionnaireDropdownService = {
   getWasteTreatmentTypeDropdown,
   getProductUnitDropdown,
   getTransportModeDropdown,
+  // UOM dropdowns
+  getLiquidGaseousSolidWaterUnitDropdown,
+  getLiquidGaseousSolidUnitDropdown,
+  getGaseousFuelUnitDropdown,
+  getEnergyUnitDropdown,
+  getQcEquipmentUnitDropdown,
+  getLiquidGaseousUnitDropdown,
+  getSolidFuelUnitDropdown,
+  getLiquidSolidUnitDropdown,
+  getPackingUnitDropdown,
+  // Q52 and Q60 specific dropdowns
+  getMaterialTypeDropdown,
+  getPackingTypeDropdown,
+  getPackagingTreatmentTypeDropdown,
 };
 
 export default questionnaireDropdownService;

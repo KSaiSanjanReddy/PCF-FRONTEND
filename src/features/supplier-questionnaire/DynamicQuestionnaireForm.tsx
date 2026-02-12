@@ -313,6 +313,44 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             case 'transportMode':
               data = await questionnaireDropdownService.getTransportModeDropdown();
               break;
+            // UOM dropdowns
+            case 'liquidGaseousSolidWaterUnit':
+              data = await questionnaireDropdownService.getLiquidGaseousSolidWaterUnitDropdown();
+              break;
+            case 'liquidGaseousSolidUnit':
+              data = await questionnaireDropdownService.getLiquidGaseousSolidUnitDropdown();
+              break;
+            case 'gaseousFuelUnit':
+              data = await questionnaireDropdownService.getGaseousFuelUnitDropdown();
+              break;
+            case 'energyUnit':
+              data = await questionnaireDropdownService.getEnergyUnitDropdown();
+              break;
+            case 'qcEquipmentUnit':
+              data = await questionnaireDropdownService.getQcEquipmentUnitDropdown();
+              break;
+            case 'liquidGaseousUnit':
+              data = await questionnaireDropdownService.getLiquidGaseousUnitDropdown();
+              break;
+            case 'solidFuelUnit':
+              data = await questionnaireDropdownService.getSolidFuelUnitDropdown();
+              break;
+            case 'liquidSolidUnit':
+              data = await questionnaireDropdownService.getLiquidSolidUnitDropdown();
+              break;
+            case 'packingUnit':
+              data = await questionnaireDropdownService.getPackingUnitDropdown();
+              break;
+            // Q52 and Q60 specific dropdowns
+            case 'materialType':
+              data = await questionnaireDropdownService.getMaterialTypeDropdown();
+              break;
+            case 'packingType':
+              data = await questionnaireDropdownService.getPackingTypeDropdown();
+              break;
+            case 'packagingTreatmentType':
+              data = await questionnaireDropdownService.getPackagingTreatmentTypeDropdown();
+              break;
           }
 
           setDropdownData(prev => ({ ...prev, [dropdownType]: data }));
@@ -633,52 +671,10 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         );
         break;
       case 'file':
-        // Get current file keys from form (can be string or array)
-        const currentFileValue = form.getFieldValue(field.name.split('.'));
-        const currentFileKeys: string[] = Array.isArray(currentFileValue)
-          ? currentFileValue
-          : (currentFileValue ? [currentFileValue] : []);
-        const isMultiple = field.multiple === true;
-
-        const fileUploadProps: UploadProps = {
-          customRequest: async (options) => {
-            const { file, onSuccess, onError, onProgress } = options;
-            onProgress?.({ percent: 30 });
-
-            try {
-              const result = await supplierQuestionnaireService.uploadSupplierFile(file as File);
-              if (result.success && result.key) {
-                onProgress?.({ percent: 100 });
-                onSuccess?.({ url: result.url, key: result.key }, file as any);
-                message.success(`File uploaded successfully`);
-
-                // Store the file key in form
-                if (isMultiple) {
-                  // For multiple files, add to array
-                  const existingKeys = form.getFieldValue(field.name.split('.')) || [];
-                  const keysArray = Array.isArray(existingKeys) ? existingKeys : (existingKeys ? [existingKeys] : []);
-                  form.setFieldValue(field.name.split('.'), [...keysArray, result.key]);
-                } else {
-                  // For single file, replace
-                  form.setFieldValue(field.name.split('.'), result.key);
-                }
-              } else {
-                onError?.(new Error(result.message || 'Upload failed'));
-                message.error(result.message || 'Upload failed');
-              }
-            } catch (error: any) {
-              onError?.(error);
-              message.error('Upload failed');
-            }
-          },
-          maxCount: isMultiple ? undefined : 1,
-          multiple: isMultiple,
-          accept: '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg',
-          showUploadList: false,
-        };
+        const isMultipleFile = field.multiple === true;
 
         // Extract filename from file key
-        const getFileName = (key: string) => {
+        const getFileNameFromKey = (key: string) => {
           if (!key) return '';
           const parts = key.split('/');
           const fileName = parts[parts.length - 1];
@@ -687,55 +683,128 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           return match ? match[1] : fileName;
         };
 
-        // Remove a file from the array
-        const removeFile = (keyToRemove: string) => {
-          if (isMultiple) {
-            const updatedKeys = currentFileKeys.filter(k => k !== keyToRemove);
-            form.setFieldValue(field.name.split('.'), updatedKeys.length > 0 ? updatedKeys : undefined);
-          } else {
-            form.setFieldValue(field.name.split('.'), undefined);
-          }
-          // Force re-render
-          form.validateFields([field.name.split('.')]);
-        };
-
-        inputComponent = (
-          <div>
-            {currentFileKeys.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {currentFileKeys.map((fileKey, index) => (
-                  <div key={fileKey || index} className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <FileOutlined className="text-green-600" />
-                    <span className="flex-1 text-sm text-gray-700 truncate" title={getFileName(fileKey)}>
-                      {getFileName(fileKey)}
-                    </span>
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => removeFile(fileKey)}
-                    />
-                  </div>
-                ))}
+        // Return a Form.Item with shouldUpdate to ensure re-render on value change
+        return (
+          <Form.Item
+            key={field.name}
+            label={
+              <div className="flex items-center gap-2">
+                <span>{field.label}</span>
+                {field.required && <span className="text-red-500">*</span>}
               </div>
-            )}
-            <Upload {...fileUploadProps}>
-              <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
-                {currentFileKeys.length > 0
-                  ? (isMultiple ? 'Add More Files' : 'Replace File')
-                  : 'Click to Upload'}
-              </Button>
-            </Upload>
-            {field.placeholder && (
-              <div className="text-xs text-gray-500 mt-2">{field.placeholder}</div>
-            )}
-            {isMultiple && (
-              <div className="text-xs text-gray-400 mt-1">You can upload multiple files</div>
-            )}
-          </div>
+            }
+            required={field.required}
+            className="mb-6"
+            shouldUpdate={(prevValues, currentValues) => {
+              const prevVal = field.name.split('.').reduce((acc, part) => acc && acc[part], prevValues);
+              const currVal = field.name.split('.').reduce((acc, part) => acc && acc[part], currentValues);
+              return prevVal !== currVal;
+            }}
+          >
+            {() => {
+              // Get current file keys inside the render function to ensure fresh values
+              const currentFileValue = form.getFieldValue(field.name.split('.'));
+              const currentFileKeys: string[] = Array.isArray(currentFileValue)
+                ? currentFileValue
+                : (currentFileValue ? [currentFileValue] : []);
+
+              const fileUploadProps: UploadProps = {
+                customRequest: async (options) => {
+                  const { file, onSuccess, onError, onProgress } = options;
+                  onProgress?.({ percent: 30 });
+
+                  try {
+                    const result = await supplierQuestionnaireService.uploadSupplierFile(file as File);
+                    if (result.success && result.key) {
+                      onProgress?.({ percent: 100 });
+                      onSuccess?.({ url: result.url, key: result.key }, file as any);
+                      message.success(`File uploaded successfully`);
+
+                      // Store the file key in form - get fresh value to avoid race conditions
+                      const existingKeys = form.getFieldValue(field.name.split('.')) || [];
+                      if (isMultipleFile) {
+                        // For multiple files, add to array
+                        const keysArray = Array.isArray(existingKeys) ? existingKeys : (existingKeys ? [existingKeys] : []);
+                        form.setFieldsValue({
+                          [field.name.split('.')[0]]: field.name.split('.').slice(1).reduceRight(
+                            (acc, part, idx, arr) => idx === arr.length - 1
+                              ? { [part]: [...keysArray, result.key] }
+                              : { [part]: acc },
+                            {} as any
+                          ) || { [field.name.split('.').slice(-1)[0]]: [...keysArray, result.key] }
+                        });
+                        // Simpler approach - just set the value directly
+                        form.setFieldValue(field.name.split('.'), [...keysArray, result.key]);
+                      } else {
+                        // For single file, replace
+                        form.setFieldValue(field.name.split('.'), result.key);
+                      }
+                    } else {
+                      onError?.(new Error(result.message || 'Upload failed'));
+                      message.error(result.message || 'Upload failed');
+                    }
+                  } catch (error: any) {
+                    onError?.(error);
+                    message.error('Upload failed');
+                  }
+                },
+                maxCount: isMultipleFile ? undefined : 1,
+                multiple: isMultipleFile,
+                accept: '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg',
+                showUploadList: false,
+              };
+
+              // Remove a file from the array
+              const handleRemoveFile = (keyToRemove: string) => {
+                if (isMultipleFile) {
+                  const freshKeys = form.getFieldValue(field.name.split('.')) || [];
+                  const keysArray = Array.isArray(freshKeys) ? freshKeys : (freshKeys ? [freshKeys] : []);
+                  const updatedKeys = keysArray.filter((k: string) => k !== keyToRemove);
+                  form.setFieldValue(field.name.split('.'), updatedKeys.length > 0 ? updatedKeys : undefined);
+                } else {
+                  form.setFieldValue(field.name.split('.'), undefined);
+                }
+              };
+
+              return (
+                <div>
+                  {currentFileKeys.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {currentFileKeys.map((fileKey, index) => (
+                        <div key={fileKey || index} className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <FileOutlined className="text-green-600" />
+                          <span className="flex-1 text-sm text-gray-700 truncate" title={getFileNameFromKey(fileKey)}>
+                            {getFileNameFromKey(fileKey)}
+                          </span>
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleRemoveFile(fileKey)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Upload {...fileUploadProps}>
+                    <Button icon={<UploadOutlined />} className="hover:border-green-400 hover:text-green-600">
+                      {currentFileKeys.length > 0
+                        ? (isMultipleFile ? 'Add More Files' : 'Replace File')
+                        : 'Click to Upload'}
+                    </Button>
+                  </Upload>
+                  {field.placeholder && (
+                    <div className="text-xs text-gray-500 mt-2">{field.placeholder}</div>
+                  )}
+                  {isMultipleFile && (
+                    <div className="text-xs text-gray-400 mt-1">You can upload multiple files</div>
+                  )}
+                </div>
+              );
+            }}
+          </Form.Item>
         );
-        break;
       default:
         inputComponent = <Input {...commonProps} />;
     }

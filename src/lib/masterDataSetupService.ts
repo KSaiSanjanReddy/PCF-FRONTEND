@@ -98,7 +98,7 @@ const idFieldMapping: Record<string, string> = {
   "process-specific-energy": "pse_id",
   "vehicle-type": "vt_id",
   "qc-equipment": "qce_id",
-  "packing-unit": "pku_id",
+  "packing-unit": "pau_id",
 };
 
 function getAuthHeaders() {

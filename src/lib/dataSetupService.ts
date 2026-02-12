@@ -38,7 +38,7 @@ export const entityFieldConfigs: Partial<Record<string, EntityFieldConfig>> = {
       { key: "number", label: "Number" },
     ],
   },
-  "material-composition-metal-type": {
+  "master-material-composition-metal-type": {
     idField: "mcmt_id",
     fields: [
       { key: "code", label: "Code", required: true },
@@ -91,7 +91,7 @@ export type SetupEntity =
   | "magnesium-type"
   | "manufacturing-process"
   | "material-composition-metal"
-  | "material-composition-metal-type"
+  | "master-material-composition-metal-type"
   | "material-type"
   | "method-type"
   | "packaging-level"
@@ -132,6 +132,7 @@ export interface SetupItem {
   year?: string;
   number?: string;
   mcm_id?: string;
+  mcm_name?: string; // Display name for composition metal
   [key: string]: any; // Allow dynamic fields
 }
 
@@ -179,11 +180,11 @@ function normalizeItem(entity: SetupEntity, item: any): SetupItem {
     if (item.year) parts.push(`Year: ${item.year}`);
     if (item.number) parts.push(`Number: ${item.number}`);
     description = parts.join(", ") || "";
-  } else if (entity === "material-composition-metal-type") {
-    // API returns prefixed fields: mcmt_code, mcmt_name, mcmt_description
-    code = item.mcmt_code || item.code || "";
-    name = item.mcmt_name || item.name || "";
-    description = item.mcmt_description || item.description || "";
+  } else if (entity === "master-material-composition-metal-type") {
+    // API returns fields directly: code, name, description, mcm_id, mcm_name
+    code = item.code || "";
+    name = item.name || "";
+    description = item.description || "";
   }
 
   return {
