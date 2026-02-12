@@ -194,14 +194,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <NavLink
               to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  "sidebar-menu-item flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
-                  isActive
-                    ? "active text-white shadow-lg"
-                    : "text-slate-300"
-                )
-              }
+              className={cn(
+                "sidebar-menu-item flex items-center justify-center w-11 h-11 mx-auto mb-1.5 rounded-xl transition-all duration-200 group relative",
+                isActive
+                  ? "active text-white shadow-lg"
+                  : "text-slate-300"
+              )}
               title={item.title}
             >
               <IconComponent className="h-5 w-5" />
@@ -250,23 +248,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <NavLink
               to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  "sidebar-menu-item flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                  isActive
-                    ? "active text-white shadow-lg"
-                    : "text-slate-200",
-                  level === 0
-                    ? "text-sm font-semibold"
-                    : "text-sm font-medium",
-                  "group"
-                )
-              }
+              className={cn(
+                "sidebar-menu-item flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
+                isActive
+                  ? "active text-white shadow-lg"
+                  : "text-slate-200",
+                level === 0
+                  ? "text-sm font-semibold"
+                  : "text-sm font-medium",
+                "group"
+              )}
             >
               <IconComponent
                 className={cn(
                   "h-5 w-5 mr-3 transition-colors duration-200",
-                  "text-slate-400 group-hover:text-white"
+                  isActive
+                    ? "text-white"
+                    : "text-slate-400 group-hover:text-white"
                 )}
               />
               <span className="flex-1">{item.title}</span>

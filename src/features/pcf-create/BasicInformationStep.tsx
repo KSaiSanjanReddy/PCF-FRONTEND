@@ -20,8 +20,24 @@ interface BasicInformationStepProps {
   onSaveAsDraft?: (values: any) => void;
 }
 
+// Priority to minimum days mapping
+const PRIORITY_MIN_DAYS: Record<string, number> = {
+  High: 10,
+  Medium: 21,
+  Low: 30,
+};
+
 const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValues, onSave, onSaveAsDraft }) => {
   const [form] = Form.useForm();
+
+  // Watch for priority changes
+  const selectedPriority = Form.useWatch('priority', form);
+
+  // Calculate minimum due date based on priority
+  const getMinDueDate = (priority: string | undefined) => {
+    const minDays = priority ? PRIORITY_MIN_DAYS[priority] : 0;
+    return dayjs().add(minDays, 'day').startOf('day');
+  };
 
   const handleSave = () => {
     form.validateFields().then((values) => {
@@ -35,10 +51,21 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
     onSaveAsDraft?.(values);
   };
 
+  // Handle priority change - reset due date if it's before the new minimum
+  const handlePriorityChange = (value: string) => {
+    const currentDueDate = form.getFieldValue('dueDate');
+    const minDate = getMinDueDate(value);
+
+    // If current due date is before the new minimum, clear it
+    if (currentDueDate && dayjs(currentDueDate).isBefore(minDate, 'day')) {
+      form.setFieldValue('dueDate', null);
+    }
+  };
+
   const priorityOptions = [
-    { label: 'High', value: 'High', color: 'text-red-600 bg-red-50' },
-    { label: 'Medium', value: 'Medium', color: 'text-orange-600 bg-orange-50' },
-    { label: 'Low', value: 'Low', color: 'text-green-600 bg-green-50' },
+    { label: 'High', value: 'High', color: 'text-red-600 bg-red-50', days: 10 },
+    { label: 'Medium', value: 'Medium', color: 'text-orange-600 bg-orange-50', days: 21 },
+    { label: 'Low', value: 'Low', color: 'text-green-600 bg-green-50', days: 30 },
   ];
 
   return (
@@ -104,6 +131,7 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
                     size="large"
                     className="w-full [&_.ant-select-selector]:!h-[40px] [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selection-item]:!leading-[38px] [&_.ant-select-selection-placeholder]:!leading-[38px]"
                     optionLabelProp="label"
+                    onChange={handlePriorityChange}
                   >
                     {priorityOptions.map((option) => (
                       <Select.Option key={option.value} value={option.value} label={option.label}>
@@ -113,6 +141,7 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
                             option.value === 'Medium' ? 'bg-orange-500' : 'bg-green-500'
                           }`}></span>
                           <span>{option.label}</span>
+                          <span className="text-xs text-gray-400">({option.days} days)</span>
                         </div>
                       </Select.Option>
                     ))}
@@ -124,15 +153,26 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
               <div>
                 <Form.Item
                   label={
-                    <span className="text-sm font-medium text-gray-700">Due Date</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">Due Date</span>
+                      {selectedPriority && (
+                        <span className="text-xs text-gray-400">
+                          (min: {getMinDueDate(selectedPriority).format('MMM DD, YYYY')})
+                        </span>
+                      )}
+                    </div>
                   }
                   name="dueDate"
                   rules={[
                     { required: true, message: 'Please select a due date' },
                     {
                       validator: (_, value) => {
-                        if (value && value.isBefore(dayjs(), 'day')) {
-                          return Promise.reject(new Error('Past dates are not allowed'));
+                        if (!selectedPriority) {
+                          return Promise.reject(new Error('Please select priority first'));
+                        }
+                        const minDate = getMinDueDate(selectedPriority);
+                        if (value && value.isBefore(minDate, 'day')) {
+                          return Promise.reject(new Error(`Due date must be at least ${PRIORITY_MIN_DAYS[selectedPriority]} days from today`));
                         }
                         return Promise.resolve();
                       },
@@ -141,11 +181,16 @@ const BasicInformationStep: React.FC<BasicInformationStepProps> = ({ initialValu
                 >
                   <DatePicker
                     className="w-full !h-[40px] !rounded-lg"
-                    placeholder="Select due date"
+                    placeholder={selectedPriority ? "Select due date" : "Select priority first"}
                     size="large"
                     format="MMM DD, YYYY"
                     suffixIcon={<Calendar className="w-4 h-4 text-gray-400" />}
-                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                    disabled={!selectedPriority}
+                    disabledDate={(current) => {
+                      if (!current) return false;
+                      const minDate = getMinDueDate(selectedPriority);
+                      return current.isBefore(minDate, 'day');
+                    }}
                   />
                 </Form.Item>
               </div>

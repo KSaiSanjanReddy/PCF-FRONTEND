@@ -18,6 +18,9 @@ import {
   Typography,
   Tabs,
   Switch,
+  Collapse,
+  Table,
+  Descriptions,
 } from "antd";
 import {
   CheckCircle,
@@ -64,8 +67,9 @@ import {
 import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
 import taskService, { type TaskItem } from "../lib/taskService";
+import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
 import { usePermissions } from "../contexts/PermissionContext";
-import { CheckSquare, ArrowRight } from "lucide-react";
+import { CheckSquare, ArrowRight, ClipboardList } from "lucide-react";
 import BomTable from "../features/pcf-create/BomTable";
 
 const { Step } = Steps;
@@ -94,6 +98,12 @@ const PCFRequestView: React.FC = () => {
   >(null);
   const [dqrList, setDqrList] = useState<any[]>([]);
   // DQR stages now come from pcf_data_dqr_rating_stage in getById response
+
+  // Questionnaire response modal state
+  const [questionnaireModalVisible, setQuestionnaireModalVisible] = useState(false);
+  const [questionnaireLoading, setQuestionnaireLoading] = useState(false);
+  const [questionnaireData, setQuestionnaireData] = useState<any>(null);
+  const [selectedSupplierName, setSelectedSupplierName] = useState<string>("");
 
   useEffect(() => {
     if (id) {
@@ -133,6 +143,47 @@ const PCFRequestView: React.FC = () => {
   const getSgiqIdBySupplier = (sup_id: string): string | null => {
     const dqrItem = dqrList.find((item) => item.sup_id === sup_id);
     return dqrItem?.sgiq_id || null;
+  };
+
+  // Fetch questionnaire responses for a supplier
+  const fetchQuestionnaireResponses = async (sup_id: string, supplierName: string) => {
+    const sgiq_id = getSgiqIdBySupplier(sup_id);
+    if (!sgiq_id) {
+      message.warning("Questionnaire data not found for this supplier");
+      return;
+    }
+
+    setSelectedSupplierName(supplierName);
+    setQuestionnaireModalVisible(true);
+    setQuestionnaireLoading(true);
+
+    try {
+      const token = authService.getToken();
+      const response = await fetch(
+        `https://enviguide.nextechltd.in/api/supplier-input-questions-get-by-id?sgiq_id=${sgiq_id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token || "",
+          },
+        }
+      );
+      const result = await response.json();
+
+      if (result.status && result.data) {
+        setQuestionnaireData(result.data);
+      } else {
+        message.error(result.message || "Failed to fetch questionnaire responses");
+        setQuestionnaireModalVisible(false);
+      }
+    } catch (error) {
+      console.error("Error fetching questionnaire responses:", error);
+      message.error("Failed to fetch questionnaire responses");
+      setQuestionnaireModalVisible(false);
+    } finally {
+      setQuestionnaireLoading(false);
+    }
   };
 
   // Fetch tasks only when in Data Collection stage (step 3)
@@ -977,12 +1028,27 @@ const PCFRequestView: React.FC = () => {
                       </div>
                     </div>
 
-                    <Tag
-                      color={stage.is_submitted ? "success" : "default"}
-                      className="ml-4"
-                    >
-                      {stage.is_submitted ? "Submitted" : "Pending"}
-                    </Tag>
+                    <div className="flex items-center gap-3 ml-4">
+                      {/* {stage.is_submitted && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<ClipboardList size={14} />}
+                          onClick={() => fetchQuestionnaireResponses(
+                            stage.supplier?.sup_id,
+                            stage.supplier?.supplier_name || "Supplier"
+                          )}
+                          className="!bg-green-600 hover:!bg-green-700 !border-green-600"
+                        >
+                          View Responses
+                        </Button>
+                      )} */}
+                      <Tag
+                        color={stage.is_submitted ? "success" : "default"}
+                      >
+                        {stage.is_submitted ? "Submitted" : "Pending"}
+                      </Tag>
+                    </div>
                   </div>
                 </div>
               ),
@@ -2438,6 +2504,559 @@ const PCFRequestView: React.FC = () => {
           onChange={(e) => setRejectReason(e.target.value)}
           placeholder="Enter rejection reason..."
         />
+      </Modal>
+
+      {/* Questionnaire Responses Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-xl">
+              <ClipboardList size={24} className="text-green-600" />
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-gray-900">Questionnaire Responses</div>
+              <div className="text-sm text-gray-500 font-normal">{selectedSupplierName}</div>
+            </div>
+          </div>
+        }
+        open={questionnaireModalVisible}
+        onCancel={() => {
+          setQuestionnaireModalVisible(false);
+          setQuestionnaireData(null);
+        }}
+        footer={
+          <div className="flex justify-end">
+            <Button
+              type="primary"
+              onClick={() => {
+                setQuestionnaireModalVisible(false);
+                setQuestionnaireData(null);
+              }}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600"
+            >
+              Close
+            </Button>
+          </div>
+        }
+        width={1000}
+        style={{ top: 20 }}
+        styles={{ body: { maxHeight: "calc(100vh - 180px)", overflowY: "auto", padding: "16px" } }}
+      >
+        {questionnaireLoading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Spin size="large" />
+            <Text className="mt-4 text-gray-500">Loading questionnaire responses...</Text>
+          </div>
+        ) : questionnaireData ? (
+          <Collapse
+            defaultActiveKey={['general', 'organization']}
+            className="bg-white"
+            expandIconPosition="end"
+          >
+            {/* Supplier General Information */}
+            {questionnaireData.supplier_general_info && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <User size={16} className="text-green-600" />
+                    </div>
+                    <span className="font-medium">General Information</span>
+                  </div>
+                }
+                key="general"
+              >
+                <Descriptions bordered size="small" column={2}>
+                  <Descriptions.Item label="Organization Name">{questionnaireData.supplier_general_info.organization_name || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Designation">{questionnaireData.supplier_general_info.designation || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Email Address">{questionnaireData.supplier_general_info.email_address || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Core Business Activity">{questionnaireData.supplier_general_info.core_business_activitiy || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Number of Employees">{questionnaireData.supplier_general_info.no_of_employees || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Annual Revenue">{questionnaireData.supplier_general_info.annual_revenue || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Annual Reporting Period">{questionnaireData.supplier_general_info.annual_reporting_period || "N/A"}</Descriptions.Item>
+                  <Descriptions.Item label="Emissions Data Available">
+                    <Tag color={questionnaireData.supplier_general_info.availability_of_scope_one_two_three_emissions_data ? "green" : "red"}>
+                      {questionnaireData.supplier_general_info.availability_of_scope_one_two_three_emissions_data ? "Yes" : "No"}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="GDPR Acknowledgement">
+                    <Tag color={questionnaireData.supplier_general_info.dc_acknowledge ? "green" : "red"}>
+                      {questionnaireData.supplier_general_info.dc_acknowledge ? "Acknowledged" : "Not Acknowledged"}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="RE Technologies Acknowledgement">
+                    <Tag color={questionnaireData.supplier_general_info.ere_acknowledge ? "green" : "red"}>
+                      {questionnaireData.supplier_general_info.ere_acknowledge ? "Acknowledged" : "Not Acknowledged"}
+                    </Tag>
+                  </Descriptions.Item>
+                </Descriptions>
+              </Collapse.Panel>
+            )}
+
+            {/* Emissions Data */}
+            {questionnaireData.availability_of_scope_one_two_three_emissions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <BarChart3 size={16} className="text-blue-600" />
+                    </div>
+                    <span className="font-medium">Scope 1, 2, 3 Emissions Data</span>
+                    <Tag color="blue">{questionnaireData.availability_of_scope_one_two_three_emissions.length} entries</Tag>
+                  </div>
+                }
+                key="emissions"
+              >
+                <Table
+                  dataSource={questionnaireData.availability_of_scope_one_two_three_emissions}
+                  columns={[
+                    { title: "Country", dataIndex: "country_iso_three", key: "country" },
+                    { title: "Scope 1", dataIndex: "scope_one", key: "scope_one", render: (v: number) => `${v} tCO₂e` },
+                    { title: "Scope 2", dataIndex: "scope_two", key: "scope_two", render: (v: number) => `${v} tCO₂e` },
+                    { title: "Scope 3", dataIndex: "scope_three", key: "scope_three", render: (v: number) => `${v} tCO₂e` },
+                  ]}
+                  pagination={false}
+                  size="small"
+                  rowKey="aosotte_id"
+                />
+              </Collapse.Panel>
+            )}
+
+            {/* Product Questions */}
+            {questionnaireData.supplier_product_questions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Package size={16} className="text-purple-600" />
+                    </div>
+                    <span className="font-medium">Product Details</span>
+                  </div>
+                }
+                key="product"
+              >
+                {questionnaireData.supplier_product_questions.map((pq: any, idx: number) => (
+                  <div key={idx} className="space-y-4">
+                    <Descriptions bordered size="small" column={2}>
+                      <Descriptions.Item label="Existing PCF Report">
+                        <Tag color={pq.do_you_have_an_existing_pcf_report ? "green" : "red"}>
+                          {pq.do_you_have_an_existing_pcf_report ? "Yes" : "No"}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="PCF Methodology Used">
+                        {pq.pcf_methodology_used?.join(", ") || "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Environmental Impact Methods" span={2}>
+                        {pq.required_environmental_impact_methods?.map((m: string) => (
+                          <Tag key={m} color="blue" className="mb-1">{m}</Tag>
+                        )) || "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Co-Products with Economic Value">
+                        <Tag color={pq.any_co_product_have_economic_value ? "green" : "red"}>
+                          {pq.any_co_product_have_economic_value ? "Yes" : "No"}
+                        </Tag>
+                      </Descriptions.Item>
+                    </Descriptions>
+
+                    {pq.production_site_details_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2">Production Site Details</Text>
+                        <Table
+                          dataSource={pq.production_site_details_questions}
+                          columns={[
+                            { title: "Product Name", dataIndex: "product_name", key: "product_name" },
+                            { title: "Material Number", dataIndex: "material_number", key: "material_number" },
+                            { title: "Location", dataIndex: "location", key: "location" },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="psd_id"
+                        />
+                      </div>
+                    )}
+
+                    {pq.product_component_manufactured_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2">Products Manufactured</Text>
+                        <Table
+                          dataSource={pq.product_component_manufactured_questions}
+                          columns={[
+                            { title: "Product", dataIndex: "product_name", key: "product_name" },
+                            { title: "Material #", dataIndex: "material_number", key: "material_number" },
+                            { title: "Period", dataIndex: "production_period", key: "production_period" },
+                            { title: "Weight/Unit", dataIndex: "weight_per_unit", key: "weight_per_unit", render: (v: number, r: any) => `${v} ${r.unit}` },
+                            { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+                            { title: "Price", dataIndex: "price", key: "price", render: (v: number) => `$${v}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="pcm_id"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Collapse.Panel>
+            )}
+
+            {/* Scope 1 - Direct Emissions */}
+            {questionnaireData.scope_one_direct_emissions_questions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                      <Flame size={16} className="text-red-600" />
+                    </div>
+                    <span className="font-medium">Scope 1 - Direct Emissions</span>
+                  </div>
+                }
+                key="scope1"
+              >
+                {questionnaireData.scope_one_direct_emissions_questions.map((s1: any, idx: number) => (
+                  <div key={idx} className="space-y-4">
+                    {s1.stationary_combustion_on_site_energy_use_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Stationary Combustion (On-site Energy Use)</Text>
+                        {s1.stationary_combustion_on_site_energy_use_questions.map((sc: any, i: number) => (
+                          <div key={i} className="bg-gray-50 p-3 rounded-lg mb-2">
+                            <Text strong>{sc.fuel_type}</Text>
+                            {sc.sub_fuel_types?.length > 0 && (
+                              <Table
+                                dataSource={sc.sub_fuel_types}
+                                columns={[
+                                  { title: "Sub Fuel Type", dataIndex: "sub_fuel_type", key: "sub_fuel_type" },
+                                  { title: "Consumption", dataIndex: "consumption_quantity", key: "consumption_quantity", render: (v: number, r: any) => `${v} ${r.unit}` },
+                                ]}
+                                pagination={false}
+                                size="small"
+                                rowKey="ssft_id"
+                                className="mt-2"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {s1.mobile_combustion_company_owned_vehicles_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Mobile Combustion (Company Owned Vehicles)</Text>
+                        <Table
+                          dataSource={s1.mobile_combustion_company_owned_vehicles_questions}
+                          columns={[
+                            { title: "Fuel Type", dataIndex: "fuel_type", key: "fuel_type" },
+                            { title: "Quantity", dataIndex: "quantity", key: "quantity", render: (v: number, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="mccov_id"
+                        />
+                      </div>
+                    )}
+
+                    {s1.refrigerant_top_ups_performed && s1.refrigerants_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Refrigerants</Text>
+                        <Table
+                          dataSource={s1.refrigerants_questions}
+                          columns={[
+                            { title: "Refrigerant Type", dataIndex: "refrigerant_type", key: "refrigerant_type" },
+                            { title: "Quantity", dataIndex: "quantity", key: "quantity", render: (v: number, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="refr_id"
+                        />
+                      </div>
+                    )}
+
+                    {s1.industrial_process_emissions_present && s1.process_emissions_sources_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Process Emissions Sources</Text>
+                        <Table
+                          dataSource={s1.process_emissions_sources_questions}
+                          columns={[
+                            { title: "Source", dataIndex: "source", key: "source" },
+                            { title: "Gas Type", dataIndex: "gas_type", key: "gas_type" },
+                            { title: "Quantity", dataIndex: "quantity", key: "quantity", render: (v: number, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="pes_id"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Collapse.Panel>
+            )}
+
+            {/* Scope 2 - Indirect Emissions */}
+            {questionnaireData.scope_two_indirect_emissions_questions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <Cpu size={16} className="text-yellow-600" />
+                    </div>
+                    <span className="font-medium">Scope 2 - Indirect Emissions</span>
+                  </div>
+                }
+                key="scope2"
+              >
+                {questionnaireData.scope_two_indirect_emissions_questions.map((s2: any, idx: number) => (
+                  <div key={idx} className="space-y-4">
+                    {s2.scope_two_indirect_emissions_from_purchased_energy_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Purchased Energy</Text>
+                        <Table
+                          dataSource={s2.scope_two_indirect_emissions_from_purchased_energy_questions}
+                          columns={[
+                            { title: "Energy Source", dataIndex: "energy_source", key: "energy_source" },
+                            { title: "Energy Type", dataIndex: "energy_type", key: "energy_type" },
+                            { title: "Quantity", dataIndex: "quantity", key: "quantity", render: (v: number, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="stidefpe_id"
+                        />
+                      </div>
+                    )}
+
+                    {s2.process_specific_energy_usage && s2.process_specific_energy_usage_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">Process Specific Energy Usage</Text>
+                        <Table
+                          dataSource={s2.process_specific_energy_usage_questions}
+                          columns={[
+                            { title: "Energy Type", dataIndex: "process_specific_energy_type", key: "process_specific_energy_type" },
+                            { title: "Quantity Consumed", dataIndex: "quantity_consumed", key: "quantity_consumed", render: (v: number, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="pseu_id"
+                        />
+                      </div>
+                    )}
+
+                    {s2.do_you_acquired_standardized_re_certificates && s2.scope_two_indirect_emissions_certificates_questions?.length > 0 && (
+                      <div>
+                        <Text strong className="block mb-2 text-gray-700">RE Certificates</Text>
+                        <Table
+                          dataSource={s2.scope_two_indirect_emissions_certificates_questions}
+                          columns={[
+                            { title: "Certificate Name", dataIndex: "certificate_name", key: "certificate_name" },
+                            { title: "Mechanism", dataIndex: "mechanism", key: "mechanism" },
+                            { title: "Generator Name", dataIndex: "generator_name", key: "generator_name" },
+                            { title: "Location", dataIndex: "generator_location", key: "generator_location" },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="stidec_id"
+                        />
+                      </div>
+                    )}
+
+                    <Descriptions bordered size="small" column={2} className="mt-4">
+                      <Descriptions.Item label="Uses Abatement Systems">
+                        <Tag color={s2.do_you_use_any_abatement_systems ? "green" : "red"}>{s2.do_you_use_any_abatement_systems ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Destructive Testing">
+                        <Tag color={s2.do_you_perform_destructive_testing ? "green" : "red"}>{s2.do_you_perform_destructive_testing ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="IT Systems for Production Control" span={2}>
+                        {s2.it_system_use_for_production_control?.map((it: string) => (
+                          <Tag key={it} color="blue" className="mb-1">{it}</Tag>
+                        )) || "N/A"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Cloud-based Production System">
+                        <Tag color={s2.do_you_use_cloud_based_system_for_production ? "green" : "red"}>{s2.do_you_use_cloud_based_system_for_production ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Cooling System for Server">
+                        <Tag color={s2.do_you_use_any_cooling_sysytem_for_server ? "green" : "red"}>{s2.do_you_use_any_cooling_sysytem_for_server ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                ))}
+              </Collapse.Panel>
+            )}
+
+            {/* Scope 3 - Other Indirect Emissions */}
+            {questionnaireData.scope_three_other_indirect_emissions_questions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Truck size={16} className="text-orange-600" />
+                    </div>
+                    <span className="font-medium">Scope 3 - Other Indirect Emissions</span>
+                  </div>
+                }
+                key="scope3"
+              >
+                {questionnaireData.scope_three_other_indirect_emissions_questions.map((s3: any, idx: number) => (
+                  <div key={idx} className="space-y-4">
+                    <Descriptions bordered size="small" column={2}>
+                      <Descriptions.Item label="ISO 14001/50001 Certified">
+                        <Tag color={s3.iso_14001_or_iso_50001_certified ? "green" : "red"}>{s3.iso_14001_or_iso_50001_certified ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Reports to CDP/SBTi">
+                        <Tag color={s3.do_you_report_to_cdp_sbti_or_other ? "green" : "red"}>{s3.do_you_report_to_cdp_sbti_or_other ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Uses Recycled Materials">
+                        <Tag color={s3.use_of_recycled_secondary_materials ? "green" : "red"}>{s3.use_of_recycled_secondary_materials ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tracks Transport Emissions">
+                        <Tag color={s3.do_you_track_emission_from_transport ? "green" : "red"}>{s3.do_you_track_emission_from_transport ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="By-Products Generated">
+                        <Tag color={s3.any_by_product_generated ? "green" : "red"}>{s3.any_by_product_generated ? "Yes" : "No"}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Grade of Metal Used">{s3.grade_of_metal_used || "N/A"}</Descriptions.Item>
+                    </Descriptions>
+
+                    {s3.mode_of_transport_used_for_transportation_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2 text-gray-700">Transport Details</Text>
+                        <Table
+                          dataSource={s3.mode_of_transport_used_for_transportation_questions}
+                          columns={[
+                            { title: "Mode", dataIndex: "mode_of_transport", key: "mode_of_transport" },
+                            { title: "Source", dataIndex: "source_point", key: "source_point" },
+                            { title: "Destination", dataIndex: "drop_point", key: "drop_point" },
+                            { title: "Distance", dataIndex: "distance", key: "distance" },
+                            { title: "Weight", dataIndex: "weight_transported", key: "weight_transported" },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="motuft_id"
+                        />
+                      </div>
+                    )}
+
+                    {s3.recycled_materials_with_percentage_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2 text-gray-700">Recycled Materials</Text>
+                        <Table
+                          dataSource={s3.recycled_materials_with_percentage_questions}
+                          columns={[
+                            { title: "Material Name", dataIndex: "material_name", key: "material_name" },
+                            { title: "Material Number", dataIndex: "material_number", key: "material_number" },
+                            { title: "Percentage", dataIndex: "percentage", key: "percentage", render: (v: string) => `${v}%` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="rmwp_id"
+                        />
+                      </div>
+                    )}
+
+                    {s3.weight_of_packaging_per_unit_product_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2 text-gray-700">Packaging Weight per Unit</Text>
+                        <Table
+                          dataSource={s3.weight_of_packaging_per_unit_product_questions}
+                          columns={[
+                            { title: "Component", dataIndex: "component_name", key: "component_name" },
+                            { title: "Material Number", dataIndex: "material_number", key: "material_number" },
+                            { title: "Packaging Weight", dataIndex: "packagin_weight", key: "packagin_weight", render: (v: string, r: any) => `${v} ${r.unit}` },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="woppup_id"
+                        />
+                      </div>
+                    )}
+
+                    {s3.destination_plant_component_transportation_questions?.length > 0 && (
+                      <div className="mt-4">
+                        <Text strong className="block mb-2 text-gray-700">Destination Plants</Text>
+                        <Table
+                          dataSource={s3.destination_plant_component_transportation_questions}
+                          columns={[
+                            { title: "City", dataIndex: "city", key: "city" },
+                            { title: "State", dataIndex: "state", key: "state" },
+                            { title: "Country", dataIndex: "country", key: "country" },
+                            { title: "Pincode", dataIndex: "pincode", key: "pincode" },
+                          ]}
+                          pagination={false}
+                          size="small"
+                          rowKey="dpct_id"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Collapse.Panel>
+            )}
+
+            {/* Scope 4 - Avoided Emissions */}
+            {questionnaireData.scope_four_avoided_emissions_questions?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                      <Leaf size={16} className="text-teal-600" />
+                    </div>
+                    <span className="font-medium">Scope 4 - Avoided Emissions</span>
+                  </div>
+                }
+                key="scope4"
+              >
+                {questionnaireData.scope_four_avoided_emissions_questions.map((s4: any, idx: number) => (
+                  <div key={idx} className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Text strong className="block mb-2 text-gray-700">Renewable Energy & Carbon Offset Projects</Text>
+                      <Text className="text-gray-600 text-sm">{s4.renewable_energy_carbon_offset_projects_implemented || "N/A"}</Text>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Text strong className="block mb-2 text-gray-700">Products/Services Reducing Customer Emissions</Text>
+                      <Text className="text-gray-600 text-sm">{s4.products_or_services_that_help_reduce_customer_emissions || "N/A"}</Text>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Text strong className="block mb-2 text-gray-700">Circular Economy Practices</Text>
+                      <Text className="text-gray-600 text-sm">{s4.circular_economy_practices_reuse_take_back_epr_refurbishment || "N/A"}</Text>
+                    </div>
+                  </div>
+                ))}
+              </Collapse.Panel>
+            )}
+
+            {/* BOM Items */}
+            {questionnaireData.bom?.length > 0 && (
+              <Collapse.Panel
+                header={
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Layers size={16} className="text-gray-600" />
+                    </div>
+                    <span className="font-medium">BOM Items</span>
+                    <Tag color="default">{questionnaireData.bom.length} items</Tag>
+                  </div>
+                }
+                key="bom"
+              >
+                <Table
+                  dataSource={questionnaireData.bom}
+                  columns={[
+                    { title: "Code", dataIndex: "code", key: "code" },
+                    { title: "Material Number", dataIndex: "material_number", key: "material_number" },
+                    { title: "Component Name", dataIndex: "component_name", key: "component_name" },
+                    { title: "Production Location", dataIndex: "production_location", key: "production_location" },
+                  ]}
+                  pagination={false}
+                  size="small"
+                  rowKey="bom_id"
+                />
+              </Collapse.Panel>
+            )}
+          </Collapse>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16">
+            <ClipboardList size={48} className="text-gray-300 mb-4" />
+            <Text type="secondary">No questionnaire data available</Text>
+          </div>
+        )}
       </Modal>
     </div>
   );
