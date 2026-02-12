@@ -38,19 +38,6 @@ export const entityFieldConfigs: Partial<Record<string, EntityFieldConfig>> = {
       { key: "number", label: "Number" },
     ],
   },
-  "master-material-composition-metal-type": {
-    idField: "mcmt_id",
-    fields: [
-      { key: "code", label: "Code", required: true },
-      { key: "name", label: "Name", required: true },
-      { key: "description", label: "Description" },
-    ],
-    foreignKey: {
-      field: "mcm_id",
-      displayName: "Composition Metal",
-      entityType: "material-composition-metal",
-    },
-  },
 };
 
 export function getEntityFieldConfig(entity: string): EntityFieldConfig | null {
@@ -91,7 +78,6 @@ export type SetupEntity =
   | "magnesium-type"
   | "manufacturing-process"
   | "material-composition-metal"
-  | "master-material-composition-metal-type"
   | "material-type"
   | "method-type"
   | "packaging-level"
@@ -180,11 +166,6 @@ function normalizeItem(entity: SetupEntity, item: any): SetupItem {
     if (item.year) parts.push(`Year: ${item.year}`);
     if (item.number) parts.push(`Number: ${item.number}`);
     description = parts.join(", ") || "";
-  } else if (entity === "master-material-composition-metal-type") {
-    // API returns fields directly: code, name, description, mcm_id, mcm_name
-    code = item.code || "";
-    name = item.name || "";
-    description = item.description || "";
   }
 
   return {

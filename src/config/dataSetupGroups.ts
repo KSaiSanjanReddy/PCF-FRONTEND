@@ -70,11 +70,6 @@ export const dataSetupGroups: DataSetupGroup[] = [
         label: "Iron Type",
         entity: "iron-type",
       },
-      {
-        key: "master-material-composition-metal-type",
-        label: "Composition Metal Type",
-        entity: "master-material-composition-metal-type",
-      },
     ],
   },
   {
@@ -148,6 +143,11 @@ export const masterDataSetupGroups: MasterDataSetupGroup[] = [
         key: "material-composition-metal",
         label: "Composition Metal",
         entity: "material-composition-metal",
+      },
+      {
+        key: "material-composition-metal-type",
+        label: "Composition Metal Type",
+        entity: "material-composition-metal-type",
       },
     ],
   },

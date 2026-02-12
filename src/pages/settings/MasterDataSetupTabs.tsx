@@ -61,12 +61,12 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // State for each tab's data
   const [tabData, setTabData] = useState<Record<string, MasterDataItem[]>>({});
-  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
   const [editingItem, setEditingItem] = useState<{
     item: MasterDataItem;
     tab: string;
   } | null>(null);
-  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   // Fuel type dropdown for sub-fuel-type entity
   const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
@@ -86,6 +86,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
     name: "",
+    code: "",
+    description: "",
     fuel_type_name: "",
     energy_source_name: "",
     composition_metal_name: "",
@@ -165,16 +167,24 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       message.error("Please select an energy source");
       return;
     }
-    // Validate mcm_id for material-composition-metal-type
-    if (currentEntity === "material-composition-metal-type" && !newItem.mcm_id) {
-      message.error("Please select a composition metal");
-      return;
+    // Validate mcm_id and code for material-composition-metal-type
+    if (currentEntity === "material-composition-metal-type") {
+      if (!newItem.mcm_id) {
+        message.error("Please select a composition metal");
+        return;
+      }
+      if (!newItem.code) {
+        message.error("Please enter a code");
+        return;
+      }
     }
     const result = await addMasterData(currentEntity, {
       name: newItem.name,
       ft_id: newItem.ft_id || undefined,
       es_id: newItem.es_id || undefined,
       mcm_id: newItem.mcm_id || undefined,
+      code: newItem.code || undefined,
+      description: newItem.description || undefined,
     });
     if (result.success) {
       message.success("Item added successfully");
@@ -184,7 +194,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
         id: item.id || `temp-${idx + 1}`,
       }));
       setTabData((prev) => ({ ...prev, [activeTab]: dataWithIds }));
-      setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+      setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -199,7 +209,14 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleEdit = (item: MasterDataItem) => {
     setEditingItem({ item, tab: activeTab });
-    setEditItem({ name: item.name, ft_id: item.ft_id || "", es_id: item.es_id || "", mcm_id: item.mcm_id || "" });
+    setEditItem({
+      name: item.name,
+      ft_id: item.ft_id || "",
+      es_id: item.es_id || "",
+      mcm_id: item.mcm_id || "",
+      code: item.code || "",
+      description: item.description || "",
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -215,10 +232,16 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       message.error("Please select an energy source");
       return;
     }
-    // Validate mcm_id for material-composition-metal-type
-    if (currentEntity === "material-composition-metal-type" && !editItem.mcm_id) {
-      message.error("Please select a composition metal");
-      return;
+    // Validate mcm_id and code for material-composition-metal-type
+    if (currentEntity === "material-composition-metal-type") {
+      if (!editItem.mcm_id) {
+        message.error("Please select a composition metal");
+        return;
+      }
+      if (!editItem.code) {
+        message.error("Please enter a code");
+        return;
+      }
     }
 
     // Store original data for rollback
@@ -255,6 +278,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
               energy_source_name: energySourceName || item.energy_source_name,
               mcm_id: editItem.mcm_id || item.mcm_id,
               composition_metal_name: compositionMetalName || item.composition_metal_name,
+              code: editItem.code || item.code,
+              description: editItem.description || item.description,
             }
           : item
       ),
@@ -269,6 +294,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       ft_id: editedValues.ft_id || undefined,
       es_id: editedValues.es_id || undefined,
       mcm_id: editedValues.mcm_id || undefined,
+      code: editedValues.code || undefined,
+      description: editedValues.description || undefined,
     });
 
     if (result.success) {
@@ -285,7 +312,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -319,8 +346,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
-    setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+    setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map((t) => t.key);
@@ -722,6 +749,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Name
                         </th>
+                        {currentEntity === "material-composition-metal-type" && (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Description
+                          </th>
+                        )}
                         <th className="px-6 py-4 text-center text-xs font-semibold text-green-800 uppercase tracking-wider w-32">
                           Actions
                         </th>
@@ -742,9 +774,23 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                           editingItem?.tab === activeTab ? (
                             <>
                               <td className="px-6 py-4">
-                                <div className="text-sm text-gray-500">
-                                  {item.code || "-"}
-                                </div>
+                                {currentEntity === "material-composition-metal-type" ? (
+                                  <input
+                                    type="text"
+                                    value={editItem.code}
+                                    onChange={(e) =>
+                                      setEditItem({ ...editItem, code: e.target.value })
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                    placeholder="Enter code"
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <div className="text-sm text-gray-500">
+                                    {item.code || "-"}
+                                  </div>
+                                )}
                               </td>
                               {currentEntity === "sub-fuel-type" && (
                                 <td className="px-6 py-4">
@@ -819,6 +865,20 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                                 </div>
                               </td>
+                              {currentEntity === "material-composition-metal-type" && (
+                                <td className="px-6 py-4">
+                                  <input
+                                    type="text"
+                                    value={editItem.description}
+                                    onChange={(e) =>
+                                      setEditItem({ ...editItem, description: e.target.value })
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                    placeholder="Enter description"
+                                  />
+                                </td>
+                              )}
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-2">
                                   <button
@@ -827,7 +887,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                       !editItem.name ||
                                       (currentEntity === "sub-fuel-type" && !editItem.ft_id) ||
                                       (currentEntity === "energy-type" && !editItem.es_id) ||
-                                      (currentEntity === "material-composition-metal-type" && !editItem.mcm_id)
+                                      (currentEntity === "material-composition-metal-type" && (!editItem.mcm_id || !editItem.code))
                                     }
                                     className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                                     title="Save (Ctrl+Enter)"
@@ -878,6 +938,13 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   {item.name}
                                 </div>
                               </td>
+                              {currentEntity === "material-composition-metal-type" && (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600">
+                                    {item.description || "-"}
+                                  </div>
+                                </td>
+                              )}
                               <td className="px-6 py-4 text-center">
                                 <div className="flex items-center justify-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                   {canUpdate("master data setup") && (
@@ -909,7 +976,17 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       {canCreate("master data setup") && (
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
                           <td className="px-6 py-4">
-                            <span className="text-sm text-gray-400 italic">Auto-generated</span>
+                            {currentEntity === "material-composition-metal-type" ? (
+                              <input
+                                type="text"
+                                placeholder="Enter code"
+                                value={newItem.code}
+                                onChange={(e) => setNewItem({ ...newItem, code: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                              />
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">Auto-generated</span>
+                            )}
                           </td>
                           {currentEntity === "sub-fuel-type" && (
                             <td className="px-6 py-4">
@@ -977,6 +1054,17 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
                             />
                           </td>
+                          {currentEntity === "material-composition-metal-type" && (
+                            <td className="px-6 py-4">
+                              <input
+                                type="text"
+                                placeholder="Enter description"
+                                value={newItem.description}
+                                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                              />
+                            </td>
+                          )}
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center space-x-2">
                               <button
@@ -985,7 +1073,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   !newItem.name ||
                                   (currentEntity === "sub-fuel-type" && !newItem.ft_id) ||
                                   (currentEntity === "energy-type" && !newItem.es_id) ||
-                                  (currentEntity === "material-composition-metal-type" && !newItem.mcm_id)
+                                  (currentEntity === "material-composition-metal-type" && (!newItem.mcm_id || !newItem.code))
                                 }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
@@ -993,7 +1081,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 <span>Add</span>
                               </button>
                               <button
-                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "" })}
+                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" })}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Clear form"
                               >
