@@ -180,10 +180,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
         const autoPopulatedRows = productsManufactured.map((product: any) => {
           const row: Record<string, any> = {};
 
-          // Set MPN from product (use material_number which matches bomMaterials dropdown ID)
-          const mpn = product.material_number || product.mpn || '';
-          if (mpn) {
-            row.mpn = mpn;
+          // Set material_number/MPN from product (use material_number which matches bomMaterials dropdown ID)
+          const materialNumber = product.material_number || product.mpn || '';
+          if (materialNumber) {
+            row.material_number = materialNumber;
+            row.mpn = materialNumber; // For backward compatibility
           }
 
           // Set component_name or product_name from product
@@ -199,7 +200,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
           }
 
           return row;
-        }).filter((row: Record<string, any>) => row.mpn || row.product_name); // Include rows with MPN or product_name
+        }).filter((row: Record<string, any>) => row.material_number || row.mpn || row.product_name); // Include rows with MPN or product_name
 
         if (autoPopulatedRows.length > 0) {
           console.log(`Auto-populating ${field.name} with ${autoPopulatedRows.length} products`);
