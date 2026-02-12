@@ -19,14 +19,12 @@ import {
   Search,
   Eye,
   File,
-  Clock,
   CheckCircle,
   XCircle,
   X,
   Upload as UploadIcon,
   Image as ImageIcon,
   FileType,
-  AlertCircle,
   PlayCircle,
 } from "lucide-react";
 import { documentMasterService } from "../lib/documentMasterService";
@@ -468,40 +466,6 @@ const DocumentMaster: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Draft */}
-              <div className="bg-amber-50 rounded-xl p-4 min-w-[120px] border border-amber-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-amber-600 font-medium">
-                      Draft
-                    </div>
-                    <div className="text-xl font-bold text-amber-700">
-                      {stats.draft}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pending */}
-              <div className="bg-blue-50 rounded-xl p-4 min-w-[120px] border border-blue-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 w-10 h-10 rounded-xl flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-blue-600 font-medium">
-                      Pending
-                    </div>
-                    <div className="text-xl font-bold text-blue-700">
-                      {stats.pending}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -530,7 +494,7 @@ const DocumentMaster: React.FC = () => {
               >
                 <Option value="all">All Status</Option>
                 <Option value="Approved">Approved</Option>
-                <Option value="Pending">Pending</Option>
+                <Option value="In Progress">In Progress</Option>
                 <Option value="Rejected">Rejected</Option>
               </Select>
             </Space>
