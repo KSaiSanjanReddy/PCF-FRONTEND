@@ -21,6 +21,7 @@ import type {
   LifeCycleStage,
   Product,
 } from "../lib/productService";
+import { getCompositionMetalDropdown } from "../lib/masterDataSetupService";
 import dayjs from "dayjs";
 import { usePermissions } from "../contexts/PermissionContext";
 
@@ -48,6 +49,7 @@ const ProductEdit: React.FC = () => {
   const [subCategories, setSubCategories] = useState<ProductSubCategory[]>([]);
   const [manufacturingProcesses, setManufacturingProcesses] = useState<ManufacturingProcess[]>([]);
   const [lifeCycleStages, setLifeCycleStages] = useState<LifeCycleStage[]>([]);
+  const [materials, setMaterials] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     loadData();
@@ -56,11 +58,12 @@ const ProductEdit: React.FC = () => {
   const loadData = async () => {
     try {
       setInitialLoading(true);
-      const [cats, subCats, mfgProcs, lcs] = await Promise.all([
+      const [cats, subCats, mfgProcs, lcs, mats] = await Promise.all([
         productService.getProductCategories(),
         productService.getProductSubCategories(),
         productService.getManufacturingProcesses(),
         productService.getLifeCycleStages(),
+        getCompositionMetalDropdown(),
       ]);
 
       // API returns data as array directly, not data.rows
@@ -73,6 +76,7 @@ const ProductEdit: React.FC = () => {
       setSubCategories(subCatsData);
       setManufacturingProcesses(mfgProcsData);
       setLifeCycleStages(lcsData);
+      setMaterials(mats);
 
       if (id) {
         const productRes = await productService.getProductById(id);
@@ -288,7 +292,16 @@ const ProductEdit: React.FC = () => {
                                             name="ts_material"
                                             rules={[{ required: true, message: "Required" }]}
                                         >
-                                            <Input size="large" />
+                                            <Select
+                                                size="large"
+                                                placeholder="Select material"
+                                                showSearch
+                                                optionFilterProp="label"
+                                                options={materials.map((m) => ({
+                                                    label: m.name,
+                                                    value: m.name,
+                                                }))}
+                                            />
                                         </Form.Item>
                                     </Col>
                                     <Col xs={24} md={8}>
