@@ -318,25 +318,27 @@ export async function getLiquidGaseousSolidUnitDropdown(): Promise<DropdownItem[
  */
 export async function getGaseousFuelUnitDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/gaseous-fuel-unit/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'gfu_id');
 }
 
 /**
  * Q22, Q27, Q28, Q30, Q33, Q44, Q47, Q51, Q67 - Energy Unit Dropdown
  * GET /api/master-data-setup/energy-unit/drop-down-list
+ * Response: { eu_id, code, name }
  */
 export async function getEnergyUnitDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/energy-unit/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'eu_id');
 }
 
 /**
  * Q32, Q48 - QC Equipment Unit Dropdown
  * GET /api/master-data-setup/qc-equipment/drop-down-list
+ * Response: { qcqu_id, code, name }
  */
 export async function getQcEquipmentUnitDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/qc-equipment/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'qcqu_id');
 }
 
 /**
@@ -351,10 +353,11 @@ export async function getLiquidGaseousUnitDropdown(): Promise<DropdownItem[]> {
 /**
  * Q37, Q61, Q68 - Solid Fuel Unit Dropdown
  * GET /api/master-data-setup/solid-fuel-unit/drop-down-list
+ * Response: { sfu_id, code, name }
  */
 export async function getSolidFuelUnitDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/solid-fuel-unit/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'sfu_id');
 }
 
 /**
@@ -369,37 +372,51 @@ export async function getLiquidSolidUnitDropdown(): Promise<DropdownItem[]> {
 /**
  * Q60, Q62 - Packing Unit Dropdown
  * GET /api/master-data-setup/packing-unit/drop-down-list
+ * Response: { pau_id, code, name }
  */
 export async function getPackingUnitDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/master-data-setup/packing-unit/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'pau_id');
 }
 
 /**
  * Q52 - Material/Material Type Dropdown
  * GET /api/ecoinvent-emission-factor-data-setup/materials-emission-factor/material-materialtype-drop-down-list
+ * Response: { mcm_id, combined_name }
  */
 export async function getMaterialTypeDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/materials-emission-factor/material-materialtype-drop-down-list");
-  return normalizeItems(data, 'id');
+  // This API uses combined_name instead of name
+  return data.map(item => ({
+    ...item,
+    id: item.mcm_id || item.id || '',
+    name: item.combined_name || item.name || '',
+  }));
 }
 
 /**
  * Q60 - Packing Type Dropdown
  * GET /api/ecoinvent-emission-factor-data-setup/packaging-emission-factor/drop-down-list-only-packing-type
+ * Response: { pef_id, code, material_type, ptt_id }
  */
 export async function getPackingTypeDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/packaging-emission-factor/drop-down-list-only-packing-type");
-  return normalizeItems(data, 'id');
+  // This API uses material_type instead of name
+  return data.map(item => ({
+    ...item,
+    id: item.pef_id || item.id || '',
+    name: item.material_type || item.name || '',
+  }));
 }
 
 /**
  * Q60 - Packaging Treatment Type Dropdown
  * GET /api/ecoinvent-emission-factor-data-setup/packaging-treatment-type/drop-down-list
+ * Response: { ptt_id, code, name }
  */
 export async function getPackagingTreatmentTypeDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<UnitApiItem>("/api/ecoinvent-emission-factor-data-setup/packaging-treatment-type/drop-down-list");
-  return normalizeItems(data, 'id');
+  return normalizeItems(data, 'ptt_id');
 }
 
 // Export all functions as a service object
