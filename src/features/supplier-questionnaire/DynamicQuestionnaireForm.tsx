@@ -722,22 +722,38 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
                       // Store the file key in form - get fresh value to avoid race conditions
                       const existingKeys = form.getFieldValue(field.name.split('.')) || [];
+                      let newValue: string | string[];
                       if (isMultipleFile) {
                         // For multiple files, add to array
                         const keysArray = Array.isArray(existingKeys) ? existingKeys : (existingKeys ? [existingKeys] : []);
+                        newValue = [...keysArray, result.key];
                         form.setFieldsValue({
                           [field.name.split('.')[0]]: field.name.split('.').slice(1).reduceRight(
                             (acc, part, idx, arr) => idx === arr.length - 1
-                              ? { [part]: [...keysArray, result.key] }
+                              ? { [part]: newValue }
                               : { [part]: acc },
                             {} as any
-                          ) || { [field.name.split('.').slice(-1)[0]]: [...keysArray, result.key] }
+                          ) || { [field.name.split('.').slice(-1)[0]]: newValue }
                         });
                         // Simpler approach - just set the value directly
-                        form.setFieldValue(field.name.split('.'), [...keysArray, result.key]);
+                        form.setFieldValue(field.name.split('.'), newValue);
                       } else {
                         // For single file, replace
-                        form.setFieldValue(field.name.split('.'), result.key);
+                        newValue = result.key;
+                        form.setFieldValue(field.name.split('.'), newValue);
+                      }
+
+                      // Trigger onValuesChange to save to localStorage
+                      if (onValuesChange) {
+                        const allValues = form.getFieldsValue();
+                        // Build the changed value object with proper nesting
+                        const changedValues = field.name.split('.').reduceRight(
+                          (acc, part, idx, arr) => idx === arr.length - 1
+                            ? { [part]: newValue }
+                            : { [part]: acc },
+                          {} as any
+                        );
+                        onValuesChange(changedValues, allValues);
                       }
                     } else {
                       onError?.(new Error(result.message || 'Upload failed'));
@@ -756,13 +772,28 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
               // Remove a file from the array
               const handleRemoveFile = (keyToRemove: string) => {
+                let newValue: string[] | undefined;
                 if (isMultipleFile) {
                   const freshKeys = form.getFieldValue(field.name.split('.')) || [];
                   const keysArray = Array.isArray(freshKeys) ? freshKeys : (freshKeys ? [freshKeys] : []);
                   const updatedKeys = keysArray.filter((k: string) => k !== keyToRemove);
-                  form.setFieldValue(field.name.split('.'), updatedKeys.length > 0 ? updatedKeys : undefined);
+                  newValue = updatedKeys.length > 0 ? updatedKeys : undefined;
+                  form.setFieldValue(field.name.split('.'), newValue);
                 } else {
-                  form.setFieldValue(field.name.split('.'), undefined);
+                  newValue = undefined;
+                  form.setFieldValue(field.name.split('.'), newValue);
+                }
+
+                // Trigger onValuesChange to save to localStorage
+                if (onValuesChange) {
+                  const allValues = form.getFieldsValue();
+                  const changedValues = field.name.split('.').reduceRight(
+                    (acc, part, idx, arr) => idx === arr.length - 1
+                      ? { [part]: newValue }
+                      : { [part]: acc },
+                    {} as any
+                  );
+                  onValuesChange(changedValues, allValues);
                 }
               };
 
