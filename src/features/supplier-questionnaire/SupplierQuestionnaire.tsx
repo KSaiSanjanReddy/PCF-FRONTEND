@@ -435,10 +435,22 @@ const SupplierQuestionnaire: React.FC = () => {
           bom_pcf_id,
         );
         if (draft) {
-          setFormData((prevData) => ({
-            ...prevData,
-            ...draft.formData,
-          }));
+          // Use deep merge to preserve nested structure while draft values take precedence
+          setFormData((prevData) => {
+            const result = { ...prevData };
+            const mergeDeep = (target: any, source: any): any => {
+              const merged = { ...target };
+              for (const key in source) {
+                if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                  merged[key] = mergeDeep(merged[key] || {}, source[key]);
+                } else {
+                  merged[key] = source[key];
+                }
+              }
+              return merged;
+            };
+            return mergeDeep(result, draft.formData);
+          });
           // Validate step index against current schema
           const savedStep = draft.currentStep || 0;
           if (savedStep < QUESTIONNAIRE_SCHEMA.length) {
@@ -468,6 +480,31 @@ const SupplierQuestionnaire: React.FC = () => {
     form.setFieldsValue(formData);
   }, [currentStep, formData, form]);
 
+  // Deep merge utility to preserve nested values (especially file fields)
+  // preserveTargetArrays: when true, keeps target arrays if source arrays are empty (for auto-save)
+  // when false, source always wins (for draft loading)
+  const deepMerge = (target: any, source: any, preserveTargetArrays = false): any => {
+    const result = { ...target };
+    for (const key in source) {
+      if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        // Recursively merge nested objects
+        result[key] = deepMerge(result[key] || {}, source[key], preserveTargetArrays);
+      } else if (Array.isArray(source[key])) {
+        // For arrays with preserveTargetArrays, only use source if it has items OR target is empty
+        // This prevents empty form arrays from overwriting saved file arrays in auto-save
+        const targetArray = result[key];
+        const sourceArray = source[key];
+        if (!preserveTargetArrays || sourceArray.length > 0 || !targetArray || targetArray.length === 0) {
+          result[key] = sourceArray;
+        }
+        // Otherwise keep target array (preserves file keys)
+      } else {
+        result[key] = source[key];
+      }
+    }
+    return result;
+  };
+
   // Auto-save functionality
   useEffect(() => {
     if (isCreateMode && !isViewMode) {
@@ -478,18 +515,16 @@ const SupplierQuestionnaire: React.FC = () => {
 
       // Set new timer for auto-save
       autoSaveTimerRef.current = setTimeout(() => {
-        const values = form.getFieldsValue();
-        const updatedData = { ...formData, ...values };
-
-        if (Object.keys(updatedData).length > 0) {
+        // Use formData directly - it's already kept up-to-date via onValuesChange
+        // Avoid form.getFieldsValue() as it may return stale/empty values for file fields
+        if (Object.keys(formData).length > 0) {
           setAutoSaveStatus("saving");
           supplierQuestionnaireService.saveDraft(
-            updatedData,
+            formData,
             currentStep,
             sup_id,
             bom_pcf_id,
           );
-          setFormData(updatedData);
           setAutoSaveStatus("saved");
           setLastSaved(new Date());
 
@@ -1417,7 +1452,8 @@ const SupplierQuestionnaire: React.FC = () => {
                 onFinish={() => {}}
                 onValuesChange={(changedValues, allValues) => {
                   // Update formData when values change to trigger progress recalculation
-                  setFormData((prev) => ({ ...prev, ...allValues }));
+                  // Use deep merge to preserve nested structure (allValues has correct file values from DynamicQuestionnaireForm)
+                  setFormData((prev) => deepMerge(prev, allValues));
 
                   // Call stage update API when supplier first inputs data (only for supplier mode)
                   if (sup_id && bom_pcf_id && !hasCalledStageUpdateRef.current && !isClientMode) {
