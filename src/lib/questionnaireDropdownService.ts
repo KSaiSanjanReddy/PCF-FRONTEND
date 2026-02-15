@@ -71,10 +71,12 @@ interface ProcessSpecificEnergyApiItem {
 }
 
 interface WasteTypeApiItem {
+  wmtef_id?: string;
   wmt_id?: string;
   waste_type_id?: string;
   id?: string;
-  name: string;
+  name?: string;
+  waste_type?: string;
   [key: string]: any;
 }
 
@@ -243,8 +245,8 @@ export async function getWasteTypeDropdown(): Promise<DropdownItem[]> {
   const data = await fetchDropdown<WasteTypeApiItem>("/api/ecoinvent-emission-factor-data-setup/waste-material-type-emission-factor/drop-down-list");
   return data.map(item => ({
     ...item,
-    id: item.wmt_id || item.waste_type_id || item.id || '',
-    name: item.name || '',
+    id: item.wmtef_id || item.wmt_id || item.waste_type_id || item.id || item.waste_type || '',
+    name: item.waste_type || item.name || '',
   }));
 }
 
