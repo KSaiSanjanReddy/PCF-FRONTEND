@@ -745,9 +745,23 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
                       // Trigger onValuesChange to save to localStorage
                       if (onValuesChange) {
+                        // Get current form values
                         const allValues = form.getFieldsValue();
+
+                        // Manually merge the new file value into allValues
+                        // because form.setFieldValue may not have updated synchronously
+                        const fieldParts = field.name.split('.');
+                        let target = allValues;
+                        for (let i = 0; i < fieldParts.length - 1; i++) {
+                          if (!target[fieldParts[i]]) {
+                            target[fieldParts[i]] = {};
+                          }
+                          target = target[fieldParts[i]];
+                        }
+                        target[fieldParts[fieldParts.length - 1]] = newValue;
+
                         // Build the changed value object with proper nesting
-                        const changedValues = field.name.split('.').reduceRight(
+                        const changedValues = fieldParts.reduceRight(
                           (acc, part, idx, arr) => idx === arr.length - 1
                             ? { [part]: newValue }
                             : { [part]: acc },
@@ -786,8 +800,22 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
                 // Trigger onValuesChange to save to localStorage
                 if (onValuesChange) {
+                  // Get current form values
                   const allValues = form.getFieldsValue();
-                  const changedValues = field.name.split('.').reduceRight(
+
+                  // Manually merge the removed file value into allValues
+                  // because form.setFieldValue may not have updated synchronously
+                  const fieldParts = field.name.split('.');
+                  let target = allValues;
+                  for (let i = 0; i < fieldParts.length - 1; i++) {
+                    if (!target[fieldParts[i]]) {
+                      target[fieldParts[i]] = {};
+                    }
+                    target = target[fieldParts[i]];
+                  }
+                  target[fieldParts[fieldParts.length - 1]] = newValue;
+
+                  const changedValues = fieldParts.reduceRight(
                     (acc, part, idx, arr) => idx === arr.length - 1
                       ? { [part]: newValue }
                       : { [part]: acc },
