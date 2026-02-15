@@ -19,60 +19,6 @@ export interface DataSetupGroup {
 
 export const dataSetupGroups: DataSetupGroup[] = [
   {
-    key: "electricity",
-    title: "Electricity Configuration",
-    description: "Configure electricity sources and methods",
-    tabs: [
-      {
-        key: "location-based",
-        label: "Location Based",
-        entity: "electricity-location-based",
-      },
-      {
-        key: "market-based",
-        label: "Market Based",
-        entity: "electricity-market-based",
-      },
-      {
-        key: "steam-heat-cooling",
-        label: "Steam Heat Cooling",
-        entity: "steam-heat-cooling",
-      },
-    ],
-  },
-  {
-    key: "materials",
-    title: "Materials Configuration",
-    description: "Configure material types and compositions",
-    tabs: [
-      {
-        key: "material-type",
-        label: "Material Type",
-        entity: "material-type",
-      },
-      {
-        key: "aluminium-type",
-        label: "Aluminium Type",
-        entity: "aluminium-type",
-      },
-      {
-        key: "silicon-type",
-        label: "Silicon Type",
-        entity: "silicon-type",
-      },
-      {
-        key: "magnesium-type",
-        label: "Magnesium Type",
-        entity: "magnesium-type",
-      },
-      {
-        key: "iron-type",
-        label: "Iron Type",
-        entity: "iron-type",
-      },
-    ],
-  },
-  {
     key: "manufacturing",
     title: "Manufacturing Configuration",
     description: "Configure manufacturing processes and stages",

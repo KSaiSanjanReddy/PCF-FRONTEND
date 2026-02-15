@@ -137,14 +137,6 @@ const Settings: React.FC = () => {
           badge: null,
           cardType: "default",
         },
-        {
-          name: "Industry",
-          description: "Set up industry categories and classification systems",
-          path: "/settings/industry",
-          icon: Building2,
-          badge: null,
-          cardType: "default",
-        },
         ...dataSetupGroups.map((group) => ({
           name: group.title,
           description: group.description,

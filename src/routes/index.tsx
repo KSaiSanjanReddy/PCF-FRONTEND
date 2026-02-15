@@ -25,7 +25,6 @@ import PublicManufacturerOnboarding from "../pages/PublicManufacturerOnboarding"
 import PublicSupplierOnboarding from "../pages/PublicSupplierOnboarding";
 import Products from "../pages/settings/Products";
 import Components from "../pages/settings/Components";
-import Industry from "../pages/settings/Industry";
 import DataSetup from "../pages/settings/DataSetup";
 import DataSetupTabs from "../pages/settings/DataSetupTabs";
 import MasterDataSetupTabs from "../pages/settings/MasterDataSetupTabs";
@@ -434,14 +433,6 @@ export const router = createBrowserRouter([
         element: (
           <PermissionRoute permissionKey="data configuration">
             <Components />
-          </PermissionRoute>
-        ),
-      },
-      {
-        path: "settings/industry/:tab?",
-        element: (
-          <PermissionRoute permissionKey="data configuration">
-            <Industry />
           </PermissionRoute>
         ),
       },
