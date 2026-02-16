@@ -78,7 +78,7 @@ const ManufacturerOnboardingForm: React.FC = () => {
       }
 
       if (result.success) {
-        message.success(isEditMode ? "Manufacturer updated successfully" : "Manufacturer created successfully");
+        message.success(result.message || (isEditMode ? "Manufacturer updated successfully" : "Manufacturer created successfully"));
         navigate("/settings/users");
       } else {
         message.error(result.message || "Failed to save manufacturer");

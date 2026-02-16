@@ -36,7 +36,7 @@ const PublicSupplierOnboarding: React.FC = () => {
 
       if (result.success) {
         setSubmitted(true);
-        message.success("Registration submitted successfully!");
+        message.success(result.message || "Registration submitted successfully!");
       } else {
         message.error(result.message || "Failed to submit registration");
       }

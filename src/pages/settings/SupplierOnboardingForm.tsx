@@ -74,7 +74,7 @@ const SupplierOnboardingForm: React.FC = () => {
       }
 
       if (result.success) {
-        message.success(isEditMode ? "Supplier updated successfully" : "Supplier created successfully");
+        message.success(result.message || (isEditMode ? "Supplier updated successfully" : "Supplier created successfully"));
         navigate("/settings/users");
       } else {
         message.error(result.message || "Failed to save supplier");
