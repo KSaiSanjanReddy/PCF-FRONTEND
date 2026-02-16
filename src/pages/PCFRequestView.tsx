@@ -154,15 +154,17 @@ const PCFRequestView: React.FC = () => {
   useEffect(() => {
     const stages = requestData?.pcf_request_stages;
     const dataCollectionStages = requestData?.pcf_data_collection_stage || [];
-    const isDataCollectionDone =
+    // Check if ANY data collection stage is completed (not ALL)
+    // This allows viewing responses for completed suppliers even if others are pending
+    const hasAnyCompletedDataCollection =
       stages?.is_data_collected ||
       (dataCollectionStages.length > 0 &&
-        dataCollectionStages.every(
+        dataCollectionStages.some(
           (stage: any) =>
             stage.is_submitted === true && stage.completed_date !== null,
         ));
 
-    if (id && isDataCollectionDone) {
+    if (id && hasAnyCompletedDataCollection) {
       fetchDqrList(id);
     }
   }, [

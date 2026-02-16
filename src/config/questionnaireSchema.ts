@@ -2076,6 +2076,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        autoPopulateFromProducts: true,
         dependency: {
           field: "scope_3.logistics.emissions_tracked",
           value: "No",
@@ -2084,14 +2085,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
           {
             name: "mpn",
             label: "MPN",
-            type: "text",
-            placeholder: "Enter MPN",
+            type: "select",
+            apiDropdown: "bomMaterials",
+            placeholder: "Select MPN",
           },
           {
             name: "component_name",
             label: "Component Name",
             type: "text",
-            placeholder: "Name",
+            placeholder: "Auto-filled from MPN",
           },
           {
             name: "mode",
