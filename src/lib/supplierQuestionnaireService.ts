@@ -883,7 +883,7 @@ class SupplierQuestionnaireService {
                   })
                   .filter(item => item.fuel_type && (item.scoseu_sub_fuel_type_questions.length > 0 || item.fuel_type)),
               mobile_combustion_company_owned_vehicles_questions: this.ensureArray(data.scope_1?.mobile_combustion)
-                  .filter(item => item.fuel_type && item.quantity)
+                  .filter(item => item.fuel_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       fuel_type: item.fuel_type,
                       quantity: item.quantity,
@@ -891,7 +891,7 @@ class SupplierQuestionnaireService {
                   })),
               refrigerant_top_ups_performed: this.convertToBoolean(data.scope_1?.fugitive_emissions?.refrigerant_top_ups || false),
               refrigerants_questions: this.ensureArray(data.scope_1?.fugitive_emissions?.refrigerants)
-                  .filter(item => item.type && item.quantity)
+                  .filter(item => item.type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       refrigerant_type: item.type,
                       quantity: item.quantity,
@@ -899,7 +899,7 @@ class SupplierQuestionnaireService {
                   })),
               industrial_process_emissions_present: this.convertToBoolean(data.scope_1?.process_emissions?.present || false),
               process_emissions_sources_questions: this.ensureArray(data.scope_1?.process_emissions?.sources)
-                  .filter(item => item.source && item.gas_type && item.quantity)
+                  .filter(item => item.source && item.gas_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       source: item.source,
                       gas_type: item.gas_type,
@@ -909,7 +909,7 @@ class SupplierQuestionnaireService {
           },
           scope_two_indirect_emissions_questions: {
               scope_two_indirect_emissions_from_purchased_energy_questions: this.ensureArray(data.scope_2?.purchased_energy)
-                  .filter(item => item.energy_source && item.energy_type && item.quantity)
+                  .filter(item => item.energy_source && item.energy_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       energy_source: item.energy_source,
                       energy_type: item.energy_type,
@@ -943,7 +943,7 @@ class SupplierQuestionnaireService {
                   })),
               process_specific_energy_usage: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.process_specific_usage_enabled || this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.process_energy_usage).length > 0),
               process_specific_energy_usage_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.process_energy_usage)
-                  .filter(item => item.process_type && item.quantity)
+                  .filter(item => item.process_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => {
                       // Combine energy_source_name and energy_type_name into single energy_type field
                       const combinedEnergyType = item.energy_source_name && item.energy_type_name
@@ -962,7 +962,7 @@ class SupplierQuestionnaireService {
                   }),
               do_you_use_any_abatement_systems: this.convertToBoolean(data.scope_2?.manufacturing_process_specific_energy?.abatement_systems || false),
               abatement_systems_used_questions: this.ensureArray(data.scope_2?.manufacturing_process_specific_energy?.abatement_energy_consumption)
-                  .filter(item => item.source && item.quantity)
+                  .filter(item => item.source && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       source: item.source,
                       quantity: item.quantity,
@@ -970,7 +970,7 @@ class SupplierQuestionnaireService {
                   })),
               water_consumption_and_treatment_details: data.scope_2?.water_consumption || data.scope_2?.manufacturing_process_specific_energy?.water_consumption_details || '',
               type_of_quality_control_equipment_usage_questions: this.ensureArray(data.scope_2?.quality_control?.equipment)
-                  .filter(item => item.equipment_name && item.quantity)
+                  .filter(item => item.equipment_name && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       equipment_name: item.equipment_name,
                       quantity: item.quantity,
@@ -978,7 +978,7 @@ class SupplierQuestionnaireService {
                       avg_operating_hours_per_month: item.operating_hours || ''
                   })),
               electricity_consumed_for_quality_control_questions: this.ensureArray(data.scope_2?.quality_control?.electricity_consumption)
-                  .filter(item => item.energy_type && item.quantity)
+                  .filter(item => item.energy_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       energy_type: item.energy_type,
                       quantity: item.quantity,
@@ -986,7 +986,7 @@ class SupplierQuestionnaireService {
                       period: item.period
                   })),
               quality_control_process_usage_questions: this.ensureArray(data.scope_2?.quality_control?.utilities)
-                  .filter(item => item.name && item.quantity)
+                  .filter(item => item.name && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       process_name: item.name,
                       quantity: item.quantity,
@@ -994,7 +994,7 @@ class SupplierQuestionnaireService {
                       period: item.period
                   })),
               quality_control_process_usage_pressure_or_flow_questions: this.ensureArray(data.scope_2?.quality_control?.utilities_pressure_flow)
-                  .filter(item => item.name && item.quantity)
+                  .filter(item => item.name && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       flow_name: item.name,
                       quantity: item.quantity,
@@ -1011,7 +1011,7 @@ class SupplierQuestionnaireService {
                   })),
               do_you_perform_destructive_testing: this.convertToBoolean(data.scope_2?.quality_control?.destructive_testing || false),
               weight_of_samples_destroyed_questions: this.ensureArray(data.scope_2?.quality_control?.destructive_testing_details)
-                  .filter(item => item.component_name && item.weight)
+                  .filter(item => item.component_name && (item.weight !== undefined && item.weight !== null && item.weight !== ''))
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1038,7 +1038,7 @@ class SupplierQuestionnaireService {
                       percentage: item.percentage
                   })),
               weight_of_quality_control_waste_generated_questions: this.ensureArray(data.scope_2?.quality_control?.waste)
-                  .filter(item => item.waste_type && item.weight)
+                  .filter(item => item.waste_type && (item.weight !== undefined && item.weight !== null && item.weight !== ''))
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
                       ...(item.component_name && { component_name: item.component_name }),
@@ -1051,7 +1051,7 @@ class SupplierQuestionnaireService {
               total_energy_consumption_of_it_hardware_production: this.convertToBoolean(data.scope_2?.it_for_production?.hardware_energy_consumption_tracked || false),
               energy_con_included_total_energy_pur_sec_two_qfortythree: this.convertToBoolean(data.scope_2?.it_for_production?.hardware_energy_included || false),
               energy_consumption_for_qfortyfour_questions: this.ensureArray(data.scope_2?.it_for_production?.hardware_energy_consumption)
-                  .filter(item => item.energy_source && item.energy_type && item.quantity)
+                  .filter(item => item.energy_source && item.energy_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       energy_purchased: item.energy_source,
                       energy_type: item.energy_type,
@@ -1068,7 +1068,7 @@ class SupplierQuestionnaireService {
                       data_transfer: item.data_transfer
                   })),
               dedicated_monitoring_sensor_usage_questions: this.ensureArray(data.scope_2?.it_for_production?.sensors)
-                  .filter(item => item.type && item.quantity)
+                  .filter(item => item.type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       type_of_sensor: item.type,
                       sensor_quantity: item.quantity,
@@ -1076,7 +1076,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
               annual_replacement_rate_of_sensor_questions: this.ensureArray(data.scope_2?.it_for_production?.sensor_replacement)
-                  .filter(item => item.consumable_name && item.quantity)
+                  .filter(item => item.consumable_name && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       consumable_name: item.consumable_name,
                       quantity: item.quantity,
@@ -1085,7 +1085,7 @@ class SupplierQuestionnaireService {
               do_you_use_any_cooling_sysytem_for_server: this.convertToBoolean(data.scope_2?.it_for_production?.cooling_systems || false),
               energy_con_included_total_energy_pur_sec_two_qfifty: this.convertToBoolean(data.scope_2?.it_for_production?.cooling_energy_included || false),
               energy_consumption_for_qfiftyone_questions: this.ensureArray(data.scope_2?.it_for_production?.cooling_energy_consumption)
-                  .filter(item => item.energy_source && item.energy_type && item.quantity)
+                  .filter(item => item.energy_source && item.energy_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       energy_purchased: item.energy_source,
                       energy_type: item.energy_type,
@@ -1116,7 +1116,7 @@ class SupplierQuestionnaireService {
                   })),
               percentage_of_pre_post_consumer_material_used_in_product: this.convertToBoolean(data.scope_3?.materials?.estimate_pre_post_consumer || false),
               pre_post_consumer_reutilization_percentage_questions: this.ensureArray(data.scope_3?.materials?.material_type_percentages)
-                  .filter(item => item.type && item.percentage)
+                  .filter(item => item.type && (item.percentage !== undefined && item.percentage !== null && item.percentage !== ''))
                   .map(item => ({
                       material_type: item.type,
                       percentage: String(item.percentage)
@@ -1139,7 +1139,7 @@ class SupplierQuestionnaireService {
                       treatment_type: item.treatment_type
                   })),
               weight_of_packaging_per_unit_product_questions: this.ensureArray(data.scope_3?.packaging?.weight_per_unit)
-                  .filter(item => item.component_name && item.weight)
+                  .filter(item => item.component_name && (item.weight !== undefined && item.weight !== null && item.weight !== ''))
                   .map(item => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1152,7 +1152,7 @@ class SupplierQuestionnaireService {
               do_you_use_electricity_for_packaging: this.convertToBoolean(data.scope_3?.packaging?.electricity_used || false),
               energy_con_included_total_energy_pur_sec_two_qsixtysix: this.convertToBoolean(data.scope_3?.packaging?.energy_included || false),
               energy_consumption_for_qsixtyseven_questions: this.ensureArray(data.scope_3?.packaging?.energy_consumption)
-                  .filter(item => item.energy_source && item.energy_type && item.quantity)
+                  .filter(item => item.energy_source && item.energy_type && (item.quantity !== undefined && item.quantity !== null && item.quantity !== ''))
                   .map(item => ({
                       energy_purchased: item.energy_source,
                       energy_type: item.energy_type,
@@ -1160,7 +1160,7 @@ class SupplierQuestionnaireService {
                       unit: item.unit
                   })),
               weight_of_pro_packaging_waste_questions: this.ensureArray(data.scope_3?.waste_disposal?.types_and_weight)
-                  .filter(item => item.waste_type && item.weight)
+                  .filter(item => item.waste_type && (item.weight !== undefined && item.weight !== null && item.weight !== ''))
                   .map((item: any) => ({
                       ...(item.bom_id && { bom_id: item.bom_id }),
                       ...(item.material_number && { material_number: item.material_number }),
@@ -1184,7 +1184,7 @@ class SupplierQuestionnaireService {
                   })),
               do_you_track_emission_from_transport: this.convertToBoolean(data.scope_3?.logistics?.emissions_tracked || false),
               co_two_emission_of_raw_material_questions: this.ensureArray(data.scope_3?.logistics?.estimated_emissions)
-                  .filter(item => item.raw_material && item.transport_mode && item.source && item.destination && item.co2e)
+                  .filter(item => item.raw_material && item.transport_mode && item.source && item.destination && (item.co2e !== undefined && item.co2e !== null && item.co2e !== ''))
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
                       ...(item.component_name && { component_name: item.component_name }),
@@ -1201,7 +1201,7 @@ class SupplierQuestionnaireService {
                   })),
               mode_of_transport_used_for_transportation: this.convertToBoolean((data.scope_3?.logistics?.transport_modes?.length || 0) > 0),
               mode_of_transport_used_for_transportation_questions: this.ensureArray(data.scope_3?.logistics?.transport_modes)
-                  .filter(item => item.mode && item.source && item.destination && item.distance)
+                  .filter(item => item.mode && item.source && item.destination && (item.distance !== undefined && item.distance !== null && item.distance !== ''))
                   .map(item => ({
                       ...(item.mpn && { mpn: item.mpn }),
                       ...(item.component_name && { component_name: item.component_name }),
