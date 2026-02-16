@@ -838,7 +838,27 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
 
     setIsImporting(true);
     try {
-      const result = await bulkAddEcoInventData(currentEntity!, importPreview);
+      // Convert ptt_id/wtt_id to treatment_type_name for packaging and waste emission factors
+      let itemsToImport = importPreview;
+      if (isPackagingEmissionFactor) {
+        itemsToImport = importPreview.map(item => {
+          const selectedType = treatmentTypes.find(t => t.id === item.ptt_id);
+          return {
+            ...item,
+            treatment_type_name: selectedType?.name || item.ptt_id || "",
+          };
+        });
+      } else if (isWasteMaterialEmissionFactor) {
+        itemsToImport = importPreview.map(item => {
+          const selectedType = wasteTreatmentTypes.find(t => t.id === item.wtt_id);
+          return {
+            ...item,
+            treatment_type_name: selectedType?.name || item.wtt_id || "",
+          };
+        });
+      }
+
+      const result = await bulkAddEcoInventData(currentEntity!, itemsToImport);
 
       if (result.success) {
         message.success(

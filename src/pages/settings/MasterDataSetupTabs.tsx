@@ -167,14 +167,10 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       message.error("Please select an energy source");
       return;
     }
-    // Validate mcm_id and code for material-composition-metal-type
+    // Validate mcm_id for material-composition-metal-type (code is auto-generated)
     if (currentEntity === "material-composition-metal-type") {
       if (!newItem.mcm_id) {
         message.error("Please select a composition metal");
-        return;
-      }
-      if (!newItem.code) {
-        message.error("Please enter a code");
         return;
       }
     }
@@ -976,17 +972,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       {canCreate("master data setup") && (
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-dashed border-gray-300">
                           <td className="px-6 py-4">
-                            {currentEntity === "material-composition-metal-type" ? (
-                              <input
-                                type="text"
-                                placeholder="Enter code"
-                                value={newItem.code}
-                                onChange={(e) => setNewItem({ ...newItem, code: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
-                              />
-                            ) : (
-                              <span className="text-sm text-gray-400 italic">Auto-generated</span>
-                            )}
+                            <span className="text-sm text-gray-400 italic">Auto-generated</span>
                           </td>
                           {currentEntity === "sub-fuel-type" && (
                             <td className="px-6 py-4">
@@ -1073,7 +1059,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   !newItem.name ||
                                   (currentEntity === "sub-fuel-type" && !newItem.ft_id) ||
                                   (currentEntity === "energy-type" && !newItem.es_id) ||
-                                  (currentEntity === "material-composition-metal-type" && (!newItem.mcm_id || !newItem.code))
+                                  (currentEntity === "material-composition-metal-type" && !newItem.mcm_id)
                                 }
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md disabled:hover:shadow-none flex items-center space-x-1"
                               >
