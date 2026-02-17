@@ -61,12 +61,12 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // State for each tab's data
   const [tabData, setTabData] = useState<Record<string, MasterDataItem[]>>({});
-  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+  const [newItem, setNewItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
   const [editingItem, setEditingItem] = useState<{
     item: MasterDataItem;
     tab: string;
   } | null>(null);
-  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+  const [editItem, setEditItem] = useState({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   // Fuel type dropdown for sub-fuel-type entity
   const [fuelTypes, setFuelTypes] = useState<{ id: string; name: string }[]>([]);
@@ -91,6 +91,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     fuel_type_name: "",
     energy_source_name: "",
     composition_metal_name: "",
+    country_name: "",
   });
   const [importPreview, setImportPreview] = useState<MasterDataItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -181,6 +182,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       mcm_id: newItem.mcm_id || undefined,
       code: newItem.code || undefined,
       description: newItem.description || undefined,
+      country_name: newItem.country_name || undefined,
     });
     if (result.success) {
       message.success("Item added successfully");
@@ -190,7 +192,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
         id: item.id || `temp-${idx + 1}`,
       }));
       setTabData((prev) => ({ ...prev, [activeTab]: dataWithIds }));
-      setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+      setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
     } else {
       message.error({
         content: result.message || "Failed to add item",
@@ -212,6 +214,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       mcm_id: item.mcm_id || "",
       code: item.code || "",
       description: item.description || "",
+      country_name: item.country_name || "",
     });
   };
 
@@ -266,17 +269,18 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       [activeTab]: (prev[activeTab] || []).map((item) =>
         item.id === editingItem.item.id
           ? {
-              ...item,
-              name: editItem.name,
-              ft_id: editItem.ft_id || item.ft_id,
-              fuel_type_name: fuelTypeName || item.fuel_type_name,
-              es_id: editItem.es_id || item.es_id,
-              energy_source_name: energySourceName || item.energy_source_name,
-              mcm_id: editItem.mcm_id || item.mcm_id,
-              composition_metal_name: compositionMetalName || item.composition_metal_name,
-              code: editItem.code || item.code,
-              description: editItem.description || item.description,
-            }
+            ...item,
+            name: editItem.name,
+            ft_id: editItem.ft_id || item.ft_id,
+            fuel_type_name: fuelTypeName || item.fuel_type_name,
+            es_id: editItem.es_id || item.es_id,
+            energy_source_name: energySourceName || item.energy_source_name,
+            mcm_id: editItem.mcm_id || item.mcm_id,
+            composition_metal_name: compositionMetalName || item.composition_metal_name,
+            code: editItem.code || item.code,
+            description: editItem.description || item.description,
+            country_name: editItem.country_name || item.country_name,
+          }
           : item
       ),
     }));
@@ -292,6 +296,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       mcm_id: editedValues.mcm_id || undefined,
       code: editedValues.code || undefined,
       description: editedValues.description || undefined,
+      country_name: editedValues.country_name || undefined,
     });
 
     if (result.success) {
@@ -308,7 +313,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   const handleCancelEdit = () => {
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -342,8 +347,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
     setEditingItem(null);
-    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
-    setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" });
+    setEditItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
+    setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" });
     // Update URL to reflect tab change
     const currentPath = window.location.pathname;
     const tabKeys = tabs.map((t) => t.key);
@@ -365,8 +370,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     }
 
     // Convert data to CSV
-    const headers = ["Code", "Name"];
-    const rows = currentData.map((item) => [item.code || "", item.name]);
+    const headers = ["Code", "Name", "Country Name"];
+    const rows = currentData.map((item) => [item.code || "", item.name, item.country_name || ""]);
 
     const csvContent = [
       headers.join(","),
@@ -380,8 +385,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `${currentTabConfig?.label || "data"}-${
-        new Date().toISOString().split("T")[0]
+      `${currentTabConfig?.label || "data"}-${new Date().toISOString().split("T")[0]
       }.csv`
     );
     link.style.visibility = "hidden";
@@ -413,12 +417,13 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
 
   // Auto-detect column mapping based on header names
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
-    const mapping: Record<string, string> = { name: "", fuel_type_name: "", energy_source_name: "", composition_metal_name: "" };
+    const mapping: Record<string, string> = { name: "", fuel_type_name: "", energy_source_name: "", composition_metal_name: "", country_name: "" };
     const fieldsToMatch = [
       { key: "name", patterns: ["name", "title", "label", "value", "sub fuel type", "sub-fuel-type", "energy type", "energy-type", "composition metal type"] },
       { key: "fuel_type_name", patterns: ["fuel type", "fuel_type", "fuel-type", "fueltype", "fuel type name"] },
       { key: "energy_source_name", patterns: ["energy source", "energy_source", "energy-source", "energysource", "energy source name"] },
       { key: "composition_metal_name", patterns: ["composition metal", "composition_metal", "composition-metal", "compositionmetal", "composition metal name"] },
+      { key: "country_name", patterns: ["country name", "country_name", "countryname", "country"] },
     ];
 
     headers.forEach((header) => {
@@ -493,6 +498,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     const fuelTypeNameIdx = getColumnIndex("fuel_type_name");
     const energySourceNameIdx = getColumnIndex("energy_source_name");
     const compositionMetalNameIdx = getColumnIndex("composition_metal_name");
+    const countryNameIdx = getColumnIndex("country_name");
 
     const previewItems: MasterDataItem[] = data
       .filter((row) => {
@@ -517,6 +523,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
       .map((row) => {
         const item: MasterDataItem = {
           name: nameIdx >= 0 ? row[nameIdx] : "",
+          country_name: countryNameIdx >= 0 ? row[countryNameIdx] : "",
         };
         // Include fuel_type_name for sub-fuel-type bulk import
         if (currentEntity === "sub-fuel-type" && fuelTypeNameIdx >= 0) {
@@ -564,11 +571,8 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
         setTabData((prev) => ({ ...prev, [activeTab]: data }));
 
         // Close modal and reset state
+        handleCloseImportModal();
         setShowImportModal(false);
-        setCsvHeaders([]);
-        setCsvData([]);
-        setColumnMapping({ name: "" });
-        setImportPreview([]);
       } else {
         message.error({
           content: result.message || "Import failed",
@@ -590,7 +594,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
     setShowImportModal(false);
     setCsvHeaders([]);
     setCsvData([]);
-    setColumnMapping({ name: "", fuel_type_name: "", energy_source_name: "" });
+    setColumnMapping({ name: "", fuel_type_name: "", energy_source_name: "", country_name: "" });
     setImportPreview([]);
   };
 
@@ -668,11 +672,10 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                   <button
                     key={tab.key}
                     onClick={() => handleTabChange(tab.key)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                      activeTab === tab.key
-                        ? "bg-white text-green-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === tab.key
+                      ? "bg-white text-green-600 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -745,6 +748,11 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                         <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                           Name
                         </th>
+                        {(currentEntity === "country-iso-two" || currentEntity === "country-iso-three" || currentEntity === "time-zone") && (
+                          <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
+                            Country Name
+                          </th>
+                        )}
                         {currentEntity === "material-composition-metal-type" && (
                           <th className="px-6 py-4 text-left text-xs font-semibold text-green-800 uppercase tracking-wider">
                             Description
@@ -759,15 +767,14 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                       {currentData.map((item, index) => (
                         <tr
                           key={item.id}
-                          className={`group hover:bg-gray-50 transition-colors duration-150 ${
-                            editingItem?.item.id === item.id &&
+                          className={`group hover:bg-gray-50 transition-colors duration-150 ${editingItem?.item.id === item.id &&
                             editingItem?.tab === activeTab
-                              ? "bg-green-50 border-l-4 border-green-500"
-                              : ""
-                          } ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
+                            ? "bg-green-50 border-l-4 border-green-500"
+                            : ""
+                            } ${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
                         >
                           {editingItem?.item.id === item.id &&
-                          editingItem?.tab === activeTab ? (
+                            editingItem?.tab === activeTab ? (
                             <>
                               <td className="px-6 py-4">
                                 {currentEntity === "material-composition-metal-type" ? (
@@ -861,6 +868,20 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                                 </div>
                               </td>
+                              {(currentEntity === "country-iso-two" || currentEntity === "country-iso-three" || currentEntity === "time-zone") && (
+                                <td className="px-6 py-4">
+                                  <input
+                                    type="text"
+                                    value={editItem.country_name}
+                                    onChange={(e) =>
+                                      setEditItem({ ...editItem, country_name: e.target.value })
+                                    }
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-all duration-200 bg-white shadow-sm"
+                                    placeholder="Enter country name"
+                                  />
+                                </td>
+                              )}
                               {currentEntity === "material-composition-metal-type" && (
                                 <td className="px-6 py-4">
                                   <input
@@ -934,6 +955,13 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                   {item.name}
                                 </div>
                               </td>
+                              {(currentEntity === "country-iso-two" || currentEntity === "country-iso-three" || currentEntity === "time-zone") && (
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-gray-600">
+                                    {item.country_name || "-"}
+                                  </div>
+                                </td>
+                              )}
                               {currentEntity === "material-composition-metal-type" && (
                                 <td className="px-6 py-4">
                                   <div className="text-sm text-gray-600">
@@ -1040,6 +1068,17 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
                             />
                           </td>
+                          {(currentEntity === "country-iso-two" || currentEntity === "country-iso-three" || currentEntity === "time-zone") && (
+                            <td className="px-6 py-4">
+                              <input
+                                type="text"
+                                placeholder="Enter country name"
+                                value={newItem.country_name}
+                                onChange={(e) => setNewItem({ ...newItem, country_name: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm transition-colors placeholder-gray-400"
+                              />
+                            </td>
+                          )}
                           {currentEntity === "material-composition-metal-type" && (
                             <td className="px-6 py-4">
                               <input
@@ -1067,7 +1106,7 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                                 <span>Add</span>
                               </button>
                               <button
-                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "" })}
+                                onClick={() => setNewItem({ name: "", ft_id: "", es_id: "", mcm_id: "", code: "", description: "", country_name: "" })}
                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                                 title="Clear form"
                               >
@@ -1265,6 +1304,24 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                   ))}
                 </Select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Country Name
+                </label>
+                <Select
+                  className="w-full max-w-xs"
+                  placeholder="Select column"
+                  value={columnMapping.country_name || undefined}
+                  onChange={(value) => handleMappingChange("country_name", value)}
+                  allowClear
+                >
+                  {csvHeaders.map((header) => (
+                    <Option key={header} value={header}>
+                      {header}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -1291,10 +1348,10 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                     {currentEntity === "sub-fuel-type"
                       ? "Please map both Fuel Type and Name columns"
                       : currentEntity === "energy-type"
-                      ? "Please map both Energy Source and Name columns"
-                      : currentEntity === "material-composition-metal-type"
-                      ? "Please map both Composition Metal and Name columns"
-                      : "Please map the Name column"}
+                        ? "Please map both Energy Source and Name columns"
+                        : currentEntity === "material-composition-metal-type"
+                          ? "Please map both Composition Metal and Name columns"
+                          : "Please map the Name column"}
                   </p>
                 </div>
               </div>
@@ -1305,20 +1362,25 @@ const MasterDataSetupTabs: React.FC<MasterDataSetupTabsProps> = ({
                   columns={
                     currentEntity === "sub-fuel-type"
                       ? [
-                          { title: "Fuel Type", dataIndex: "fuel_type_name", key: "fuel_type_name" },
-                          { title: "Name", dataIndex: "name", key: "name" },
-                        ]
+                        { title: "Fuel Type", dataIndex: "fuel_type_name", key: "fuel_type_name" },
+                        { title: "Name", dataIndex: "name", key: "name" },
+                      ]
                       : currentEntity === "energy-type"
-                      ? [
+                        ? [
                           { title: "Energy Source", dataIndex: "energy_source_name", key: "energy_source_name" },
                           { title: "Name", dataIndex: "name", key: "name" },
                         ]
-                      : currentEntity === "material-composition-metal-type"
-                      ? [
-                          { title: "Composition Metal", dataIndex: "composition_metal_name", key: "composition_metal_name" },
-                          { title: "Name", dataIndex: "name", key: "name" },
-                        ]
-                      : [{ title: "Name", dataIndex: "name", key: "name" }]
+                        : currentEntity === "material-composition-metal-type"
+                          ? [
+                            { title: "Composition Metal", dataIndex: "composition_metal_name", key: "composition_metal_name" },
+                            { title: "Name", dataIndex: "name", key: "name" },
+                          ]
+                          : (currentEntity === "country-iso-two" || currentEntity === "country-iso-three" || currentEntity === "time-zone")
+                            ? [
+                              { title: "Name", dataIndex: "name", key: "name" },
+                              { title: "Country Name", dataIndex: "country_name", key: "country_name" },
+                            ]
+                            : [{ title: "Name", dataIndex: "name", key: "name" }]
                   }
                   pagination={false}
                   size="small"
