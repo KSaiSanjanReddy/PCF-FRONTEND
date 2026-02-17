@@ -215,15 +215,15 @@ const ReviewSubmitStep: React.FC<ReviewSubmitStepProps> = ({ formData, onEditSte
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product Category</p>
-                <p className="font-medium text-gray-900">{formData.productCategory || '-'}</p>
+                <p className="font-medium text-gray-900">{formData.productCategoryName || formData.productCategory || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Component Category</p>
-                <p className="font-medium text-gray-900">{formData.componentCategory || '-'}</p>
+                <p className="font-medium text-gray-900">{formData.componentCategoryName || formData.componentCategory || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Component Type</p>
-                <p className="font-medium text-gray-900">{formData.componentType || '-'}</p>
+                <p className="font-medium text-gray-900">{formData.componentTypeName || formData.componentType || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Product Code</p>
