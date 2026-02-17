@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { ArrowLeft, Truck, Save } from "lucide-react";
 import userManagementService from "../../lib/userManagementService";
+import { getDropdownList } from "../../lib/masterDataSetupService";
 import type { SupplierOnboarding } from "../../types/userManagement";
 
 const { Option } = Select;
@@ -26,13 +27,20 @@ const SupplierOnboardingForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [businessTypeOptions, setBusinessTypeOptions] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
+    loadBusinessTypeOptions();
     if (id) {
       setIsEditMode(true);
       loadSupplierData(id);
     }
   }, [id]);
+
+  const loadBusinessTypeOptions = async () => {
+    const options = await getDropdownList("supplier-tier");
+    setBusinessTypeOptions(options);
+  };
 
   const loadSupplierData = async (supplierId: string) => {
     setInitialLoading(true);
@@ -196,11 +204,11 @@ const SupplierOnboardingForm: React.FC = () => {
                 <Col xs={24} md={8}>
                   <Form.Item name="supplier_business_type" label="Business Type">
                     <Select placeholder="Select business type">
-                      <Option value="Manufacturer">Manufacturer</Option>
-                      <Option value="Distributor">Distributor</Option>
-                      <Option value="Wholesaler">Wholesaler</Option>
-                      <Option value="Retailer">Retailer</Option>
-                      <Option value="Other">Other</Option>
+                      {businessTypeOptions.map((option) => (
+                        <Option key={option.id} value={option.name}>
+                          {option.name}
+                        </Option>
+                      ))}
                     </Select>
                   </Form.Item>
                 </Col>
