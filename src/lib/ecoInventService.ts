@@ -18,8 +18,11 @@ export interface EcoInventItem {
   id?: string;
   // Name field varies by entity type
   element_name?: string; // materials-emission-factor
+  element_type?: string; // materials-emission-factor (for bulk import)
   type_of_energy?: string; // electricity-emission-factor
+  treatment_type?: string; // electricity-emission-factor (for bulk import)
   fuel_type?: string; // fuel-emission-factor
+  sub_fuel_type?: string; // fuel-emission-factor (for bulk import)
   material_type?: string; // packaging-emission-factor
   name?: string; // packaging-treatment-type, waste-treatment-type
   code?: string; // packaging-treatment-type, waste-treatment-type
@@ -416,6 +419,45 @@ export async function bulkAddEcoInventData(
       payloadItems = items.map((item) => ({
         [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
         treatment_type_name: item.treatment_type_name || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+    // Materials emission factor includes element_type
+    else if (entity === "materials-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        element_type: item.element_type || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+    // Electricity emission factor includes treatment_type
+    else if (entity === "electricity-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        treatment_type: item.treatment_type || "",
+        ef_eu_region: item.ef_eu_region || "0",
+        ef_india_region: item.ef_india_region || "0",
+        ef_global_region: item.ef_global_region || "0",
+        year: item.year || new Date().getFullYear(),
+        unit: item.unit || "",
+        iso_country_code: item.iso_country_code || "",
+      }));
+    }
+    // Fuel emission factor includes sub_fuel_type
+    else if (entity === "fuel-emission-factor") {
+      payloadItems = items.map((item) => ({
+        [config.nameField]: item[config.nameField as keyof EcoInventItem] || "",
+        sub_fuel_type: item.sub_fuel_type || "",
         ef_eu_region: item.ef_eu_region || "0",
         ef_india_region: item.ef_india_region || "0",
         ef_global_region: item.ef_global_region || "0",

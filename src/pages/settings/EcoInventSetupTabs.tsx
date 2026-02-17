@@ -632,6 +632,21 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       mapping.wtt_id = "";
     }
 
+    // Add element_type for materials emission factor
+    if (isMaterialsEmissionFactor) {
+      mapping.element_type = "";
+    }
+
+    // Add treatment_type for electricity emission factor
+    if (isElectricityEmissionFactor) {
+      mapping.treatment_type = "";
+    }
+
+    // Add sub_fuel_type for fuel emission factor
+    if (isFuelEmissionFactor) {
+      mapping.sub_fuel_type = "";
+    }
+
     const fieldsToMatch = [
       {
         key: entityConfig.nameField,
@@ -681,6 +696,30 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
       fieldsToMatch.push({
         key: "wtt_id",
         patterns: ["waste treatment", "treatment", "wtt"],
+      });
+    }
+
+    // Add element_type matching for materials emission factor
+    if (isMaterialsEmissionFactor) {
+      fieldsToMatch.push({
+        key: "element_type",
+        patterns: ["element type", "element_type", "type"],
+      });
+    }
+
+    // Add treatment_type matching for electricity emission factor
+    if (isElectricityEmissionFactor) {
+      fieldsToMatch.push({
+        key: "treatment_type",
+        patterns: ["treatment type", "treatment_type", "treatment"],
+      });
+    }
+
+    // Add sub_fuel_type matching for fuel emission factor
+    if (isFuelEmissionFactor) {
+      fieldsToMatch.push({
+        key: "sub_fuel_type",
+        patterns: ["sub fuel type", "sub_fuel_type", "sub fuel", "sub type"],
       });
     }
 
@@ -779,6 +818,9 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
     const isoIdx = getColumnIndex("iso_country_code");
     const pttIdx = isPackagingEmissionFactor ? getColumnIndex("ptt_id") : -1;
     const wttIdx = isWasteMaterialEmissionFactor ? getColumnIndex("wtt_id") : -1;
+    const elementTypeIdx = isMaterialsEmissionFactor ? getColumnIndex("element_type") : -1;
+    const treatmentTypeIdx = isElectricityEmissionFactor ? getColumnIndex("treatment_type") : -1;
+    const subFuelTypeIdx = isFuelEmissionFactor ? getColumnIndex("sub_fuel_type") : -1;
 
     const previewItems: EcoInventItem[] = data
       .filter((row) => {
@@ -814,6 +856,21 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
             (t) => t.name.toLowerCase() === wasteTreatmentValue?.toLowerCase() || t.id === wasteTreatmentValue
           );
           item.wtt_id = matchingWasteType?.id || wasteTreatmentValue || "";
+        }
+
+        // Add element_type for materials emission factor
+        if (isMaterialsEmissionFactor && elementTypeIdx >= 0) {
+          item.element_type = row[elementTypeIdx] || "";
+        }
+
+        // Add treatment_type for electricity emission factor
+        if (isElectricityEmissionFactor && treatmentTypeIdx >= 0) {
+          item.treatment_type = row[treatmentTypeIdx] || "";
+        }
+
+        // Add sub_fuel_type for fuel emission factor
+        if (isFuelEmissionFactor && subFuelTypeIdx >= 0) {
+          item.sub_fuel_type = row[subFuelTypeIdx] || "";
         }
 
         return item;
@@ -2014,6 +2071,69 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                     </Select>
                   </div>
                 )}
+                {isMaterialsEmissionFactor && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Element Type
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select"
+                      value={columnMapping.element_type || undefined}
+                      onChange={(v) => handleMappingChange("element_type", v)}
+                      allowClear
+                      size="small"
+                    >
+                      {csvHeaders.map((h) => (
+                        <Option key={h} value={h}>
+                          {h}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {isElectricityEmissionFactor && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Treatment Type
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select"
+                      value={columnMapping.treatment_type || undefined}
+                      onChange={(v) => handleMappingChange("treatment_type", v)}
+                      allowClear
+                      size="small"
+                    >
+                      {csvHeaders.map((h) => (
+                        <Option key={h} value={h}>
+                          {h}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {isFuelEmissionFactor && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Sub Fuel Type
+                    </label>
+                    <Select
+                      className="w-full"
+                      placeholder="Select"
+                      value={columnMapping.sub_fuel_type || undefined}
+                      onChange={(v) => handleMappingChange("sub_fuel_type", v)}
+                      allowClear
+                      size="small"
+                    >
+                      {csvHeaders.map((h) => (
+                        <Option key={h} value={h}>
+                          {h}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
                     EF EU Region
@@ -2198,6 +2318,36 @@ const EcoInventSetupTabs: React.FC<EcoInventSetupTabsProps> = ({
                               return wtt?.name || value || "-";
                             },
                           },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                      : isMaterialsEmissionFactor
+                      ? [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          { title: "Element Type", dataIndex: "element_type", key: "element_type" },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                      : isElectricityEmissionFactor
+                      ? [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          { title: "Treatment Type", dataIndex: "treatment_type", key: "treatment_type" },
+                          { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
+                          { title: "EF India", dataIndex: "ef_india_region", key: "india" },
+                          { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
+                          { title: "Year", dataIndex: "year", key: "year" },
+                          { title: "Unit", dataIndex: "unit", key: "unit" },
+                        ]
+                      : isFuelEmissionFactor
+                      ? [
+                          { title: entityConfig.displayName, dataIndex: entityConfig.nameField, key: "name" },
+                          { title: "Sub Fuel Type", dataIndex: "sub_fuel_type", key: "sub_fuel_type" },
                           { title: "EF EU", dataIndex: "ef_eu_region", key: "eu" },
                           { title: "EF India", dataIndex: "ef_india_region", key: "india" },
                           { title: "EF Global", dataIndex: "ef_global_region", key: "global" },
