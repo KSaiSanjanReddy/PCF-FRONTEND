@@ -584,7 +584,8 @@ const SupplierQuestionnaire: React.FC = () => {
 
       // Get all current form values
       const allFormValues = form.getFieldsValue();
-      const mergedValues = { ...formData, ...allFormValues };
+      // Use deep merge to preserve nested values (especially file fields across steps)
+      const mergedValues = deepMerge(formData, allFormValues, true);
 
       const getNestedValue = (obj: any, path: string): any => {
         return path.split(".").reduce((acc, part) => {

@@ -125,14 +125,36 @@ const ProductDetailsStep: React.FC<ProductDetailsStepProps> = ({
     }
 
     form.validateFields().then((values) => {
-      onSave({ ...values, bomData });
+      // Look up names for the selected category/type IDs
+      const productCategoryName = productCategories.find(c => (c.id || c.code) === values.productCategory)?.name || values.productCategory;
+      const componentCategoryName = componentCategories.find(c => (c.id || c.code) === values.componentCategory)?.name || values.componentCategory;
+      const componentTypeName = componentTypes.find(t => (t.id || t.code) === values.componentType)?.name || values.componentType;
+
+      onSave({
+        ...values,
+        bomData,
+        productCategoryName,
+        componentCategoryName,
+        componentTypeName,
+      });
     });
   };
 
   const handleSaveAsDraft = () => {
     // Get current form values without validation for draft
     const values = form.getFieldsValue();
-    onSaveAsDraft?.({ ...values, bomData });
+    // Look up names for the selected category/type IDs
+    const productCategoryName = productCategories.find(c => (c.id || c.code) === values.productCategory)?.name || values.productCategory;
+    const componentCategoryName = componentCategories.find(c => (c.id || c.code) === values.componentCategory)?.name || values.componentCategory;
+    const componentTypeName = componentTypes.find(t => (t.id || t.code) === values.componentType)?.name || values.componentType;
+
+    onSaveAsDraft?.({
+      ...values,
+      bomData,
+      productCategoryName,
+      componentCategoryName,
+      componentTypeName,
+    });
   };
 
   const autoDetectMapping = (headers: string[]): Record<string, string> => {
