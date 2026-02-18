@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { Truck, Save, CheckCircle } from "lucide-react";
 import userManagementService from "../lib/userManagementService";
+import { getDropdownList } from "../lib/masterDataSetupService";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -20,6 +21,15 @@ const PublicSupplierOnboarding: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [businessTypeOptions, setBusinessTypeOptions] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const loadBusinessTypeOptions = async () => {
+      const options = await getDropdownList("supplier-tier");
+      setBusinessTypeOptions(options);
+    };
+    loadBusinessTypeOptions();
+  }, []);
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
@@ -166,11 +176,11 @@ const PublicSupplierOnboarding: React.FC = () => {
                 <Col xs={24} md={8}>
                   <Form.Item name="supplier_business_type" label="Business Type">
                     <Select placeholder="Select business type">
-                      <Option value="Manufacturer">Manufacturer</Option>
-                      <Option value="Distributor">Distributor</Option>
-                      <Option value="Wholesaler">Wholesaler</Option>
-                      <Option value="Retailer">Retailer</Option>
-                      <Option value="Other">Other</Option>
+                      {businessTypeOptions.map((option) => (
+                        <Option key={option.id} value={option.name}>
+                          {option.name}
+                        </Option>
+                      ))}
                     </Select>
                   </Form.Item>
                 </Col>
