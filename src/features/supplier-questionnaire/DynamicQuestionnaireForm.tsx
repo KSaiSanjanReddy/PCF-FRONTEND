@@ -174,9 +174,11 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       const currentValues = form.getFieldValue(fieldPath) || [];
 
       // Only auto-populate if table is empty OR if specifically forced for this field
-      const shouldAutoPopulate = currentValues.length === 0 || forceFieldName === field.name;
+      const isForced = forceFieldName === field.name;
+      const isEmpty = currentValues.length === 0;
 
-      if (shouldAutoPopulate && currentValues.length === 0) {
+      // Auto-populate if: table is empty, OR if forced (for conditional tables that just became visible)
+      if (isEmpty || isForced) {
         const autoPopulatedRows = productsManufactured.map((product: any) => {
           const row: Record<string, any> = {};
 
@@ -1079,20 +1081,21 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       // Handle dependent dropdown (e.g., sub_fuel_type depends on fuel_type)
                       if (hasDependentDropdown) {
                         const rowValues = form.getFieldValue([...fieldPath, fieldRecord.name]);
-                        const parentValue = rowValues?.[col.dependsOnField!];
+                        const parentValue = rowValues?.[col.dependsOnField!]; // Parent name value (for display check)
+                        const parentId = rowValues?.[`${col.dependsOnField!}_id`]; // Parent ID (for API lookup)
                         const currentValue = rowValues?.[col.name];
 
-                        // Get cached dependent options (fetched when parent was selected)
-                        const dependentOptions = getDropdownItems(col.apiDropdown!, col.dependsOnField, parentValue);
-                        const isLoadingDependent = parentValue ? dropdownLoading[`${col.apiDropdown}_${parentValue}`] : false;
+                        // Get cached dependent options using parent ID (fetched when parent was selected)
+                        const dependentOptions = getDropdownItems(col.apiDropdown!, col.dependsOnField, parentId);
+                        const isLoadingDependent = parentId ? dropdownLoading[`${col.apiDropdown}_${parentId}`] : false;
 
-                        // Check if current value exists in options, if not clear it
-                        const isValueValid = !currentValue || dependentOptions.some(opt => opt.id === currentValue);
+                        // Check if current value exists in options by name, if not clear it
+                        const isValueValid = !currentValue || dependentOptions.some(opt => opt.name === currentValue);
                         if (!isValueValid && currentValue) {
                           // Clear invalid value asynchronously to avoid render issues
                           setTimeout(() => {
                             form.setFieldValue([...fieldPath, fieldRecord.name, col.name], null);
-                            form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                            form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_id`], null);
                           }, 0);
                         }
 
@@ -1121,17 +1124,17 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
-                                // Store the display name for combining in payload
-                                const selectedOption = dependentOptions.find((opt: DropdownItem) => opt.id === value);
+                                // Find selected option by name and store the ID separately
+                                const selectedOption = dependentOptions.find((opt: DropdownItem) => opt.name === value);
                                 if (selectedOption) {
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_id`], selectedOption.id);
                                 } else {
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_id`], null);
                                 }
                               }}
                             >
                               {dependentOptions.map((opt: DropdownItem) => (
-                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                                <Select.Option key={opt.id} value={opt.name}>{opt.name}</Select.Option>
                               ))}
                             </Select>
                           </Form.Item>
@@ -1169,32 +1172,33 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                                 (option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
                               }
                               onChange={(value) => {
-                                // Store the display name for combining in payload
-                                const selectedOption = apiOptions.find((opt: DropdownItem) => opt.id === value);
+                                // Find the selected option by name (since value is now name)
+                                const selectedOption = apiOptions.find((opt: DropdownItem) => opt.name === value);
+                                // Store the ID separately for fetching dependent options
                                 if (selectedOption) {
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], selectedOption.name);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_id`], selectedOption.id);
                                 } else {
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_name`], null);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${col.name}_id`], null);
                                 }
 
                                 // Clear dependent column value when parent changes
                                 if (dependentCol) {
                                   const dependentFieldPath = [...fieldPath, fieldRecord.name, dependentCol.name];
                                   form.setFieldValue(dependentFieldPath, null);
-                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${dependentCol.name}_name`], null);
+                                  form.setFieldValue([...fieldPath, fieldRecord.name, `${dependentCol.name}_id`], null);
                                   // Force form to recognize the change
                                   form.setFields([{ name: dependentFieldPath, value: null, errors: [] }]);
                                 }
-                                // Trigger fetch of dependent options
-                                if (dependentCol?.apiDropdown === 'subFuelTypeByFuel') {
-                                  fetchDependentDropdown('subFuelTypeByFuel', value);
-                                } else if (dependentCol?.apiDropdown === 'energyTypeBySource') {
-                                  fetchDependentDropdown('energyTypeBySource', value);
+                                // Trigger fetch of dependent options using the ID
+                                if (dependentCol?.apiDropdown === 'subFuelTypeByFuel' && selectedOption) {
+                                  fetchDependentDropdown('subFuelTypeByFuel', selectedOption.id);
+                                } else if (dependentCol?.apiDropdown === 'energyTypeBySource' && selectedOption) {
+                                  fetchDependentDropdown('energyTypeBySource', selectedOption.id);
                                 }
                               }}
                             >
                               {apiOptions.map((opt: DropdownItem) => (
-                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                                <Select.Option key={opt.id} value={opt.name}>{opt.name}</Select.Option>
                               ))}
                             </Select>
                           </Form.Item>
@@ -1286,7 +1290,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               }
                             >
                               {apiOptions.map((opt: DropdownItem) => (
-                                <Select.Option key={opt.id} value={opt.id}>{opt.name}</Select.Option>
+                                <Select.Option key={opt.id} value={opt.name}>{opt.name}</Select.Option>
                               ))}
                             </Select>
                           </Form.Item>
