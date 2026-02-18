@@ -20,6 +20,7 @@ import type {
   ManufacturingProcess,
   LifeCycleStage,
   Product,
+  ManufacturerUser,
 } from "../lib/productService";
 import { getCompositionMetalDropdown } from "../lib/masterDataSetupService";
 import dayjs from "dayjs";
@@ -50,6 +51,7 @@ const ProductEdit: React.FC = () => {
   const [manufacturingProcesses, setManufacturingProcesses] = useState<ManufacturingProcess[]>([]);
   const [lifeCycleStages, setLifeCycleStages] = useState<LifeCycleStage[]>([]);
   const [materials, setMaterials] = useState<{ id: string; name: string }[]>([]);
+  const [manufacturers, setManufacturers] = useState<ManufacturerUser[]>([]);
 
   useEffect(() => {
     loadData();
@@ -58,12 +60,13 @@ const ProductEdit: React.FC = () => {
   const loadData = async () => {
     try {
       setInitialLoading(true);
-      const [cats, subCats, mfgProcs, lcs, mats] = await Promise.all([
+      const [cats, subCats, mfgProcs, lcs, mats, mfrs] = await Promise.all([
         productService.getProductCategories(),
         productService.getProductSubCategories(),
         productService.getManufacturingProcesses(),
         productService.getLifeCycleStages(),
         getCompositionMetalDropdown(),
+        productService.getManufacturers(),
       ]);
 
       // API returns data as array directly, not data.rows
@@ -71,12 +74,14 @@ const ProductEdit: React.FC = () => {
       const subCatsData = subCats.status ? (Array.isArray(subCats.data) ? subCats.data : subCats.data?.rows || []) : [];
       const mfgProcsData = mfgProcs.status ? (Array.isArray(mfgProcs.data) ? mfgProcs.data : mfgProcs.data?.rows || []) : [];
       const lcsData = lcs.status ? (Array.isArray(lcs.data) ? lcs.data : lcs.data?.rows || []) : [];
+      const mfrsData = mfrs.status ? (Array.isArray(mfrs.data) ? mfrs.data : []) : [];
 
       setCategories(catsData);
       setSubCategories(subCatsData);
       setManufacturingProcesses(mfgProcsData);
       setLifeCycleStages(lcsData);
       setMaterials(mats);
+      setManufacturers(mfrsData);
 
       if (id) {
         const productRes = await productService.getProductById(id);
@@ -244,6 +249,20 @@ const ProductEdit: React.FC = () => {
                                             <Select
                                                 size="large"
                                                 options={subCategories.map(sc => ({ label: sc.name, value: sc.id }))}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Client/Manufacturer"
+                                            name="client_or_manufacturer_ids"
+                                        >
+                                            <Select
+                                                size="large"
+                                                mode="multiple"
+                                                allowClear
+                                                placeholder="Select client or manufacturer"
+                                                options={manufacturers.map(m => ({ label: m.user_name, value: m.user_id }))}
                                             />
                                         </Form.Item>
                                     </Col>
