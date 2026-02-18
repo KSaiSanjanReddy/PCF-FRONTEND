@@ -278,6 +278,18 @@ const ProductView: React.FC = () => {
         if (response.data.length > 0) {
           setSelectedBomPcfId(response.data[0].id);
           fetchBomPcfDetails(response.data[0].id);
+          // Also auto-select for Own Emission dropdown if not already selected
+          if (!selectedOwnEmissionPcf) {
+            const firstItem = response.data[0];
+            setSelectedOwnEmissionPcf(firstItem.id);
+            setSelectedOwnEmissionItem({
+              bom_pcf_id: firstItem.id,
+              code: firstItem.code,
+              request_title: firstItem.request_title,
+              is_quetions_filled: false,
+              is_own_emission_calculated: firstItem.is_own_emission_calculated,
+            });
+          }
         }
       }
     } catch (error) {
@@ -308,9 +320,23 @@ const ProductView: React.FC = () => {
   // Handle own emission PCF selection change
   const handleOwnEmissionPcfChange = (value: string) => {
     setSelectedOwnEmissionPcf(value);
-    const selectedItem = product?.own_emission?.find(
+    // First try to find in product's own_emission array
+    let selectedItem = product?.own_emission?.find(
       (item) => item.bom_pcf_id === value,
     );
+    // If not found, create a basic item from bomPcfDropdown
+    if (!selectedItem) {
+      const bomItem = bomPcfDropdown.find((item) => item.id === value);
+      if (bomItem) {
+        selectedItem = {
+          bom_pcf_id: bomItem.id,
+          code: bomItem.code,
+          request_title: bomItem.request_title,
+          is_quetions_filled: false,
+          is_own_emission_calculated: bomItem.is_own_emission_calculated,
+        };
+      }
+    }
     setSelectedOwnEmissionItem(selectedItem || null);
   };
 
@@ -1475,7 +1501,7 @@ const ProductView: React.FC = () => {
                   className="w-full"
                   value={selectedOwnEmissionPcf}
                   onChange={handleOwnEmissionPcfChange}
-                  loading={loading}
+                  loading={loading || bomLoading}
                   allowClear
                   showSearch
                   filterOption={(input, option) =>
@@ -1484,20 +1510,16 @@ const ProductView: React.FC = () => {
                       .includes(input.toLowerCase())
                   }
                 >
-                  {(product?.own_emission || []).map((item) => (
+                  {bomPcfDropdown.map((item) => (
                     <Select.Option
-                      key={item.bom_pcf_id}
-                      value={item.bom_pcf_id}
+                      key={item.id}
+                      value={item.id}
                     >
                       <div className="flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full ${getOwnEmissionStatus(item).dotColor}`}
+                          className={`w-2 h-2 rounded-full ${item.is_own_emission_calculated ? "bg-emerald-500" : "bg-amber-500"}`}
                         ></div>
-                        {item.pcf_details?.code || item.code || item.bom_pcf_id}{" "}
-                        -{" "}
-                        {item.pcf_details?.request_title ||
-                          item.request_title ||
-                          "PCF Request"}
+                        {item.code} - {item.request_title || "PCF Request"}
                       </div>
                     </Select.Option>
                   ))}
