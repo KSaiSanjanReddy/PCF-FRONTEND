@@ -414,7 +414,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "unit",
             label: "Unit of Measure",
             type: "select",
-            options: ["kg", "Tons"],
+            apiDropdown: "productUnit",
             placeholder: "Select unit",
           },
           {
@@ -1878,19 +1878,15 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "energy_source",
             label: "Energy Source Purchased/acquired",
             type: "select",
-            options: [
-              "Electricity Energy",
-              "Heating Energy",
-              "Cooling Energy",
-              "Steam Energy",
-            ],
+            apiDropdown: "energySource",
             placeholder: "Select source",
           },
           {
             name: "energy_type",
             label: "Energy_Type",
             type: "select",
-            options: ["Purchased Grid Electricity", "Renewable Electricity"],
+            apiDropdown: "energyTypeBySource",
+            dependsOnField: "energy_source",
             placeholder: "Select type",
           },
           {
@@ -2107,7 +2103,7 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSection[] = [
             name: "mode",
             label: "Mode of Transport",
             type: "select",
-            options: ["Truck", "Rail", "Air", "Ship"],
+            apiDropdown: "transportMode",
             placeholder: "Select mode",
           },
           {
