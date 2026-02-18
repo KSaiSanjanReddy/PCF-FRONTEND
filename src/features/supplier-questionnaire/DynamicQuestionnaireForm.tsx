@@ -175,12 +175,13 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
       const fieldPath = field.name.split('.');
       const currentValues = form.getFieldValue(fieldPath) || [];
 
-      // Only auto-populate if table is empty OR if specifically forced for this field
+      // Only auto-populate if table is empty
+      // For forced fields (conditional tables that just became visible), still only populate if empty
       const isForced = forceFieldName === field.name;
       const isEmpty = currentValues.length === 0;
 
-      // Auto-populate if: table is empty, OR if forced (for conditional tables that just became visible)
-      if (isEmpty || isForced) {
+      // Auto-populate ONLY if table is empty (forced flag just prioritizes this field but doesn't override existing data)
+      if (isEmpty) {
         const autoPopulatedRows = productsManufactured.map((product: any) => {
           const row: Record<string, any> = {};
 
@@ -1085,8 +1086,35 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       if (hasDependentDropdown) {
                         const rowValues = form.getFieldValue([...fieldPath, fieldRecord.name]);
                         const parentValue = rowValues?.[col.dependsOnField!]; // Parent name value (for display check)
-                        const parentId = rowValues?.[`${col.dependsOnField!}_id`]; // Parent ID (for API lookup)
+                        let parentId = rowValues?.[`${col.dependsOnField!}_id`]; // Parent ID (for API lookup)
                         const currentValue = rowValues?.[col.name];
+
+                        // If parentId is missing but parentValue exists, look up the ID from parent dropdown options
+                        if (!parentId && parentValue) {
+                          // Determine parent dropdown type based on the dependent dropdown type
+                          let parentDropdownType: ApiDropdownType | null = null;
+                          if (col.apiDropdown === 'subFuelTypeByFuel') {
+                            parentDropdownType = 'fuelType';
+                          } else if (col.apiDropdown === 'energyTypeBySource') {
+                            parentDropdownType = 'energySource';
+                          }
+
+                          if (parentDropdownType) {
+                            const parentOptions = getDropdownItems(parentDropdownType);
+                            // Try to find by name first, then by ID (in case parentValue is actually an ID)
+                            const parentOpt = parentOptions.find(opt => opt.name === parentValue) ||
+                                              parentOptions.find(opt => opt.id === parentValue);
+                            if (parentOpt) {
+                              parentId = parentOpt.id;
+                              // Trigger fetch of dependent options if not already cached
+                              if (col.apiDropdown === 'subFuelTypeByFuel' && !subFuelTypesByFuel[parentId]) {
+                                fetchDependentDropdown('subFuelTypeByFuel', parentId);
+                              } else if (col.apiDropdown === 'energyTypeBySource' && !energyTypesBySource[parentId]) {
+                                fetchDependentDropdown('energyTypeBySource', parentId);
+                              }
+                            }
+                          }
+                        }
 
                         // Get cached dependent options using parent ID (fetched when parent was selected)
                         const dependentOptions = getDropdownItems(col.apiDropdown!, col.dependsOnField, parentId);
