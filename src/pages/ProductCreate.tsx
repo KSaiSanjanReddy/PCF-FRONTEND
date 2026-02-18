@@ -17,6 +17,7 @@ import productService, {
   type ProductSubCategory,
   type ManufacturingProcess,
   type LifeCycleStage,
+  type ManufacturerUser,
 } from "../lib/productService";
 import { getCompositionMetalDropdown } from "../lib/masterDataSetupService";
 import { usePermissions } from "../contexts/PermissionContext";
@@ -45,6 +46,7 @@ const ProductCreate: React.FC = () => {
   >([]);
   const [lifeCycleStages, setLifeCycleStages] = useState<LifeCycleStage[]>([]);
   const [materials, setMaterials] = useState<{ id: string; name: string }[]>([]);
+  const [manufacturers, setManufacturers] = useState<ManufacturerUser[]>([]);
 
   useEffect(() => {
     loadDropdowns();
@@ -52,12 +54,13 @@ const ProductCreate: React.FC = () => {
 
   const loadDropdowns = async () => {
     try {
-      const [cats, subCats, mfgProcs, lcs, mats] = await Promise.all([
+      const [cats, subCats, mfgProcs, lcs, mats, mfrs] = await Promise.all([
         productService.getProductCategories(),
         productService.getProductSubCategories(),
         productService.getManufacturingProcesses(),
         productService.getLifeCycleStages(),
         getCompositionMetalDropdown(),
+        productService.getManufacturers(),
       ]);
 
       // API returns data as array directly, not data.rows
@@ -66,6 +69,7 @@ const ProductCreate: React.FC = () => {
       if (mfgProcs.status) setManufacturingProcesses(Array.isArray(mfgProcs.data) ? mfgProcs.data : mfgProcs.data?.rows || []);
       if (lcs.status) setLifeCycleStages(Array.isArray(lcs.data) ? lcs.data : lcs.data?.rows || []);
       setMaterials(mats);
+      if (mfrs.status) setManufacturers(Array.isArray(mfrs.data) ? mfrs.data : []);
     } catch (error) {
       console.error("Error loading dropdowns:", error);
       message.error("Failed to load dropdown options");
@@ -215,6 +219,23 @@ const ProductCreate: React.FC = () => {
                         options={subCategories.map((sc) => ({
                           label: sc.name,
                           value: sc.id,
+                        }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Client/Manufacturer"
+                      name="client_or_manufacturer_ids"
+                    >
+                      <Select
+                        placeholder="Select client or manufacturer"
+                        size="large"
+                        mode="multiple"
+                        allowClear
+                        options={manufacturers.map((m) => ({
+                          label: m.user_name,
+                          value: m.user_id,
                         }))}
                       />
                     </Form.Item>

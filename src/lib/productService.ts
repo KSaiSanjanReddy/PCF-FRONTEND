@@ -3,6 +3,12 @@ import axios from 'axios';
 const API_URL = 'https://enviguide.nextechltd.in/api';
 
 // Interfaces
+export interface ManufacturerUser {
+  user_id: string;
+  user_name: string;
+  user_role: string;
+}
+
 export interface Product {
   id: string;
   product_code: string;
@@ -20,6 +26,7 @@ export interface Product {
   ed_recyclability: number;
   ed_life_cycle_stage_id: string;
   ed_renewable_energy: number;
+  client_or_manufacturer_ids?: string[];
   created_by?: string;
   updated_by?: string;
   created_date?: string;
@@ -622,6 +629,20 @@ const productService = {
       { bom_pcf_id: bomPcfId, product_id: productId },
       { headers: { Authorization: token } }
     );
+    return response.data;
+  },
+
+  // Get Client/Manufacturer dropdown
+  getManufacturers: async (): Promise<{
+    status: boolean;
+    message: string;
+    code: number;
+    data: ManufacturerUser[];
+  }> => {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/users/get-manufacturer`, {
+      headers: { Authorization: token }
+    });
     return response.data;
   },
 };
