@@ -24,7 +24,8 @@ const TagsInput: React.FC<TagsInputProps> = ({ placeholder, form, fieldName, val
   const [inputValue, setInputValue] = useState('');
 
   // Get current tags from form or prop
-  const tags = value || form.getFieldValue(fieldName.split('.')) || [];
+  const rawTags = value || form.getFieldValue(fieldName.split('.'));
+  const tags = Array.isArray(rawTags) ? rawTags : [];
 
   const handleAddTag = () => {
     const trimmed = inputValue.trim();
@@ -160,7 +161,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
     if (!section) return;
 
     // Get products_manufactured from form
-    const productsManufactured = form.getFieldValue(['product_details', 'products_manufactured']) || [];
+    const productsManufacturedRaw = form.getFieldValue(['product_details', 'products_manufactured']);
+    const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw : [];
 
     if (productsManufactured.length === 0) return;
 
@@ -1042,15 +1044,16 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
             ] : undefined}
           >
             {(fields, { add, remove }, { errors }) => {
+              const fieldColumns = Array.isArray(field.columns) ? field.columns : [];
               const columns = [
-                ...(field.columns?.map((col, colIndex) => {
+                ...(fieldColumns.map((col, colIndex) => {
                   const isAutoPopulatedCol = isAutoPopulated && colIndex < 2; // First 2 columns typically auto-populated
 
                   // Check if this column has a dependent dropdown
                   const hasDependentDropdown = col.apiDropdown && col.dependsOnField;
 
                   // Check if this column's value is depended on by another column
-                  const isDependedOn = field.columns?.some(c => c.dependsOnField === col.name);
+                  const isDependedOn = fieldColumns.some(c => c.dependsOnField === col.name);
 
                   // Determine display label for client mode
                   let displayLabel = col.label;
@@ -1147,7 +1150,7 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         const isLoadingApi = dropdownLoading[col.apiDropdown];
 
                         // Find dependent column to clear its value when this changes
-                        const dependentCol = field.columns?.find(c => c.dependsOnField === col.name);
+                        const dependentCol = fieldColumns.find(c => c.dependsOnField === col.name);
 
                         return (
                           <Form.Item
@@ -1208,7 +1211,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       // Handle BOM Materials dropdown (derived from products_manufactured)
                       if (col.apiDropdown === 'bomMaterials') {
                         // Get products_manufactured data from form
-                        const productsManufactured = form.getFieldValue(['product_details', 'products_manufactured']) || [];
+                        const productsManufacturedRaw = form.getFieldValue(['product_details', 'products_manufactured']);
+                        const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw : [];
                         const bomMaterialOptions: DropdownItem[] = productsManufactured.map((item: any) => ({
                           id: item.material_number || item.mpn || '',
                           name: `${item.material_number || item.mpn || ''} - ${item.product_name || ''}`,
@@ -1266,6 +1270,16 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                         const apiOptions = getDropdownItems(col.apiDropdown);
                         const isLoadingApi = dropdownLoading[col.apiDropdown];
 
+                        // Get current value - might be ID (from localStorage/API) or name
+                        const rowValues = form.getFieldValue([...fieldPath, fieldRecord.name]) || {};
+                        const currentValue = rowValues[col.name];
+
+                        // Check if currentValue is an ID (not found in names but found in IDs)
+                        // If so, we need to display both ID and name options so the Select can match
+                        const isValueAnId = currentValue && apiOptions.length > 0 &&
+                                            !apiOptions.some(opt => opt.name === currentValue) &&
+                                            apiOptions.some(opt => opt.id === currentValue);
+
                         return (
                           <Form.Item
                             name={[fieldRecord.name, col.name]}
@@ -1292,6 +1306,15 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                               {apiOptions.map((opt: DropdownItem) => (
                                 <Select.Option key={opt.id} value={opt.name}>{opt.name}</Select.Option>
                               ))}
+                              {/* If current value is an ID, add a hidden option to display it correctly */}
+                              {isValueAnId && (() => {
+                                const matchedOpt = apiOptions.find(opt => opt.id === currentValue);
+                                return matchedOpt ? (
+                                  <Select.Option key={`id-${matchedOpt.id}`} value={currentValue} style={{ display: 'none' }}>
+                                    {matchedOpt.name}
+                                  </Select.Option>
+                                ) : null;
+                              })()}
                             </Select>
                           </Form.Item>
                         );
