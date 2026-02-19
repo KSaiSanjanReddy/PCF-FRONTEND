@@ -162,7 +162,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
 
     // Get products_manufactured from form
     const productsManufacturedRaw = form.getFieldValue(['product_details', 'products_manufactured']);
-    const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw : [];
+    // Filter out undefined/null items to prevent errors when accessing properties
+    const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw.filter(Boolean) : [];
 
     if (productsManufactured.length === 0) return;
 
@@ -1240,7 +1241,8 @@ const DynamicQuestionnaireForm: React.FC<DynamicQuestionnaireFormProps> = ({
                       if (col.apiDropdown === 'bomMaterials') {
                         // Get products_manufactured data from form
                         const productsManufacturedRaw = form.getFieldValue(['product_details', 'products_manufactured']);
-                        const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw : [];
+                        // Filter out undefined/null items to prevent errors when accessing properties
+                        const productsManufactured = Array.isArray(productsManufacturedRaw) ? productsManufacturedRaw.filter(Boolean) : [];
                         const bomMaterialOptions: DropdownItem[] = productsManufactured.map((item: any) => ({
                           id: item.material_number || item.mpn || '',
                           name: `${item.material_number || item.mpn || ''} - ${item.product_name || ''}`,

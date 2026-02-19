@@ -907,7 +907,7 @@ const ProductView: React.FC = () => {
                               <Text type="secondary" className="text-xs">
                                 PCF:{" "}
                                 {pcf.overall_pcf
-                                  ? `${pcf.overall_pcf.toFixed(2)} kg CO₂e`
+                                  ? `${pcf.overall_pcf} kg CO₂e`
                                   : "Pending"}
                               </Text>
                             </div>
@@ -975,11 +975,11 @@ const ProductView: React.FC = () => {
                             Total Emission
                           </Text>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold">
+                            <span className="text-3xl font-bold">
                               {totalEmissionFromPCFs > 0
-                                ? totalEmissionFromPCFs.toExponential(2)
+                                ? totalEmissionFromPCFs
                                 : product.ed_estimated_pcf
-                                  ? product.ed_estimated_pcf.toExponential(2)
+                                  ? product.ed_estimated_pcf
                                   : "0.00"}
                             </span>
                             <span className="text-white/80 text-sm font-medium">
@@ -1511,10 +1511,7 @@ const ProductView: React.FC = () => {
                   }
                 >
                   {bomPcfDropdown.map((item) => (
-                    <Select.Option
-                      key={item.id}
-                      value={item.id}
-                    >
+                    <Select.Option key={item.id} value={item.id}>
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-2 h-2 rounded-full ${item.is_own_emission_calculated ? "bg-emerald-500" : "bg-amber-500"}`}
@@ -4111,16 +4108,29 @@ const ProductView: React.FC = () => {
                     className="flex-1 rounded-xl"
                     onClick={() => {
                       const data = {
-                        component_name: selectedSecondaryDataItem.component_name,
-                        material_number: selectedSecondaryDataItem.material_number,
-                        data_source: selectedSecondaryDataItem.data_source || "Ecoinvent",
-                        total_pcf_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.total_pcf_value,
-                        material_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.material_value,
-                        production_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.production_value,
-                        logistic_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.logistic_value,
+                        component_name:
+                          selectedSecondaryDataItem.component_name,
+                        material_number:
+                          selectedSecondaryDataItem.material_number,
+                        data_source:
+                          selectedSecondaryDataItem.data_source || "Ecoinvent",
+                        total_pcf_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.total_pcf_value,
+                        material_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.material_value,
+                        production_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.production_value,
+                        logistic_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.logistic_value,
                         dqr_rating: selectedSecondaryDataItem.dqr_rating,
                       };
-                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                      const blob = new Blob([JSON.stringify(data, null, 2)], {
+                        type: "application/json",
+                      });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
                       a.href = url;
