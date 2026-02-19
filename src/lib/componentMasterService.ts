@@ -45,6 +45,10 @@ export interface PcfRequest {
     code: string | null;
     name: string | null;
   } | null;
+  product_details?: {
+    product_name?: string;
+    product_code?: string;
+  } | null;
 }
 
 // BOM item (main item in data.data array - BOM-centric structure)

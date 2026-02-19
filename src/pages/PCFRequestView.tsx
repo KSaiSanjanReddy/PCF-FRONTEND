@@ -50,6 +50,8 @@ import {
   Leaf,
   Truck,
   Ship,
+  Train,
+  Plane,
   PieChart,
   Scale,
   Factory,
@@ -497,7 +499,7 @@ const PCFRequestView: React.FC = () => {
     const isDraft = requestData.is_draft;
 
     // Return the step that is currently IN PROGRESS
-    if (stages.is_result_submitted) return 7; // All done - last step shown as current
+    if (stages.is_result_submitted) return 8; // All done - return beyond last index so all steps show as completed (green)
     if (stages.is_result_validation_verified) return 7; // Result Submitted in progress
     if (stages.is_pcf_calculated) return 6; // Result Validation in progress
     if (stages.is_dqr_completed || isDqrComplete()) return 5; // PCF Calculation in progress
@@ -689,8 +691,8 @@ const PCFRequestView: React.FC = () => {
             >
               Current Stage
             </Text>
-            <Tag color="blue" className="font-medium">
-              {steps[getCurrentStep()].title}
+            <Tag color={getCurrentStep() >= steps.length ? "green" : "blue"} className="font-medium">
+              {getCurrentStep() >= steps.length ? "Completed" : steps[getCurrentStep()].title}
             </Tag>
           </Col>
         </Row>
@@ -827,18 +829,22 @@ const PCFRequestView: React.FC = () => {
         </div>
 
         {/* Current Stage Details */}
-        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+        <div className={`mt-8 rounded-xl p-6 ${getCurrentStep() >= steps.length ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}>
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
-                {steps[getCurrentStep()].title}
+                {getCurrentStep() >= steps.length ? "All Stages Completed" : steps[getCurrentStep()].title}
               </h3>
               <p className="text-gray-600">
-                Stage Description: In this stage, we are processing the{" "}
-                {steps[getCurrentStep()].title.toLowerCase()}.
+                {getCurrentStep() >= steps.length
+                  ? "The PCF calculation has been completed and results have been submitted successfully."
+                  : `Stage Description: In this stage, we are processing the ${steps[getCurrentStep()].title.toLowerCase()}.`
+                }
               </p>
             </div>
-            <Tag color="warning">In Progress</Tag>
+            <Tag color={getCurrentStep() >= steps.length ? "success" : "warning"}>
+              {getCurrentStep() >= steps.length ? "Completed" : "In Progress"}
+            </Tag>
           </div>
         </div>
       </Card>
@@ -1902,6 +1908,29 @@ const PCFRequestView: React.FC = () => {
                                                             size={20}
                                                             className="text-green-600"
                                                           />
+                                                        ) : leg.mode_of_transport
+                                                            ?.toLowerCase()
+                                                            .includes("rail") ||
+                                                          leg.mode_of_transport
+                                                            ?.toLowerCase()
+                                                            .includes("train") ? (
+                                                          <Train
+                                                            size={20}
+                                                            className="text-green-600"
+                                                          />
+                                                        ) : leg.mode_of_transport
+                                                            ?.toLowerCase()
+                                                            .includes("plane") ||
+                                                          leg.mode_of_transport
+                                                            ?.toLowerCase()
+                                                            .includes("air") ||
+                                                          leg.mode_of_transport
+                                                            ?.toLowerCase()
+                                                            .includes("flight") ? (
+                                                          <Plane
+                                                            size={20}
+                                                            className="text-green-600"
+                                                          />
                                                         ) : (
                                                           <Truck
                                                             size={20}
@@ -1909,19 +1938,7 @@ const PCFRequestView: React.FC = () => {
                                                           />
                                                         )}
                                                         <span className="text-sm font-medium text-gray-900">
-                                                          {leg.mode_of_transport?.includes(
-                                                            "LCV",
-                                                          )
-                                                            ? "LCV"
-                                                            : leg.mode_of_transport?.includes(
-                                                                  "Articulated",
-                                                                )
-                                                              ? "Heavy Truck"
-                                                              : leg.mode_of_transport?.includes(
-                                                                    "Medium",
-                                                                  )
-                                                                ? "Medium Truck"
-                                                                : "Truck"}
+                                                          {leg.mode_of_transport || "N/A"}
                                                         </span>
                                                       </div>
                                                       <div className="text-xs text-gray-500 mb-1">

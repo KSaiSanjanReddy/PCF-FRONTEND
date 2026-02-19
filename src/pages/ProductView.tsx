@@ -399,6 +399,16 @@ const ProductView: React.FC = () => {
     return { label: "Pending", color: "orange", dotColor: "bg-orange-500" };
   };
 
+  // Check if BOM is verified for the selected own emission PCF
+  const isBomVerifiedForSelectedPcf = (): boolean => {
+    if (!selectedOwnEmissionPcf || !pcfHistoryData.length) return false;
+    const selectedPcf = pcfHistoryData.find(
+      (pcf) => pcf.id === selectedOwnEmissionPcf
+    );
+    if (!selectedPcf?.pcf_request_stages) return false;
+    return selectedPcf.pcf_request_stages.is_bom_verified === true;
+  };
+
   const fetchPcfHistoryData = async (productCode: string) => {
     try {
       setPcfHistoryLoading(true);
@@ -907,7 +917,7 @@ const ProductView: React.FC = () => {
                               <Text type="secondary" className="text-xs">
                                 PCF:{" "}
                                 {pcf.overall_pcf
-                                  ? `${pcf.overall_pcf.toFixed(2)} kg CO₂e`
+                                  ? `${pcf.overall_pcf} kg CO₂e`
                                   : "Pending"}
                               </Text>
                             </div>
@@ -975,11 +985,11 @@ const ProductView: React.FC = () => {
                             Total Emission
                           </Text>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold">
+                            <span className="text-3xl font-bold">
                               {totalEmissionFromPCFs > 0
-                                ? totalEmissionFromPCFs.toExponential(2)
+                                ? totalEmissionFromPCFs
                                 : product.ed_estimated_pcf
-                                  ? product.ed_estimated_pcf.toExponential(2)
+                                  ? product.ed_estimated_pcf
                                   : "0.00"}
                             </span>
                             <span className="text-white/80 text-sm font-medium">
@@ -1511,10 +1521,7 @@ const ProductView: React.FC = () => {
                   }
                 >
                   {bomPcfDropdown.map((item) => (
-                    <Select.Option
-                      key={item.id}
-                      value={item.id}
-                    >
+                    <Select.Option key={item.id} value={item.id}>
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-2 h-2 rounded-full ${item.is_own_emission_calculated ? "bg-emerald-500" : "bg-amber-500"}`}
@@ -1532,60 +1539,84 @@ const ProductView: React.FC = () => {
                   {/* Questionnaire not filled - Two options side by side */}
                   {!selectedOwnEmissionItem.is_quetions_filled && (
                     <Row gutter={20}>
-                      {/* Option 1: Fill Questionnaire */}
+                      {/* Option 1: Fill Questionnaire - Only show when BOM is verified */}
                       <Col span={12}>
-                        <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-6 h-full hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 transition-all cursor-pointer">
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/30 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                          <div className="relative z-10">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
-                              <FileText className="text-white w-6 h-6" />
-                            </div>
-                            <Text
-                              strong
-                              className="block mb-2 text-lg text-gray-800"
-                            >
-                              Fill Questionnaire
-                            </Text>
-                            <Text className="text-sm text-gray-600 block mb-5">
-                              Complete the emission questionnaire yourself to
-                              calculate product emissions.
-                            </Text>
-                            <div className="flex gap-3">
-                              <Button
-                                type="primary"
-                                icon={<Link2 size={16} />}
-                                size="large"
-                                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
-                                onClick={() => {
-                                  const link =
-                                    getOwnEmissionQuestionnaireLink();
-                                  if (link) {
-                                    window.open(link, "_blank");
-                                  }
-                                }}
+                        {isBomVerifiedForSelectedPcf() ? (
+                          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-6 h-full hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-100 transition-all cursor-pointer">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/30 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="relative z-10">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+                                <FileText className="text-white w-6 h-6" />
+                              </div>
+                              <Text
+                                strong
+                                className="block mb-2 text-lg text-gray-800"
                               >
-                                Open Form
-                              </Button>
-                              <Button
-                                icon={<Link2 size={16} />}
-                                size="large"
-                                className="rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                                onClick={() => {
-                                  const link =
-                                    getOwnEmissionQuestionnaireLink();
-                                  if (link) {
-                                    navigator.clipboard.writeText(link);
-                                    message.success(
-                                      "Link copied to clipboard!",
-                                    );
-                                  }
-                                }}
-                              >
-                                Copy Link
-                              </Button>
+                                Fill Questionnaire
+                              </Text>
+                              <Text className="text-sm text-gray-600 block mb-5">
+                                Complete the emission questionnaire yourself to
+                                calculate product emissions.
+                              </Text>
+                              <div className="flex gap-3">
+                                <Button
+                                  type="primary"
+                                  icon={<Link2 size={16} />}
+                                  size="large"
+                                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-0 rounded-xl shadow-lg shadow-emerald-500/25"
+                                  onClick={() => {
+                                    const link =
+                                      getOwnEmissionQuestionnaireLink();
+                                    if (link) {
+                                      window.open(link, "_blank");
+                                    }
+                                  }}
+                                >
+                                  Open Form
+                                </Button>
+                                <Button
+                                  icon={<Link2 size={16} />}
+                                  size="large"
+                                  className="rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                                  onClick={() => {
+                                    const link =
+                                      getOwnEmissionQuestionnaireLink();
+                                    if (link) {
+                                      navigator.clipboard.writeText(link);
+                                      message.success(
+                                        "Link copied to clipboard!",
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Copy Link
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-2xl p-6 h-full">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-200/30 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="relative z-10">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center mb-4 shadow-lg shadow-gray-400/25">
+                                <FileText className="text-white w-6 h-6" />
+                              </div>
+                              <Text
+                                strong
+                                className="block mb-2 text-lg text-gray-600"
+                              >
+                                Fill Questionnaire
+                              </Text>
+                              <Text className="text-sm text-gray-500 block mb-5">
+                                BOM verification is required before filling the
+                                questionnaire. Please wait for BOM to be verified.
+                              </Text>
+                              <Tag color="warning" className="text-sm">
+                                Awaiting BOM Verification
+                              </Tag>
+                            </div>
+                          </div>
+                        )}
                       </Col>
                       {/* Option 2: Contact Enviguide */}
                       <Col span={12}>
@@ -4111,16 +4142,29 @@ const ProductView: React.FC = () => {
                     className="flex-1 rounded-xl"
                     onClick={() => {
                       const data = {
-                        component_name: selectedSecondaryDataItem.component_name,
-                        material_number: selectedSecondaryDataItem.material_number,
-                        data_source: selectedSecondaryDataItem.data_source || "Ecoinvent",
-                        total_pcf_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.total_pcf_value,
-                        material_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.material_value,
-                        production_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.production_value,
-                        logistic_value: selectedSecondaryDataItem.pcf_total_emission_calculation?.logistic_value,
+                        component_name:
+                          selectedSecondaryDataItem.component_name,
+                        material_number:
+                          selectedSecondaryDataItem.material_number,
+                        data_source:
+                          selectedSecondaryDataItem.data_source || "Ecoinvent",
+                        total_pcf_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.total_pcf_value,
+                        material_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.material_value,
+                        production_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.production_value,
+                        logistic_value:
+                          selectedSecondaryDataItem
+                            .pcf_total_emission_calculation?.logistic_value,
                         dqr_rating: selectedSecondaryDataItem.dqr_rating,
                       };
-                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                      const blob = new Blob([JSON.stringify(data, null, 2)], {
+                        type: "application/json",
+                      });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
                       a.href = url;
