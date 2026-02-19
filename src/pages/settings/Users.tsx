@@ -23,12 +23,13 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import type { BackendUser } from "../../types";
+import type { BackendUser, Role } from "../../types";
 import type { ManufacturerOnboarding, SupplierOnboarding } from "../../types/userManagement";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { Select, DatePicker, Tabs, message, Tooltip } from "antd";
 import dayjs from "dayjs";
 import userManagementService from "../../lib/userManagementService";
+import authService from "../../lib/authService";
 import { usePermissions } from "../../contexts/PermissionContext";
 
 const { Option } = Select;
@@ -49,14 +50,6 @@ const SEARCH_COLUMNS = [
   { value: "user_email", label: "Email" },
   { value: "user_phone_number", label: "Phone" },
   { value: "user_department", label: "Department" },
-];
-
-const ROLES = [
-  { value: "", label: "All Roles" },
-  { value: "Admin", label: "Admin" },
-  { value: "User", label: "User" },
-  { value: "Manager", label: "Manager" },
-  { value: "Viewer", label: "Viewer" },
 ];
 
 const SORT_OPTIONS = [
@@ -127,6 +120,9 @@ const UsersPage: React.FC = () => {
   const [quickSearch, setQuickSearch] = useState("");
   const [manufacturerSearch, setManufacturerSearch] = useState("");
   const [supplierSearch, setSupplierSearch] = useState("");
+
+  // Roles from API
+  const [roles, setRoles] = useState<Role[]>([]);
 
   const buildQueryParams = useCallback(() => {
     const params = new URLSearchParams();
@@ -280,6 +276,19 @@ const UsersPage: React.FC = () => {
       loadSuppliers();
     }
   }, [activeTab, loadUsers, loadManufacturers, loadSuppliers]);
+
+  // Fetch roles from API on mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const rolesData = await authService.getRoles();
+        setRoles(rolesData);
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -730,9 +739,9 @@ const UsersPage: React.FC = () => {
                     allowClear
                     size="large"
                   >
-                    {ROLES.filter(role => role.value).map((role) => (
-                      <Option key={role.value} value={role.value}>
-                        {role.label}
+                    {roles.map((role) => (
+                      <Option key={role.role_id} value={role.role_name}>
+                        {role.role_name}
                       </Option>
                     ))}
                   </Select>
