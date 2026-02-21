@@ -82,6 +82,7 @@ import type {
   ContactTeamData,
 } from "../lib/ownEmissionService";
 import dayjs, { type Dayjs } from "dayjs";
+import { useAuth } from "../contexts/AuthContext";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -90,6 +91,7 @@ const ProductView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { canUpdate, canDelete } = usePermissions();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [dataEntryMethod, setDataEntryMethod] = useState<
@@ -369,7 +371,8 @@ const ProductView: React.FC = () => {
   const getOwnEmissionQuestionnaireLink = () => {
     if (!selectedOwnEmissionPcf || !id) return "";
     const baseUrl = window.location.origin;
-    return `${baseUrl}/supplier-questionnaire?is_client=true&product_id=${id}&bom_pcf_id=${selectedOwnEmissionPcf}`;
+    const clientId = user?.id || user?.userId || "";
+    return `${baseUrl}/supplier-questionnaire?is_client=true&product_id=${id}&bom_pcf_id=${selectedOwnEmissionPcf}&client_id=${clientId}`;
   };
 
   // Check if DQR is submitted for an own emission item
