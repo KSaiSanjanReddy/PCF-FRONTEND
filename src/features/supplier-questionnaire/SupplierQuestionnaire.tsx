@@ -849,8 +849,8 @@ const SupplierQuestionnaire: React.FC = () => {
       if (result.success) {
         supplierQuestionnaireService.clearDraft(sup_id, bom_pcf_id);
 
-        // For supplier mode (public route), show thank you page instead of navigating
-        if (isPublicRoute) {
+        // For supplier mode (public route) or client mode, show thank you page instead of navigating
+        if (isPublicRoute || isClientMode) {
           setIsCompleted(true);
         } else {
           message.success({
