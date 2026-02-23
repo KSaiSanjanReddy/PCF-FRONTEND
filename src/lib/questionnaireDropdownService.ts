@@ -278,10 +278,10 @@ export async function getProductUnitDropdown(): Promise<DropdownItem[]> {
 
 /**
  * Transport Mode Dropdown
- * GET /api/master-data-setup/transport-modes/drop-down-list
+ * GET /api/master-data-setup/vehicle-type/drop-down-list
  */
 export async function getTransportModeDropdown(): Promise<DropdownItem[]> {
-  const data = await fetchDropdown<TransportModeApiItem>("/api/master-data-setup/transport-modes/drop-down-list");
+  const data = await fetchDropdown<TransportModeApiItem>("/api/master-data-setup/vehicle-type/drop-down-list");
   return data.map(item => ({
     ...item,
     id: item.tm_id || item.transport_mode_id || item.id || '',
