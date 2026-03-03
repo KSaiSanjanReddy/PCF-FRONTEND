@@ -1160,7 +1160,7 @@ const ProductView: React.FC = () => {
                       </Text>
                       <Text strong className="text-xl text-emerald-600">
                         {bomPcfDetails?.overall_pcf
-                          ? bomPcfDetails.overall_pcf.toExponential(2)
+                          ? bomPcfDetails.overall_pcf.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
                           : "0.00"}
                         <span className="text-xs ml-1 text-emerald-500 font-normal">
                           kg CO₂e
@@ -1359,7 +1359,7 @@ const ProductView: React.FC = () => {
                               <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-sm">
                                 {item.pcf_total_emission_calculation
                                   ?.total_pcf_value
-                                  ? `${item.pcf_total_emission_calculation.total_pcf_value.toExponential(1)}`
+                                  ? `${item.pcf_total_emission_calculation.total_pcf_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
                                   : "-"}
                                 <span className="text-emerald-500 text-xs font-normal">
                                   kg CO₂e
@@ -3783,8 +3783,8 @@ const ProductView: React.FC = () => {
                                 <td className="px-4 py-3 text-sm">
                                   {item.pcf_total_emission_calculation
                                     ?.total_pcf_value
-                                    ? item.pcf_total_emission_calculation.total_pcf_value.toExponential(
-                                        2,
+                                    ? item.pcf_total_emission_calculation.total_pcf_value.toLocaleString(
+                                        'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }
                                       )
                                     : "-"}
                                 </td>
@@ -3956,7 +3956,7 @@ const ProductView: React.FC = () => {
                       <Text strong>
                         {selectedSecondaryDataItem
                           .pcf_total_emission_calculation?.total_pcf_value
-                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.total_pcf_value.toExponential(2)} kgCO₂e`
+                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.total_pcf_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} kgCO₂e`
                           : "N/A"}
                       </Text>
                     </div>
@@ -4051,7 +4051,7 @@ const ProductView: React.FC = () => {
                       <Text className="text-sm">
                         {selectedSecondaryDataItem
                           .pcf_total_emission_calculation?.material_value
-                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.material_value.toExponential(2)} kgCO₂e`
+                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.material_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} kgCO₂e`
                           : "-"}
                       </Text>
                     </div>
@@ -4062,7 +4062,7 @@ const ProductView: React.FC = () => {
                       <Text className="text-sm">
                         {selectedSecondaryDataItem
                           .pcf_total_emission_calculation?.production_value
-                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.production_value.toExponential(2)} kgCO₂e`
+                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.production_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} kgCO₂e`
                           : "-"}
                       </Text>
                     </div>
@@ -4073,7 +4073,7 @@ const ProductView: React.FC = () => {
                       <Text className="text-sm">
                         {selectedSecondaryDataItem
                           .pcf_total_emission_calculation?.logistic_value
-                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.logistic_value.toExponential(2)} kgCO₂e`
+                          ? `${selectedSecondaryDataItem.pcf_total_emission_calculation.logistic_value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} kgCO₂e`
                           : "-"}
                       </Text>
                     </div>

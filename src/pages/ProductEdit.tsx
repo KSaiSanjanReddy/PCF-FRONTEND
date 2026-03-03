@@ -18,7 +18,6 @@ import type {
   ProductCategory,
   ProductSubCategory,
   ManufacturingProcess,
-  LifeCycleStage,
   Product,
   ManufacturerUser,
 } from "../lib/productService";
@@ -49,7 +48,6 @@ const ProductEdit: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductSubCategory[]>([]);
   const [manufacturingProcesses, setManufacturingProcesses] = useState<ManufacturingProcess[]>([]);
-  const [lifeCycleStages, setLifeCycleStages] = useState<LifeCycleStage[]>([]);
   const [materials, setMaterials] = useState<{ id: string; name: string }[]>([]);
   const [manufacturers, setManufacturers] = useState<ManufacturerUser[]>([]);
 
@@ -60,11 +58,10 @@ const ProductEdit: React.FC = () => {
   const loadData = async () => {
     try {
       setInitialLoading(true);
-      const [cats, subCats, mfgProcs, lcs, mats, mfrs] = await Promise.all([
+      const [cats, subCats, mfgProcs, mats, mfrs] = await Promise.all([
         productService.getProductCategories(),
         productService.getProductSubCategories(),
         productService.getManufacturingProcesses(),
-        productService.getLifeCycleStages(),
         getCompositionMetalDropdown(),
         productService.getManufacturers(),
       ]);
@@ -73,13 +70,11 @@ const ProductEdit: React.FC = () => {
       const catsData = cats.status ? (Array.isArray(cats.data) ? cats.data : cats.data?.rows || []) : [];
       const subCatsData = subCats.status ? (Array.isArray(subCats.data) ? subCats.data : subCats.data?.rows || []) : [];
       const mfgProcsData = mfgProcs.status ? (Array.isArray(mfgProcs.data) ? mfgProcs.data : mfgProcs.data?.rows || []) : [];
-      const lcsData = lcs.status ? (Array.isArray(lcs.data) ? lcs.data : lcs.data?.rows || []) : [];
       const mfrsData = mfrs.status ? (Array.isArray(mfrs.data) ? mfrs.data : []) : [];
 
       setCategories(catsData);
       setSubCategories(subCatsData);
       setManufacturingProcesses(mfgProcsData);
-      setLifeCycleStages(lcsData);
       setMaterials(mats);
       setManufacturers(mfrsData);
 
@@ -91,12 +86,7 @@ const ProductEdit: React.FC = () => {
 
           form.setFieldsValue({
             ...prod,
-            // Original: ts_weight_kg, ed_estimated_pcf, ed_recyclability, ed_renewable_energy were directly assigned without explicit Number conversion comment
-            // Ensure numbers are set correctly
             ts_weight_kg: Number(prod.ts_weight_kg),
-            ed_estimated_pcf: Number(prod.ed_estimated_pcf),
-            ed_recyclability: Number(prod.ed_recyclability),
-            ed_renewable_energy: Number(prod.ed_renewable_energy),
           });
 
         } else {
@@ -122,9 +112,6 @@ const ProductEdit: React.FC = () => {
         ...values,
         id: id, // Important for update
         ts_weight_kg: Number(values.ts_weight_kg),
-        ed_estimated_pcf: Number(values.ed_estimated_pcf),
-        ed_recyclability: Number(values.ed_recyclability),
-        ed_renewable_energy: Number(values.ed_renewable_energy),
       };
 
       const result = await productService.updateProduct(productData);
@@ -356,56 +343,6 @@ const ProductEdit: React.FC = () => {
                                 </Row>
                             </div>
 
-                            {/* Environmental Data */}
-                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                                    <Package className="w-5 h-5 text-amber-600" />
-                                  </div>
-                                  Environmental Data
-                                </h3>
-                                <Row gutter={24}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Carbon Footprint (kg CO₂e)"
-                                            name="ed_estimated_pcf"
-                                            rules={[{ required: true, message: "Required" }]}
-                                        >
-                                            <InputNumber className="w-full" size="large" min={0} step={0.01} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Recyclability (%)"
-                                            name="ed_recyclability"
-                                            rules={[{ required: true, message: "Required" }]}
-                                        >
-                                            <InputNumber className="w-full" size="large" min={0} max={100} step={0.1} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Renewable Energy (%)"
-                                            name="ed_renewable_energy"
-                                            rules={[{ required: true, message: "Required" }]}
-                                        >
-                                            <InputNumber className="w-full" size="large" min={0} max={100} step={0.1} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Life Cycle Stage"
-                                            name="ed_life_cycle_stage_id"
-                                            rules={[{ required: true, message: "Required" }]}
-                                        >
-                                            <Select
-                                                size="large"
-                                                options={lifeCycleStages.map(lcs => ({ label: lcs.name, value: lcs.id }))}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </div>
                         </div>
                     </Col>
 
