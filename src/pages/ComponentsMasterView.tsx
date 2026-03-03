@@ -457,7 +457,7 @@ const ComponentsMasterView: React.FC = () => {
                 <Tag color={isVerified ? "green" : "gold"}>{isVerified ? "Verified" : "Pending"}</Tag>
               </div>
               <div className="text-3xl font-bold text-gray-900 mb-2">
-                {pcfSummary.total_pcf.toExponential(2)} kgCO<sub>2</sub>e
+                {pcfSummary.total_pcf.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} kgCO<sub>2</sub>e
               </div>
               <Divider className="my-4" />
               <div className="space-y-2">

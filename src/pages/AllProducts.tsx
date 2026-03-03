@@ -209,13 +209,6 @@ const AllProducts: React.FC = () => {
       render: (text) => text || "-",
     },
     {
-      title: "Est. PCF",
-      dataIndex: "ed_estimated_pcf",
-      key: "ed_estimated_pcf",
-      width: 100,
-      render: (value) => value ? `${value} kg` : "-",
-    },
-    {
       title: "PCF Status",
       dataIndex: "pcf_status",
       key: "pcf_status",
@@ -392,7 +385,7 @@ const AllProducts: React.FC = () => {
               columns={columns}
               dataSource={products}
               pagination={false}
-              scroll={{ x: 1550 }}
+              scroll={{ x: 1450 }}
               rowKey="id"
               loading={loading}
               className="rounded-xl overflow-hidden"
