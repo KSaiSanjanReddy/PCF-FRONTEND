@@ -20,6 +20,7 @@ import type { BackendUser } from "../../types";
 import type { ModulePermission, MainModulePermission } from "../../types/userManagement";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import authorizationService, { DEFAULT_MODULES } from "../../lib/authorizationService";
+import { getApiBaseUrl } from "../../lib/apiBaseUrl";
 
 const { Option } = Select;
 
@@ -88,7 +89,7 @@ const AuthorizationsPage: React.FC = () => {
         setRoles(result.data);
       } else {
         // Fallback to old API
-        const response = await fetch("https://enviguide.nextechltd.in/api/roles/get");
+        const response = await fetch(`${getApiBaseUrl()}/api/roles/get`);
         const data = await response.json();
         if (data.status && data.data) {
           const rolesList = Array.isArray(data.data) ? data.data : data.data.rows || [];
@@ -108,7 +109,7 @@ const AuthorizationsPage: React.FC = () => {
     try {
       setUsersLoading(true);
       const response = await fetch(
-        "https://enviguide.nextechltd.in/api/user/getAll?pageNumber=1&pageSize=100"
+        `${getApiBaseUrl()}/api/user/getAll?pageNumber=1&pageSize=100`
       );
       const data = await response.json();
 
@@ -130,7 +131,7 @@ const AuthorizationsPage: React.FC = () => {
     try {
       setUsersLoading(true);
       const response = await fetch(
-        `https://enviguide.nextechltd.in/api/users/by-role?user_role=${encodeURIComponent(roleName)}`
+        `${getApiBaseUrl()}/api/users/by-role?user_role=${encodeURIComponent(roleName)}`
       );
       const data = await response.json();
 

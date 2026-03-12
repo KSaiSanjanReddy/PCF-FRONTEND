@@ -4,8 +4,9 @@
  */
 
 import authService from "./authService";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // Response types
 interface ApiResponse<T = any> {

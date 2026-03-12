@@ -1,4 +1,6 @@
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+import { getApiBaseUrl } from "./apiBaseUrl";
+
+const API_BASE_URL = getApiBaseUrl();
 
 // PCF Request nested within BOM item
 export interface PcfRequest {

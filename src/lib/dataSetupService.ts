@@ -1,6 +1,7 @@
 import authService from "./authService";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // Entity-specific field configuration for entities that don't follow standard (code, name, description) structure
 export interface EntityFieldConfig {

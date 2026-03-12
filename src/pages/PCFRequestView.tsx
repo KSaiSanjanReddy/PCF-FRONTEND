@@ -70,6 +70,7 @@ import pcfService from "../lib/pcfService";
 import authService from "../lib/authService";
 import taskService, { type TaskItem } from "../lib/taskService";
 import supplierQuestionnaireService from "../lib/supplierQuestionnaireService";
+import { getApiBaseUrl } from "../lib/apiBaseUrl";
 import {
   getFuelTypeDropdown,
   getSubFuelTypeDropdown,
@@ -213,7 +214,7 @@ const PCFRequestView: React.FC = () => {
       // Fetch questionnaire data and all lookup dropdowns in parallel
       const [questionnaireResult, fuelTypes, subFuelTypes, energySources, energyTypes, refrigerantTypes, processSpecificEnergy, transportModes] = await Promise.all([
         fetch(
-          `https://enviguide.nextechltd.in/api/supplier-input-questions-get-by-id?sgiq_id=${sgiq_id}`,
+          `${getApiBaseUrl()}/api/supplier-input-questions-get-by-id?sgiq_id=${sgiq_id}`,
           {
             method: "GET",
             headers: {
