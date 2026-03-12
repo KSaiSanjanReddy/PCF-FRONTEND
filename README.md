@@ -1,4 +1,4 @@
-# EnviGuide Frontendd
+# EnviGuide Frontend
 
 This is a modern React-based frontend application for the EnviGuide Management Suite, built with Vite, TypeScript, and Tailwind CSS.
 
@@ -161,4 +161,5 @@ The application can be deployed to any static hosting service:
 ## License
 
 This project is proprietary software for EnviGuide.
+
 
