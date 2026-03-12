@@ -1,6 +1,7 @@
 import authService from "./authService";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // Master Data Setup entities - use /api/master-data-setup/...
 export type MasterDataEntity =

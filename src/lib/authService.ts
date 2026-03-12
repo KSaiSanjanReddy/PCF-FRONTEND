@@ -6,9 +6,9 @@ import type {
   SignupRequest,
   User,
 } from "../types";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-// const API_BASE_URL = 'https://localhost:8000';
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // MFA Response interface
 interface MFAResponse {

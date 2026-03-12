@@ -3,8 +3,9 @@ import type {
   SupplierOnboarding,
   OnboardingListResponse,
 } from "../types/userManagement";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 class UserManagementService {
   private getAuthHeaders(): HeadersInit {

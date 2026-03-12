@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './apiBaseUrl';
 
-const API_URL = 'https://enviguide.nextechltd.in/api';
+const API_URL = `${getApiBaseUrl()}/api`;
 
 // Interfaces
 export interface ManufacturerUser {

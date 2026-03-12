@@ -5,6 +5,7 @@ import { message } from "antd";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import type { BackendUser } from "../../types";
 import { usePermissions } from "../../contexts/PermissionContext";
+import { getApiBaseUrl } from "../../lib/apiBaseUrl";
 
 const UsersEdit: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -47,9 +48,7 @@ const UsersEdit: React.FC = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_BASE_URL || "https://enviguide.nextechltd.in"
-        }/api/user/getById?user_id=${userId}`
+        `        ${getApiBaseUrl()}/api/user/getById?user_id=${userId}`
       );
 
       if (response.ok) {
@@ -82,9 +81,7 @@ const UsersEdit: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_BASE_URL || "https://enviguide.nextechltd.in"
-        }/api/roles/get`,
+        `        ${getApiBaseUrl()}/api/roles/get`,
         {
           headers: {
             ...(token ? { Authorization: token } : {}),
@@ -110,9 +107,7 @@ const UsersEdit: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_BASE_URL || "https://enviguide.nextechltd.in"
-        }/api/department/get`,
+        `        ${getApiBaseUrl()}/api/department/get`,
         {
           headers: {
             ...(token ? { Authorization: token } : {}),
@@ -142,9 +137,7 @@ const UsersEdit: React.FC = () => {
     try {
       setSaving(true);
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_BASE_URL || "https://enviguide.nextechltd.in"
-        }/api/user/update`,
+        `        ${getApiBaseUrl()}/api/user/update`,
         {
           method: "POST",
           headers: {

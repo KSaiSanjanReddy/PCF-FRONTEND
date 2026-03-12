@@ -1,6 +1,7 @@
 import authService from "./authService";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // ECOInvent Emission Factor Data Setup entities
 export type EcoInventEntity =

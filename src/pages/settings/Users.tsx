@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 import userManagementService from "../../lib/userManagementService";
 import authService from "../../lib/authService";
 import { usePermissions } from "../../contexts/PermissionContext";
+import { getApiBaseUrl } from "../../lib/apiBaseUrl";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -158,7 +159,7 @@ const UsersPage: React.FC = () => {
       setLoading(true);
       const queryParams = buildQueryParams();
       const response = await fetch(
-        `https://enviguide.nextechltd.in/api/user/getAll?${queryParams}`
+        `${getApiBaseUrl()}/api/user/getAll?${queryParams}`
       );
 
       if (response.ok) {
@@ -410,7 +411,7 @@ const UsersPage: React.FC = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `https://enviguide.nextechltd.in/api/delete/user`,
+          `${getApiBaseUrl()}/api/delete/user`,
           {
             method: "POST",
             headers: {

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import alertManagementService from "../../lib/alertManagementService";
+import { getApiBaseUrl } from "../../lib/apiBaseUrl";
 import type {
   AlertCondition,
   AlertPayload,
@@ -163,7 +164,7 @@ const AlertManagementCreate: React.FC = () => {
 
         // Load roles
         const rolesResponse = await fetch(
-          "https://enviguide.nextechltd.in/api/user/roles",
+          `${getApiBaseUrl()}/api/user/roles`,
           {
             headers: {
               Authorization: localStorage.getItem("token") || "",
@@ -264,7 +265,7 @@ const AlertManagementCreate: React.FC = () => {
           const role = roles.find((r) => r.role_id === roleId);
           if (role) {
             const response = await fetch(
-              `https://enviguide.nextechltd.in/api/users/by-role?user_role=${encodeURIComponent(role.role_name)}`,
+              `${getApiBaseUrl()}/api/users/by-role?user_role=${encodeURIComponent(role.role_name)}`,
               {
                 headers: {
                   Authorization: localStorage.getItem("token") || "",

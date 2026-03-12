@@ -3,8 +3,9 @@ import type {
   MainModule,
   SubModule,
 } from "../types/userManagement";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const API_BASE_URL = "https://enviguide.nextechltd.in";
+const API_BASE_URL = getApiBaseUrl();
 
 // Default modules based on menu structure
 export const DEFAULT_MODULES: { name: string; description: string; subModules?: string[] }[] = [
