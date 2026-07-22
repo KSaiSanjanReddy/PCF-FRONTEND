@@ -477,20 +477,17 @@ const LocationCell: React.FC<{
   });
 
   if (lockedFrom != null) {
+    // Same Form.Item structure + cellInput style as the other read-only cells so it
+    // lines up in the row. The value is mirrored into the form by the effect above.
     return (
-      <div style={{ width: "100%" }}>
-        {/* hidden field carries the locked value for save + required-validation */}
-        <Form.Item name={[rowName, col.name]} rules={requiredRule(col)} hidden>
-          <Input />
-        </Form.Item>
+      <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)} style={{ width: "100%" }}>
         <Input
-          value={lockedText}
           disabled
           placeholder="Locked to previous leg's destination"
           title="This leg starts where the previous leg for this component ended — locked."
-          style={{ width: "100%", fontSize: 13, background: "#f7fafb" }}
+          style={{ ...cellInput, background: "#f7fafb" }}
         />
-      </div>
+      </Form.Item>
     );
   }
 
