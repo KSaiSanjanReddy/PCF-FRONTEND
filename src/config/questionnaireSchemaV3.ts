@@ -898,7 +898,7 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
           { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", required: true, placeholder: "Search specific type…" },
-          { name: "source", label: "Source", type: "text", required: true, placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type" },
+          { name: "source", label: "Source", type: "text", required: true, placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "product_id", chainDestField: "destination" },
           { name: "destination", label: "Destination", type: "text", required: true, placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
           { name: "weight", label: "Weight", type: "number", required: true, min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, required: true, placeholder: "Select unit" },

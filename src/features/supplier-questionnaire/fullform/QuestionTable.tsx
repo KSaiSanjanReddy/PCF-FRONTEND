@@ -434,6 +434,66 @@ const LocationCell: React.FC<{
     else store.d = { lat: loc.lat, lng: loc.lng };
     notifyCoordsChanged();
   };
+
+  // ---- Chained source-lock (Q19) -----------------------------------------
+  // A Source column tagged with `chainKeyField` (the MPN column): if an EARLIER
+  // row shares this row's MPN, this leg is a continuation of that component's
+  // journey — its Source is LOCKED (read-only) to the previous leg's Destination
+  // (both the display text and the coords that feed the distance). The first leg
+  // for a given MPN stays freely editable.
+  let lockedFrom: number | null = null;
+  if (col.locationRole === "source" && col.chainKeyField) {
+    const rows = (form.getFieldValue(fieldPath) as any[]) || [];
+    const myKey = rows[rowName]?.[col.chainKeyField];
+    if (myKey != null && myKey !== "") {
+      for (let j = rowName - 1; j >= 0; j--) {
+        if (rows[j]?.[col.chainKeyField] === myKey) { lockedFrom = j; break; }
+      }
+    }
+  }
+  const destField = col.chainDestField || "destination";
+  const rowsNow = (form.getFieldValue(fieldPath) as any[]) || [];
+  const lockedText: string = lockedFrom != null ? String(rowsNow[lockedFrom]?.[destField] ?? "") : "";
+
+  // When locked, mirror the previous leg's Destination (text + coords) into this
+  // row so it saves, validates, and drives the distance — re-asserted every render
+  // (survives the auto-save clobber) and auto-updates if the previous leg changes.
+  React.useEffect(() => {
+    if (lockedFrom == null) return;
+    const prevKey = `${fieldPath.join(".")}:${lockedFrom}`;
+    const prevCoords = _transportCoords[prevKey]?.d;
+    const store = _transportCoords[rowKey] || (_transportCoords[rowKey] = {});
+    let coordsChanged = false;
+    if (prevCoords && (store.s?.lat !== prevCoords.lat || store.s?.lng !== prevCoords.lng)) {
+      store.s = { lat: prevCoords.lat, lng: prevCoords.lng };
+      coordsChanged = true;
+    }
+    if (form.getFieldValue([...fieldPath, rowName, col.name]) !== lockedText) {
+      const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
+      arr[rowName] = { ...(arr[rowName] || {}), [col.name]: lockedText };
+      form.setFieldValue(fieldPath, arr);
+    }
+    if (coordsChanged) notifyCoordsChanged();
+  });
+
+  if (lockedFrom != null) {
+    return (
+      <div style={{ width: "100%" }}>
+        {/* hidden field carries the locked value for save + required-validation */}
+        <Form.Item name={[rowName, col.name]} rules={requiredRule(col)} hidden>
+          <Input />
+        </Form.Item>
+        <Input
+          value={lockedText}
+          disabled
+          placeholder="Locked to previous leg's destination"
+          title="This leg starts where the previous leg for this component ended — locked."
+          style={{ width: "100%", fontSize: 13, background: "#f7fafb" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)} style={{ width: "100%" }}>
       <LocationAutocomplete onLocationSelect={onLocationSelect} placeholder={col.placeholder || "Search location…"} />
@@ -454,7 +514,6 @@ const DistanceCell: React.FC<{
   useCoordSignal();
   const rowKey = `${fieldPath.join(".")}:${rowName}`;
   const store = _transportCoords[rowKey];
-  const [manual, setManual] = React.useState<number | null>(null);
 
   let auto: number | null = null;
   if (store?.s && store?.d) {
@@ -462,11 +521,11 @@ const DistanceCell: React.FC<{
     const mode = col.modeField ? String(form.getFieldValue([...fieldPath, rowName, col.modeField]) ?? "") : "";
     auto = Math.round(km * transportCorrectionFactor(mode));
   }
-  // A fresh geocode (auto changes) clears any manual override so the new distance wins.
-  React.useEffect(() => { setManual(null); }, [auto]);
 
   const formVal = form.getFieldValue([...fieldPath, rowName, col.name]) as number | undefined;
-  const shown = manual != null ? manual : auto != null ? auto : formVal ?? undefined;
+  // Auto value wins when both coords are present; otherwise fall back to the saved
+  // value so a loaded questionnaire still shows its distance before coords exist.
+  const shown = auto != null ? auto : formVal ?? undefined;
 
   // Mirror the shown value into the form for saving/validation, and re-assert it
   // if the auto-save clobbers the field (the displayed value stays put regardless).
@@ -484,13 +543,13 @@ const DistanceCell: React.FC<{
       <Form.Item name={[rowName, col.name]} rules={requiredRule(col)} hidden>
         <InputNumber />
       </Form.Item>
+      {/* Read-only: distance is always auto-computed from source + destination coords. */}
       <InputNumber
         value={shown}
-        onChange={(v) => setManual(typeof v === "number" ? v : null)}
+        readOnly
+        disabled
         placeholder={col.placeholder}
-        min={col.min}
-        max={col.max}
-        style={{ width: "100%", fontSize: 13 }}
+        style={{ width: "100%", fontSize: 13, background: "#f7fafb" }}
       />
     </div>
   );
@@ -646,6 +705,8 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                       product_name: undefined,
                     };
                 form.setFieldValue(fieldPath, arr);
+                // Re-evaluate the transport source-lock chain when an MPN changes.
+                notifyCoordsChanged();
               }}
             >
               {bomOptions.map((o) => (
