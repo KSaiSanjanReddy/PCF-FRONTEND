@@ -162,7 +162,7 @@ export default function ArticleGetAccess() {
                                     </p>
                                     <div className={styles.calloutBlue} style={{ margin: '14px 0 0' }}>
                                         <p className={styles.calloutText} style={{ fontSize: '13px' }}>
-                                            🔗 <strong>Official Platform URL:</strong> <a href="https://Enviguide.nextechltd.in" target="_blank" rel="noopener noreferrer">Enviguide.nextechltd.in</a>
+                                            🔗 <strong>Official Platform URL:</strong> <a href="https://enviraan.com" target="_blank" rel="noopener noreferrer">enviraan.com</a>
                                         </p>
                                     </div>
                                 </div>

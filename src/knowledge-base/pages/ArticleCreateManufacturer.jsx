@@ -350,7 +350,7 @@ export default function ArticleCreateManufacturer() {
                             {/* Registration Link Box */}
                             <div className={styles.regLinkBox}>
                                 <p className={styles.regLinkLabel}>PUBLIC REGISTRATION LINK</p>
-                                <p className={styles.regLinkUrl}>https://Enviguide.nextechltd.in/manufacturer-onboarding</p>
+                                <p className={styles.regLinkUrl}>https://enviraan.com/manufacturer-onboarding</p>
                                 <p className={styles.regLinkNote}>This link can be reused multiple times for different manufacturers.</p>
                             </div>
 

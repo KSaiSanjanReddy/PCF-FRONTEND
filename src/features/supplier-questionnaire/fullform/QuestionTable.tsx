@@ -13,13 +13,53 @@
  *    cells, keep read-only + link fields) and Add is hidden.
  */
 import React from "react";
-import { Form, Input, InputNumber, Select, DatePicker, Button } from "antd";
+import { AutoComplete, Form, Input, InputNumber, Select, DatePicker, Button } from "antd";
 import type { FormInstance } from "antd";
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { QuestionnaireField } from "../../../config/questionnaireSchema";
+import { getSubdivisionsForCountry } from "../../../config/countrySubdivisions";
 import { C } from "./theme";
 import { MiniYesNo, optionsAreYesNo, optionAsPair, dateValueProps } from "./controls";
 import supplierQuestionnaireService from "../../../lib/supplierQuestionnaireService";
+import LocationAutocomplete from "../../../components/LocationAutocomplete";
+import type { LocationValue } from "../../../components/LocationAutocomplete";
+
+// ── Transport distance helpers (Q19) — geocode source/destination → coords, then
+//    distance = great-circle (haversine) × a transport-mode correction factor.
+//    Mirrors the legacy DynamicQuestionnaireForm implementation. Free/open-source:
+//    coords come from OpenStreetMap/Nominatim (via /api/geocode-search), the
+//    distance itself is pure math (no paid API). Coords are kept in a MODULE store
+//    (NOT the form) because the auto-save round-trip strips any field the mapper
+//    doesn't know about; only the computed distance goes into the form field.
+const _transportCoords: Record<string, { s?: { lat: number; lng: number }; d?: { lat: number; lng: number } }> = {};
+
+// Tiny pub-sub so the distance cell re-renders when a row's coords change (the
+// coords live outside the form, so React can't see them without this signal).
+const _coordSubs = new Set<() => void>();
+function notifyCoordsChanged() { _coordSubs.forEach((fn) => fn()); }
+function useCoordSignal() {
+  const [, force] = React.useReducer((x: number) => x + 1, 0);
+  React.useEffect(() => { _coordSubs.add(force); return () => { _coordSubs.delete(force); }; }, []);
+}
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371; // Earth radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// GLEC / GHG Protocol correction: roads curve (~+20%), rail (~+15%), sea/air ≈ great circle.
+function transportCorrectionFactor(mode: string | undefined): number {
+  if (!mode) return 1.2;
+  const m = mode.toLowerCase();
+  if (m.includes("ship") || m.includes("sea") || m.includes("vessel") || m.includes("barge") || m.includes("ferry") || m.includes("ocean")) return 1.0;
+  if (m.includes("air") || m.includes("flight") || m.includes("aircraft") || m.includes("plane")) return 1.0;
+  if (m.includes("rail") || m.includes("train") || m.includes("intermodal")) return 1.15;
+  return 1.2; // road: truck, lorry, van, etc.
+}
 
 // Which deeper taxonomy columns to clear when a given level changes.
 const TAX_CHILDREN: Record<string, string[]> = {
@@ -41,7 +81,10 @@ const TaxonomyCell: React.FC<{
   // Column NAME of each taxonomy level in THIS table (names differ per table,
   // e.g. Q8 uses "material" for the category level).
   taxNames: { category?: string; sub_category?: string; group?: string; specific_type?: string };
-}> = ({ field, form, fieldPath, rowName, taxNames }) => {
+  // Column NAME of the geography cell (Q10), if any. Cleared on ANY taxonomy
+  // change since geography is the 5th cascade level and depends on all 4 above.
+  geoColName?: string;
+}> = ({ field, form, fieldPath, rowName, taxNames, geoColName }) => {
   const level = field.efTaxonomyLevel as "category" | "sub_category" | "group" | "specific_type";
   const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
   const cat = taxNames.category ? row[taxNames.category] : undefined;
@@ -94,6 +137,10 @@ const TaxonomyCell: React.FC<{
             const childCol = taxNames[childLevel as keyof typeof taxNames];
             if (childCol) next[childCol] = undefined;
           }
+          // Geography (5th cascade level) depends on all 4 taxonomy levels, so a
+          // change at ANY level invalidates it — clear so a stale country (e.g. a
+          // grid-mix "DE - Germany" left on a biogas type) can't survive.
+          if (geoColName) next[geoColName] = undefined;
           arr[rowName] = next;
           form.setFieldValue(fieldPath, arr);
         }}
@@ -102,6 +149,205 @@ const TaxonomyCell: React.FC<{
       />
     </Form.Item>
   );
+};
+
+// Geography (electricity sourcing) dropdown — the 5th CASCADE level for Q10.
+// Only the geographies that actually have an EF row for the row's chosen
+// Category → Sub-category → Group → Specific Type are shown (via the taxonomy
+// endpoint level=geography), so every pick is guaranteed to resolve to a real EF
+// row (no silent EF=0). Disabled until Specific Type is picked. Options are the
+// exact DB geography strings ("DE - Germany"). Fetched lazily on OPEN, debounced
+// search; the saved value stays selectable so a draft shows its value on load.
+const GeographyCell: React.FC<{
+  field: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+  taxNames: { category?: string; sub_category?: string; group?: string; specific_type?: string };
+}> = ({ field, form, fieldPath, rowName, taxNames }) => {
+  const selected = Form.useWatch([...fieldPath, rowName, field.name], form) as string | undefined;
+  const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
+  const cat = taxNames.category ? row[taxNames.category] : undefined;
+  const sub = taxNames.sub_category ? row[taxNames.sub_category] : undefined;
+  const grp = taxNames.group ? row[taxNames.group] : undefined;
+  const spec = taxNames.specific_type ? row[taxNames.specific_type] : undefined;
+  const ready = !!cat && !!sub && !!grp && !!spec;
+
+  const [open, setOpen] = React.useState(false);
+  const [options, setOptions] = React.useState<Array<{ value: string; label: string }>>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [loaded, setLoaded] = React.useState(false);
+  const parentKey = `${cat || ""}|${sub || ""}|${grp || ""}|${spec || ""}`;
+
+  React.useEffect(() => {
+    // Fetch only once the 4 parents are set AND the dropdown is open. Debounce
+    // search so each keystroke doesn't fire a request.
+    if (!ready || !open) { setLoaded(false); return; }
+    let alive = true;
+    const t = setTimeout(() => {
+      setLoading(true);
+      supplierQuestionnaireService
+        .getEfTaxonomy("geography", {
+          category: cat, sub_category: sub, group: grp, specific_type: spec,
+          q: search || undefined,
+        })
+        .then((data: any[]) => {
+          if (!alive) return;
+          setOptions(data.map((v) => ({ value: String(v), label: String(v) })));
+          setLoaded(true);
+        })
+        .finally(() => { if (alive) setLoading(false); });
+    }, search ? 250 : 0);
+    return () => { alive = false; clearTimeout(t); };
+  }, [ready, open, parentKey, search]);
+
+  // Ensure the saved value is selectable even if it isn't in the fetched page.
+  const merged = React.useMemo(() => {
+    if (selected && !options.some((o) => o.value === selected)) {
+      return [{ value: selected, label: selected }, ...options];
+    }
+    return options;
+  }, [options, selected]);
+
+  return (
+    <Form.Item name={[rowName, field.name]} className="mb-0" rules={requiredRule(field)} style={{ width: "100%" }}>
+      <Select
+        placeholder={field.placeholder || "Select geography"}
+        // Cell can be narrow, but let the popup grow so the full "CODE - Country
+        // Name" is always readable, and cap its height so long lists scroll.
+        style={{ width: "100%", fontSize: 13 }}
+        popupMatchSelectWidth={false}
+        listHeight={320}
+        showSearch
+        loading={loading}
+        disabled={!ready}
+        filterOption={false}
+        onSearch={setSearch}
+        onDropdownVisibleChange={setOpen}
+        options={merged}
+        notFoundContent={
+          !ready ? "Pick Specific Type first" : loading || !loaded ? "Loading…" : "No matches"
+        }
+      />
+    </Form.Item>
+  );
+};
+
+// Country-dependent subdivision (state / province) autocomplete. Suggests the
+// selected country's states and always allows a manually typed value, so any
+// state can be entered even when the country has no ISO subdivision data.
+const SubdivisionCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+  countryCol: string;
+}> = ({ col, form, fieldPath, rowName, countryCol }) => {
+  const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
+  const country = row[countryCol];
+  const states = React.useMemo(() => getSubdivisionsForCountry(country), [country]);
+  const [query, setQuery] = React.useState("");
+  const options = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (q ? states.filter((s) => s.toLowerCase().includes(q)) : states).map((s) => ({ value: s }));
+  }, [states, query]);
+  const placeholder = !country
+    ? "Select a country first"
+    : states.length
+      ? "Select or type state / province"
+      : "Type state / province";
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
+      <AutoComplete
+        options={options}
+        onSearch={setQuery}
+        filterOption={false}
+        allowClear
+        placeholder={placeholder}
+        style={{ width: "100%", fontSize: 13 }}
+      />
+    </Form.Item>
+  );
+};
+
+// Select cell whose options are unique across the table's rows: any value
+// already chosen in another row is disabled here, so each option can be picked
+// only once (Q27 volume types). Watches the whole Form.List array so disabling
+// updates the instant another row's value changes.
+const UniqueSelectCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+}> = ({ col, form, fieldPath, rowName }) => {
+  const allRows = Form.useWatch(fieldPath, form) as any[] | undefined;
+  const takenElsewhere = React.useMemo(() => {
+    const s = new Set<string>();
+    (Array.isArray(allRows) ? allRows : []).forEach((r, i) => {
+      if (i === rowName) return;
+      const v = r?.[col.name];
+      if (v !== undefined && v !== null && v !== "") s.add(String(v));
+    });
+    return s;
+  }, [allRows, rowName, col.name]);
+
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
+      <Select
+        placeholder={col.placeholder}
+        style={{ width: "100%", fontSize: 13 }}
+        showSearch={Array.isArray(col.options) && col.options.length > 5}
+        filterOption={(input, option) =>
+          String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+      >
+        {(col.options || []).map((opt) => {
+          const { label, value } = optionAsPair(opt);
+          return (
+            <Select.Option key={String(value)} value={value} disabled={takenElsewhere.has(String(value))}>
+              {label}
+            </Select.Option>
+          );
+        })}
+      </Select>
+    </Form.Item>
+  );
+};
+
+// Wraps a cell whose visibility depends on a sibling column's value in the same
+// row (e.g. Biogenic carbon shows only when Biogenic = Yes). When hidden it
+// renders an em dash and clears any stale value so it isn't submitted.
+const ConditionalCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+  children: React.ReactNode;
+}> = ({ col, form, fieldPath, rowName, children }) => {
+  const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
+  const dep = col.dependency!;
+  const depVal = row[dep.field];
+  const met =
+    depVal !== undefined &&
+    depVal !== null &&
+    depVal !== "" &&
+    String(depVal).toLowerCase() === String(dep.value).toLowerCase();
+  React.useEffect(() => {
+    if (met) return;
+    const cur = row[col.name];
+    if (cur === undefined || cur === null || cur === "") return;
+    const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
+    if (arr[rowName]) {
+      arr[rowName] = { ...arr[rowName], [col.name]: undefined };
+      form.setFieldValue(fieldPath, arr);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [met]);
+  if (!met) {
+    return <span style={{ color: "#b7c1cb", fontSize: 13, paddingLeft: 4 }}>—</span>;
+  }
+  return <>{children}</>;
 };
 
 interface BomComponent {
@@ -115,6 +361,9 @@ interface QuestionTableProps {
   form: FormInstance;
   bomComponents?: BomComponent[];
   isClientMode?: boolean;
+  // Parent auto-save hook — re-fired after a programmatic set (e.g. Q19 distance)
+  // so the parent's formData picks it up (setFieldValue alone doesn't fire it).
+  onValuesChange?: (changed: any, all: any) => void;
 }
 
 const cellInput: React.CSSProperties = {
@@ -167,17 +416,104 @@ const requiredRule = (col: QuestionnaireField) =>
       : []),
   ].filter(Boolean);
 
+// Q19 source/destination — geocoding autocomplete (OpenStreetMap/Nominatim).
+// Form.Item binds the typed/selected text (display_name) for validation + save.
+// onLocationSelect just records the picked coords in the MODULE store and signals
+// the distance cell to recompute. It does NOT touch the form (the auto-save wipes
+// anything it writes) — the distance cell owns the form value.
+const LocationCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+}> = ({ col, form, fieldPath, rowName }) => {
+  const rowKey = `${fieldPath.join(".")}:${rowName}`;
+  const onLocationSelect = (loc: LocationValue) => {
+    const store = _transportCoords[rowKey] || (_transportCoords[rowKey] = {});
+    if (col.locationRole === "source") store.s = { lat: loc.lat, lng: loc.lng };
+    else store.d = { lat: loc.lat, lng: loc.lng };
+    notifyCoordsChanged();
+  };
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)} style={{ width: "100%" }}>
+      <LocationAutocomplete onLocationSelect={onLocationSelect} placeholder={col.placeholder || "Search location…"} />
+    </Form.Item>
+  );
+};
+
+// Q19 distance — auto-computed from the row's source + destination coords (module
+// store). The DISPLAY reads from the coords (clobber-proof — the auto-save wipes
+// the form value), while the value is mirrored into the form field for saving +
+// required-validation. Editable: a manual entry overrides until coords change.
+const DistanceCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+}> = ({ col, form, fieldPath, rowName }) => {
+  useCoordSignal();
+  const rowKey = `${fieldPath.join(".")}:${rowName}`;
+  const store = _transportCoords[rowKey];
+  const [manual, setManual] = React.useState<number | null>(null);
+
+  let auto: number | null = null;
+  if (store?.s && store?.d) {
+    const km = haversineKm(store.s.lat, store.s.lng, store.d.lat, store.d.lng);
+    const mode = col.modeField ? String(form.getFieldValue([...fieldPath, rowName, col.modeField]) ?? "") : "";
+    auto = Math.round(km * transportCorrectionFactor(mode));
+  }
+  // A fresh geocode (auto changes) clears any manual override so the new distance wins.
+  React.useEffect(() => { setManual(null); }, [auto]);
+
+  const formVal = form.getFieldValue([...fieldPath, rowName, col.name]) as number | undefined;
+  const shown = manual != null ? manual : auto != null ? auto : formVal ?? undefined;
+
+  // Mirror the shown value into the form for saving/validation, and re-assert it
+  // if the auto-save clobbers the field (the displayed value stays put regardless).
+  React.useEffect(() => {
+    if (shown != null && form.getFieldValue([...fieldPath, rowName, col.name]) !== shown) {
+      const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
+      arr[rowName] = { ...(arr[rowName] || {}), [col.name]: shown };
+      form.setFieldValue(fieldPath, arr);
+    }
+  });
+
+  return (
+    <div style={{ width: "100%" }}>
+      {/* hidden field carries the value for required-validation + save */}
+      <Form.Item name={[rowName, col.name]} rules={requiredRule(col)} hidden>
+        <InputNumber />
+      </Form.Item>
+      <InputNumber
+        value={shown}
+        onChange={(v) => setManual(typeof v === "number" ? v : null)}
+        placeholder={col.placeholder}
+        min={col.min}
+        max={col.max}
+        style={{ width: "100%", fontSize: 13 }}
+      />
+    </div>
+  );
+};
+
 const QuestionTable: React.FC<QuestionTableProps> = ({
   field,
   form,
   bomComponents = [],
   isClientMode,
+  onValuesChange,
 }) => {
   const fieldPath = field.name.split(".");
   const columns = Array.isArray(field.columns) ? field.columns : [];
   // Map each taxonomy level → its column name in THIS table (names vary per table).
   const taxNames: { category?: string; sub_category?: string; group?: string; specific_type?: string } = {};
   columns.forEach((c) => { if (c.efTaxonomyLevel) (taxNames as any)[c.efTaxonomyLevel] = c.name; });
+  // Geography column (Q10) — cleared by TaxonomyCell whenever a taxonomy level changes.
+  const geoColName = columns.find((c) => c.efGeography)?.name;
+  // A unique-across-rows select column caps the table at one row per option, so
+  // the Add button hides once every option has been used.
+  const uniqueCol = columns.find((c) => c.uniqueAcrossRows && Array.isArray(c.options));
+  const maxRows = uniqueCol?.options ? uniqueCol.options.length : undefined;
   const flexIdx = (() => {
     const i = columns.findIndex((c) => c.type === "text" && !c.readOnly);
     return i >= 0 ? i : columns.length - 1;
@@ -216,6 +552,19 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   });
 
   const renderCell = (col: QuestionnaireField, rowName: number) => {
+    // Cells gated on a sibling column's value (e.g. Biogenic carbon only when
+    // Biogenic = Yes) render an em dash until the gate is met.
+    if (col.dependency) {
+      return (
+        <ConditionalCell col={col} form={form} fieldPath={fieldPath} rowName={rowName}>
+          {renderCellControl(col, rowName)}
+        </ConditionalCell>
+      );
+    }
+    return renderCellControl(col, rowName);
+  };
+
+  const renderCellControl = (col: QuestionnaireField, rowName: number) => {
     // Read-only mirror cell (Q8 MPN/component, BOM-table component name).
     if (col.readOnly) {
       return (
@@ -225,9 +574,33 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
       );
     }
 
+    // Country-dependent subdivision (state / province) autocomplete.
+    if (col.subdivisionOf) {
+      return (
+        <SubdivisionCell
+          col={col}
+          form={form}
+          fieldPath={fieldPath}
+          rowName={rowName}
+          countryCol={col.subdivisionOf}
+        />
+      );
+    }
+
+    // Q19 geocoding location (source / destination) → auto-fills distance.
+    if (col.locationRole) {
+      return <LocationCell col={col} form={form} fieldPath={fieldPath} rowName={rowName} />;
+    }
+
     // Cascading EF-taxonomy dropdown (Category → Sub → Group → Specific Type).
     if (col.efTaxonomyLevel) {
-      return <TaxonomyCell field={col} form={form} fieldPath={fieldPath} rowName={rowName} taxNames={taxNames} />;
+      return <TaxonomyCell field={col} form={form} fieldPath={fieldPath} rowName={rowName} taxNames={taxNames} geoColName={geoColName} />;
+    }
+
+    // Geography (electricity sourcing) — 5th cascade level, filtered by the row's
+    // Category → Sub → Group → Specific Type picks.
+    if (col.efGeography) {
+      return <GeographyCell field={col} form={form} fieldPath={fieldPath} rowName={rowName} taxNames={taxNames} />;
     }
 
     // BOM-sourced MPN dropdown — auto-fills sibling cells on change.
@@ -286,6 +659,11 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
       );
     }
 
+    // Select whose options are unique across rows (Q27 volume types).
+    if (col.type === "select" && col.uniqueAcrossRows) {
+      return <UniqueSelectCell col={col} form={form} fieldPath={fieldPath} rowName={rowName} />;
+    }
+
     // In-table Yes/No → compact toggle.
     if (col.type === "select" && optionsAreYesNo(col.options)) {
       return (
@@ -318,6 +696,11 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
           </Select>
         </Form.Item>
       );
+    }
+
+    // Q19 auto-distance cell — re-renders reliably when the location cells fill it.
+    if (col.type === "number" && col.autoDistance) {
+      return <DistanceCell col={col} form={form} fieldPath={fieldPath} rowName={rowName} />;
     }
 
     if (col.type === "number") {
@@ -448,7 +831,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
               </div>
             </div>
 
-            {!field.lockAddRemove && (
+            {!field.lockAddRemove && (maxRows === undefined || rows.length < maxRows) && (
               <div style={{ padding: "10px 12px", background: C.fieldBg }}>
                 <Button
                   type="text"

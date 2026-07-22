@@ -93,6 +93,24 @@ export interface QuestionnaireField {
   // The 4 levels (category → sub_category → group → specific_type) together pin
   // the exact EF. Each level filters by the row's higher-level selections.
   efTaxonomyLevel?: "category" | "sub_category" | "group" | "specific_type";
+  // Table-column only: renders a searchable dropdown of distinct geographies
+  // (countries) sourced from the emission_factors master via
+  // /api/emission-factors/meta/geographies. Used by Q10 "Geography (Electricity
+  // Sourcing)" so the supplier picks the geography their electricity EF is
+  // matched against — every geography value the EF DB carries is selectable.
+  efGeography?: boolean;
+  // Table-column only: renders a geocoding location autocomplete (OpenStreetMap /
+  // Nominatim via /api/geocode-search). When BOTH the source and destination cells
+  // of a row have been resolved to coordinates, the distance (haversine × transport
+  // correction factor) is auto-filled into `distanceTarget`. `modeField` names the
+  // column whose value picks the correction factor (road/rail/sea/air). Used by Q19.
+  locationRole?: "source" | "destination";
+  distanceTarget?: string;
+  modeField?: string;
+  // Table-column only: this number cell auto-fills from the row's source +
+  // destination coordinates (stored by the location cells) via haversine ×
+  // correction factor. Still editable for a manual override. Used by Q19.
+  autoDistance?: boolean;
   dependsOnField?: string;
   efSource?: "electricity" | "fuel" | "packaging" | "vehicle" | "waste" | "materials";
   efLayer?: 1 | 2 | 3 | 4;
@@ -118,10 +136,20 @@ export interface QuestionnaireField {
   lockAddRemove?: boolean;
   multiple?: boolean;
   readOnly?: boolean;
-  // Pre-fill a fixed set of rows when the table is empty (e.g. Q27 volume
-  // types). Seeded once; the supplier only fills the editable columns. Pair
-  // with lockAddRemove + readOnly columns for a fixed-row table.
+  // Pre-fill a fixed set of rows when the table is empty. Seeded once; the
+  // supplier only fills the editable columns. Pair with lockAddRemove + readOnly
+  // columns for a fixed-row table.
   prefillRows?: Array<Record<string, any>>;
+  // Table-column only: renders a country-dependent subdivision (state /
+  // province) autocomplete. Value is the sibling column name that holds the
+  // country. Suggestions come from countrySubdivisions; free text is always
+  // allowed so any state can be typed manually.
+  subdivisionOf?: string;
+  // Table-column only (select): each option can be chosen in at most one row.
+  // Options already selected in other rows of the same table are disabled, and
+  // the "Add Row" button hides once every option is used. Used by Q27 volume
+  // types.
+  uniqueAcrossRows?: boolean;
 }
 
 export interface QuestionnaireSection {
