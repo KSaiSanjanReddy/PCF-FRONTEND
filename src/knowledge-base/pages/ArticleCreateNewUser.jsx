@@ -515,7 +515,7 @@ export default function ArticleCreateNewUser() {
                                 <div className={styles.regLinkBox} style={{ margin: '0' }}>
                                     <p className={styles.regLinkLabel}>SHARE THESE DETAILS</p>
                                     <p className={styles.regLinkUrl}>Dashboard URL</p>
-                                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>https://Enviguide.nextechltd.in/dashboard</p>
+                                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>https://enviraan.com/dashboard</p>
                                     <p className={styles.regLinkUrl}>Username + Password</p>
                                     <p style={{ fontSize: '12px', color: '#6b7280' }}>The credentials you set during user creation</p>
                                 </div>
@@ -529,7 +529,7 @@ export default function ArticleCreateNewUser() {
                                 <div className={styles.regLinkBox} style={{ margin: '0' }}>
                                     <p className={styles.regLinkLabel}>SHARE THESE DETAILS</p>
                                     <p className={styles.regLinkUrl}>Dashboard URL</p>
-                                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>https://Enviguide.nextechltd.in/dashboard</p>
+                                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>https://enviraan.com/dashboard</p>
                                     <p className={styles.regLinkUrl}>Temporary Username + Password</p>
                                     <p style={{ fontSize: '12px', color: '#6b7280' }}>Note: "You will be asked to change this password on your first login"</p>
                                 </div>
