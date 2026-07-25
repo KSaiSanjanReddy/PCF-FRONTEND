@@ -1,5 +1,7 @@
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import type { QuestionnaireField } from "../../config/questionnaireSchema";
+import type { TranslateFn } from "./i18n";
+import { translateOption } from "./i18n";
 
 // Safe stringifier — dayjs / Date / plain value, never throws.
 const safeToString = (val: any): string => {
@@ -143,18 +145,26 @@ const cleanLabel = (label: string): string =>
 const formatFieldValue = (
   field: QuestionnaireField,
   value: any,
-  dropdownMaps: Record<string, Record<string, string>>
+  dropdownMaps: Record<string, Record<string, string>>,
+  t?: TranslateFn
 ): string => {
   if (!hasValue(value)) return "";
 
   if (field.type === "checkbox" && !field.options) {
-    return value === true ? "Acknowledged" : "Not Acknowledged";
+    return value === true
+      ? t?.("ui.acknowledged") || "Acknowledged"
+      : t?.("ui.notAcknowledged") || "Not Acknowledged";
   }
   if (field.type === "radio") {
-    return safeToString(value);
+    return t ? translateOption(value, t) : safeToString(value);
   }
   if (field.type === "checkbox" && field.options) {
-    return Array.isArray(value) ? value.join(", ") : safeToString(value);
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => (t ? translateOption(v, t) : safeToString(v)))
+        .join(", ");
+    }
+    return t ? translateOption(value, t) : safeToString(value);
   }
   if (field.type === "tags") {
     return Array.isArray(value) ? value.join(", ") : safeToString(value);
@@ -173,16 +183,42 @@ const formatFieldValue = (
     if (map && map[k]) return map[k];
     return k;
   }
+  if (field.type === "select") {
+    return t ? translateOption(value, t) : safeToString(value);
+  }
   if (typeof value === "number") {
     return value.toLocaleString();
   }
-  return safeToString(value);
+  return t ? translateOption(value, t) : safeToString(value);
+};
+
+const translateFieldLabel = (
+  field: QuestionnaireField,
+  t?: TranslateFn
+): string => {
+  if (t) {
+    const tr = t(`fields.${field.name}`);
+    if (tr && tr !== `fields.${field.name}`) return cleanLabel(tr);
+  }
+  return cleanLabel(field.label || field.name);
+};
+
+const translateColLabel = (
+  col: QuestionnaireField,
+  t?: TranslateFn
+): string => {
+  if (t) {
+    const tr = t(`fields.${col.name}`);
+    if (tr && tr !== `fields.${col.name}`) return tr;
+  }
+  return col.label || col.name;
 };
 
 // Main builder ----------------------------------------------------
 export const buildPdfSections = (
   formData: Record<string, any>,
-  dropdownMaps: Record<string, Record<string, string>>
+  dropdownMaps: Record<string, Record<string, string>>,
+  t?: TranslateFn
 ): PdfSection[] => {
   const sections: PdfSection[] = [];
 
@@ -211,9 +247,7 @@ export const buildPdfSections = (
             !col.name.startsWith("bom_id") && !col.name.startsWith("product_id")
         );
 
-        const columns = visibleColumns.map(
-          (col) => col.label || col.name
-        );
+        const columns = visibleColumns.map((col) => translateColLabel(col, t));
         const tableRows = rows.map((row: any) =>
           visibleColumns.map((col) => {
             const val = row[col.name];
@@ -223,13 +257,13 @@ export const buildPdfSections = (
               return dropdownMaps[col.apiDropdown][k] || k;
             }
             if (typeof val === "number") return val.toLocaleString();
-            return safeToString(val);
+            return t ? translateOption(val, t) : safeToString(val);
           })
         );
 
         items.push({
           type: "table",
-          label: cleanLabel(field.label || field.name),
+          label: translateFieldLabel(field, t),
           columns,
           rows: tableRows,
         });
@@ -237,14 +271,18 @@ export const buildPdfSections = (
         if (!hasValue(value)) continue;
         items.push({
           type: "field",
-          label: cleanLabel(field.label || field.name),
-          value: formatFieldValue(field, value, dropdownMaps),
+          label: translateFieldLabel(field, t),
+          value: formatFieldValue(field, value, dropdownMaps, t),
         });
       }
     }
 
     if (items.length > 0) {
-      sections.push({ title: section.title, items });
+      const title =
+        (t && t(`sections.${section.id}.title`)) || section.title;
+      const resolvedTitle =
+        title === `sections.${section.id}.title` ? section.title : title;
+      sections.push({ title: resolvedTitle, items });
     }
   }
 

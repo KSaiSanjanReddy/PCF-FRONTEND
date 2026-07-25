@@ -14,7 +14,6 @@ import type {
 } from "../../../config/questionnaireSchema";
 import {
   SECTION_LAYOUT,
-  GENERAL_LAYOUT,
   type QuestionGroup,
 } from "./layout";
 import {
@@ -23,9 +22,10 @@ import {
   dateValueProps,
   displayLabel,
 } from "./controls";
-import { NoticeCard, ConsentCard } from "./ConsentNotice";
+import { NoticeCard, LocalizedConsentCards } from "./ConsentNotice";
 import QuestionTable from "./QuestionTable";
 import { C, cardStyle, numberBadge, tagFor } from "./theme";
+import { useQuestionnaireLocale } from "../i18n";
 
 interface BomComponent {
   bom_id: string;
@@ -82,9 +82,12 @@ const Tag: React.FC<{ field?: QuestionnaireField; required?: boolean }> = ({
   field,
   required,
 }) => {
-  const t = tagFor(required ?? field?.required);
-  if (!t) return null;
-  return <span style={t.style}>{t.label}</span>;
+  const { t } = useQuestionnaireLocale();
+  const base = tagFor(required ?? field?.required);
+  if (!base) return null;
+  const label =
+    (required ?? field?.required) ? t("ui.required") : t("ui.optional");
+  return <span style={base.style}>{label}</span>;
 };
 
 const QuestionnaireCardForm: React.FC<Props> = ({
@@ -95,6 +98,7 @@ const QuestionnaireCardForm: React.FC<Props> = ({
   bomComponents = [],
   isClientMode,
 }) => {
+  const { t } = useQuestionnaireLocale();
   const fieldByName = useMemo(() => {
     const m: Record<string, QuestionnaireField> = {};
     (section?.fields || []).forEach((f) => (m[f.name] = f));
@@ -120,69 +124,70 @@ const QuestionnaireCardForm: React.FC<Props> = ({
     }
   }, [initialValues, form]);
 
-  // Open tables with editable rows. BOM-backed tables (Q8) seed from the
-  // assigned BOM once when components are present; every other VISIBLE table
-  // opens with one empty row. Two "seed-once" guards mean the supplier can
-  // freely add/remove rows afterwards, and a late-arriving BOM still overrides
-  // a placeholder empty row (different guard keys).
-  const bomSeededRef = useRef<Set<string>>(new Set());
-  const emptySeededRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!section) return;
-    section.fields.forEach((field) => {
-      if (field.type !== "table") return;
-      // Don't pre-seed a gated table until its dependency is met (visible).
-      if (field.dependency && !depMet(field.dependency, values)) return;
-      const key = `${section.id}:${field.name}`;
-      const path = field.name.split(".");
-      const existing = form.getFieldValue(path);
-      const rows = Array.isArray(existing) ? existing.filter(Boolean) : [];
-      const hasData = rows.some(
-        (r: any) =>
-          r &&
-          typeof r === "object" &&
-          Object.values(r).some((v) => v !== undefined && v !== null && v !== ""),
-      );
-
-      if (
-        field.autoPopulateFromBom &&
-        Array.isArray(bomComponents) &&
-        bomComponents.length > 0
-      ) {
-        if (!hasData && !bomSeededRef.current.has(key)) {
-          form.setFieldValue(
-            path,
-            bomComponents.map((c) => ({
-              bom_id: c.bom_id,
-              material_number: c.material_number,
-              product_id: c.material_number,
-              component_name: c.component_name,
-              product_name: c.component_name,
-            })),
+      // Open tables with editable rows. BOM-backed tables (Q8) seed from the
+      // assigned BOM once when components are present; every other VISIBLE
+      // *required* table opens with one empty row. Optional tables (e.g. Q27)
+      // stay empty until the supplier clicks Add — so they don't look mandatory.
+      const bomSeededRef = useRef<Set<string>>(new Set());
+      const emptySeededRef = useRef<Set<string>>(new Set());
+      useEffect(() => {
+        if (!section) return;
+        section.fields.forEach((field) => {
+          if (field.type !== "table") return;
+          // Don't pre-seed a gated table until its dependency is met (visible).
+          if (field.dependency && !depMet(field.dependency, values)) return;
+          // Optional tables: leave empty; supplier adds rows only if needed.
+          if (!field.required) return;
+          const key = `${section.id}:${field.name}`;
+          const path = field.name.split(".");
+          const existing = form.getFieldValue(path);
+          const rows = Array.isArray(existing) ? existing.filter(Boolean) : [];
+          const hasData = rows.some(
+            (r: any) =>
+              r &&
+              typeof r === "object" &&
+              Object.values(r).some((v) => v !== undefined && v !== null && v !== ""),
           );
-          bomSeededRef.current.add(key);
-        }
-        return;
-      }
 
-      // Fixed-row tables (e.g. Q27 volume types): seed the pre-defined rows.
-      if (Array.isArray(field.prefillRows) && field.prefillRows.length > 0) {
-        if (!hasData && !emptySeededRef.current.has(key)) {
-          form.setFieldValue(
-            path,
-            field.prefillRows.map((r) => ({ ...r })),
-          );
-          emptySeededRef.current.add(key);
-        }
-        return;
-      }
+          if (
+            field.autoPopulateFromBom &&
+            Array.isArray(bomComponents) &&
+            bomComponents.length > 0
+          ) {
+            if (!hasData && !bomSeededRef.current.has(key)) {
+              form.setFieldValue(
+                path,
+                bomComponents.map((c) => ({
+                  bom_id: c.bom_id,
+                  material_number: c.material_number,
+                  product_id: c.material_number,
+                  component_name: c.component_name,
+                  product_name: c.component_name,
+                })),
+              );
+              bomSeededRef.current.add(key);
+            }
+            return;
+          }
 
-      if (rows.length === 0 && !emptySeededRef.current.has(key)) {
-        form.setFieldValue(path, [{}]);
-        emptySeededRef.current.add(key);
-      }
-    });
-  }, [section, bomComponents, form, values, initialValues]);
+          // Fixed-row tables (e.g. legacy prefillRows): seed the pre-defined rows.
+          if (Array.isArray(field.prefillRows) && field.prefillRows.length > 0) {
+            if (!hasData && !emptySeededRef.current.has(key)) {
+              form.setFieldValue(
+                path,
+                field.prefillRows.map((r) => ({ ...r })),
+              );
+              emptySeededRef.current.add(key);
+            }
+            return;
+          }
+
+          if (rows.length === 0 && !emptySeededRef.current.has(key)) {
+            form.setFieldValue(path, [{}]);
+            emptySeededRef.current.add(key);
+          }
+        });
+      }, [section, bomComponents, form, values, initialValues]);
 
   // Q2/Q3 single fields (product identity): pre-fill from the supplier's FIRST
   // BOM component and keep them locked (FieldControl disables any field with
@@ -258,7 +263,7 @@ const QuestionnaireCardForm: React.FC<Props> = ({
     <Form.Item
       name={field.name.split(".")}
       className="mb-0"
-      rules={buildRules(field)}
+      rules={buildRules(field, t)}
       {...(field.type === "date" ? dateValueProps : {})}
     >
       <FieldControl field={field} />
@@ -296,7 +301,7 @@ const QuestionnaireCardForm: React.FC<Props> = ({
               {badge}
             </span>
             <span style={{ fontSize: 13.5, fontWeight: 600, color: C.textSoft, lineHeight: 1.35 }}>
-              {displayLabel(field)}
+              {displayLabel(field, t)}
             </span>
             {field.disabled ? (
               <span
@@ -312,7 +317,7 @@ const QuestionnaireCardForm: React.FC<Props> = ({
                   padding: "2px 7px",
                 }}
               >
-                Default
+                {t("ui.default")}
               </span>
             ) : (
               <Tag field={field} />
@@ -321,7 +326,7 @@ const QuestionnaireCardForm: React.FC<Props> = ({
           <Form.Item
             name={field.name.split(".")}
             className="mb-0"
-            rules={buildRules(field)}
+            rules={buildRules(field, t)}
             {...(field.type === "date" ? dateValueProps : {})}
           >
             <FieldControl field={field} />
@@ -372,6 +377,27 @@ const QuestionnaireCardForm: React.FC<Props> = ({
     }
 
     const visibleSubs = subFields.filter((f) => depMet(f.dependency, values));
+    const qKey = group.num || "submission";
+    const qPrefix = `questions.${section.id}.${qKey}`;
+    const groupLabel = (() => {
+      const tr = t(`${qPrefix}.label`);
+      return tr !== `${qPrefix}.label` ? tr : group.label;
+    })();
+    const groupHelp = (() => {
+      if (!group.help) return undefined;
+      const tr = t(`${qPrefix}.help`);
+      return tr !== `${qPrefix}.help` ? tr : group.help;
+    })();
+    const groupGateHint = (() => {
+      if (!group.gateHint) return undefined;
+      const tr = t(`${qPrefix}.gateHint`);
+      return tr !== `${qPrefix}.gateHint` ? tr : group.gateHint;
+    })();
+    const groupSubsLabel = (() => {
+      const tr = t(`${qPrefix}.subsLabel`);
+      if (tr !== `${qPrefix}.subsLabel`) return tr;
+      return group.subsLabel || t("ui.followUp");
+    })();
 
     return (
       <div key={group.label + index} style={cardStyle}>
@@ -389,11 +415,11 @@ const QuestionnaireCardForm: React.FC<Props> = ({
               }}
             >
               <span style={{ fontSize: 15.5, fontWeight: 650, lineHeight: 1.4 }}>
-                {group.label}
+                {groupLabel}
               </span>
               <Tag required={headerRequired} />
             </div>
-            {group.help && helpText(group.help)}
+            {groupHelp && helpText(groupHelp)}
           </div>
         </div>
 
@@ -404,8 +430,8 @@ const QuestionnaireCardForm: React.FC<Props> = ({
         {gated && !gateMet ? (
           // Show a hint only when one is provided; otherwise render nothing so
           // the card collapses to just the question when gated off.
-          group.gateHint ? (
-            gateHintPanel(group.gateHint)
+          groupGateHint ? (
+            gateHintPanel(groupGateHint)
           ) : null
         ) : (
           <>
@@ -441,10 +467,11 @@ const QuestionnaireCardForm: React.FC<Props> = ({
                       color: C.muted2,
                     }}
                   >
-                    {group.subsLabel || "Follow-up details"}
+                    {groupSubsLabel}
                   </span>
                   <span style={{ fontSize: 10.5, fontWeight: 600, color: "#aab6bf" }}>
-                    {visibleSubs.length} {visibleSubs.length === 1 ? "field" : "fields"}
+                    {visibleSubs.length}{" "}
+                    {visibleSubs.length === 1 ? t("ui.field") : t("ui.fields")}
                   </span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
@@ -465,10 +492,8 @@ const QuestionnaireCardForm: React.FC<Props> = ({
       const generalGroups = SECTION_LAYOUT[section.id] || [];
       return (
         <>
-          <NoticeCard notice={GENERAL_LAYOUT.notice} />
-          {GENERAL_LAYOUT.consents.map((c) => (
-            <ConsentCard key={c.ackName} def={c} />
-          ))}
+          <NoticeCard />
+          <LocalizedConsentCards />
           {generalGroups.map((g, i) => renderGroup(g, i))}
         </>
       );

@@ -312,6 +312,13 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       tableName: "bom.process_consumables",
     },
     {
+      num: "8c",
+      label:
+        "How were the raw materials transported to your manufacturing site?",
+      help: "Optional. One row per inbound transport leg for raw materials arriving at your site — mode classification, route, weight and distance.",
+      tableName: "bom.raw_material_transport",
+    },
+    {
       // Single card: Yes reveals the co-product table; No shows nothing
       // (no gateHint, so the gate renders nothing when "No").
       num: "9",
@@ -342,7 +349,7 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
     {
       num: "10b",
       label:
-        "How many units of each product were manufactured during the reporting period?",
+        "How many current components produced during the reporting period?",
       tableName: "energy.factory_product_units",
     },
     {
@@ -361,8 +368,8 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       // "No" (not yet counted in Q10) reveals the table; "Yes" collects nothing,
       // since that energy is already in the Q10 total and would double-count.
       num: "13",
-      label: "How much energy did quality control and production IT consume?",
-      help: "If this energy is already included in the Q10 electricity total, answer 'Yes' — there is nothing further to report.",
+      label: "How much energy did quality control and production IT consume? (optional)",
+      help: "If this energy is already included in the Q10 electricity total, select 'Yes'; if 'No', enter the details. Maps to fossilGhgEmissions (QC and IT sub-components).",
       primaryName: "energy.qc_it_energy_in_q10",
       tableName: "energy.qc_it_energy",
       gateName: "energy.qc_it_energy_in_q10",
@@ -373,6 +380,12 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       label:
         "What production and quality-control waste was generated, and how was it treated?",
       tableName: "energy.production_waste",
+    },
+    {
+      num: "14a",
+      label: "How was the production waste transported for treatment?",
+      help: "Optional. One row per transport leg taking production waste to treatment — mode classification, route, weight and distance.",
+      tableName: "energy.production_waste_transport",
     },
   ],
 
@@ -391,8 +404,8 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
     },
     {
       num: "16a",
-      label: "How is each packaging item transported to your site?",
-      help: "One row per packaging transport leg. Weight, distance in km. Use Air for any air-freighted packaging.",
+      label:
+        "How were the packaging materials transported to your manufacturing site? (Optional)",
       tableName: "packaging.transport",
       gateHint:
         'Select "Yes — include packaging" in Q15 to add packaging transport legs.',
@@ -403,6 +416,14 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       tableName: "packaging.waste",
       gateHint:
         'Select "Yes — include packaging" in Q15 to record packaging waste.',
+    },
+    {
+      num: "17a",
+      label: "How was the packaging waste transported for treatment?",
+      help: "Optional. One row per transport leg taking packaging waste to treatment — mode classification, route, weight and distance.",
+      tableName: "packaging.waste_transport",
+      gateHint:
+        'Select "Yes — include packaging" in Q15 to add packaging-waste transport legs.',
     },
   ],
 
@@ -528,7 +549,9 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
     },
     {
       num: "27",
-      label: "Which production or product volumes are certified or verified?",
+      label:
+        "Which production or product volumes are certified or verified? (optional)",
+      help: "Optional. Add a row only for volume types you want to report. You can skip this question entirely.",
       tableName: "verification.volumes",
     },
   ],

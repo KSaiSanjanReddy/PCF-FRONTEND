@@ -23,6 +23,11 @@ import { MiniYesNo, optionsAreYesNo, optionAsPair, dateValueProps } from "./cont
 import supplierQuestionnaireService from "../../../lib/supplierQuestionnaireService";
 import LocationAutocomplete from "../../../components/LocationAutocomplete";
 import type { LocationValue } from "../../../components/LocationAutocomplete";
+import {
+  useQuestionnaireLocale,
+  translateOptionLabel,
+  type TranslateFn,
+} from "../i18n";
 
 // ── Transport distance helpers (Q19) — geocode source/destination → coords, then
 //    distance = great-circle (haversine) × a transport-mode correction factor.
@@ -281,6 +286,7 @@ const UniqueSelectCell: React.FC<{
   fieldPath: string[];
   rowName: number;
 }> = ({ col, form, fieldPath, rowName }) => {
+  const { t } = useQuestionnaireLocale();
   const allRows = Form.useWatch(fieldPath, form) as any[] | undefined;
   const takenElsewhere = React.useMemo(() => {
     const s = new Set<string>();
@@ -306,7 +312,7 @@ const UniqueSelectCell: React.FC<{
           const { label, value } = optionAsPair(opt);
           return (
             <Select.Option key={String(value)} value={value} disabled={takenElsewhere.has(String(value))}>
-              {label}
+              {translateOptionLabel(label, value, t)}
             </Select.Option>
           );
         })}
@@ -392,29 +398,73 @@ const colMinWidth = (col: QuestionnaireField): number => {
   return 150;
 };
 
-const colLabel = (col: QuestionnaireField, isClientMode?: boolean): string => {
+const colLabel = (
+  col: QuestionnaireField,
+  isClientMode?: boolean,
+  t?: TranslateFn,
+  tableName?: string
+): string => {
   if (isClientMode) {
-    if (col.name === "mpn") return "Product Code";
-    if (col.name === "component_name") return "Product Name";
+    if (col.name === "mpn") return t?.("ui.productCode") || "Product Code";
+    if (col.name === "component_name")
+      return t?.("ui.productName") || "Product Name";
+  }
+  if (t) {
+    // Prefer table-scoped labels (e.g. fields.energy.production_waste.quantity)
+    // so shared column names like "quantity" can differ per question.
+    if (tableName) {
+      const scoped = t(`fields.${tableName}.${col.name}`);
+      if (scoped && scoped !== `fields.${tableName}.${col.name}`) return scoped;
+    }
+    const byField = t(`fields.${col.name}`);
+    if (byField && byField !== `fields.${col.name}`) return byField;
   }
   return col.label || col.name;
 };
 
-const requiredRule = (col: QuestionnaireField) =>
-  [
-    {
-      required: col.required,
-      message: col.required
-        ? `Please fill in "${col.label}" for this row. This field is required.`
-        : undefined,
-    },
-    ...(col.type === "number" && col.min !== undefined
-      ? [{ type: "number" as const, min: col.min, message: `${col.label} must be at least ${col.min}` }]
-      : []),
-    ...(col.type === "number" && col.max !== undefined
-      ? [{ type: "number" as const, max: col.max, message: `${col.label} must not exceed ${col.max}` }]
-      : []),
-  ].filter(Boolean);
+const requiredRule = (col: QuestionnaireField) => {
+  const rules: any[] = [];
+  if (col.required) {
+    rules.push({
+      required: true,
+      message: `Please fill in "${col.label}" for this row. This field is required.`,
+    });
+  }
+  // Number min/max must not block empty optional cells (null / "" / undefined).
+  if (col.type === "number" && col.min !== undefined) {
+    rules.push({
+      validator: (_: unknown, value: unknown) => {
+        if (value === undefined || value === null || value === "") {
+          return Promise.resolve();
+        }
+        const n = Number(value);
+        if (Number.isNaN(n) || n < (col.min as number)) {
+          return Promise.reject(
+            new Error(`${col.label} must be at least ${col.min}`),
+          );
+        }
+        return Promise.resolve();
+      },
+    });
+  }
+  if (col.type === "number" && col.max !== undefined) {
+    rules.push({
+      validator: (_: unknown, value: unknown) => {
+        if (value === undefined || value === null || value === "") {
+          return Promise.resolve();
+        }
+        const n = Number(value);
+        if (Number.isNaN(n) || n > (col.max as number)) {
+          return Promise.reject(
+            new Error(`${col.label} must not exceed ${col.max}`),
+          );
+        }
+        return Promise.resolve();
+      },
+    });
+  }
+  return rules;
+};
 
 // Q19 source/destination — geocoding autocomplete (OpenStreetMap/Nominatim).
 // Form.Item binds the typed/selected text (display_name) for validation + save.
@@ -559,6 +609,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   isClientMode,
   onValuesChange,
 }) => {
+  const { t } = useQuestionnaireLocale();
   const fieldPath = field.name.split(".");
   const columns = Array.isArray(field.columns) ? field.columns : [];
   // Map each taxonomy level → its column name in THIS table (names vary per table).
@@ -747,7 +798,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
               const { label, value } = optionAsPair(opt);
               return (
                 <Select.Option key={String(value)} value={value}>
-                  {label}
+                  {translateOptionLabel(label, value, t)}
                 </Select.Option>
               );
             })}
@@ -824,7 +875,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                 <div style={{ display: "flex", background: "#f3f6f8", borderBottom: "1px solid #e6ecef" }}>
                   {columns.map((col, i) => (
                     <div key={col.name} style={thStyle(col, i)}>
-                      {colLabel(col, isClientMode)}
+                      {colLabel(col, isClientMode, t, field.name)}
                       {col.required && <span style={{ color: "#dc2626", fontWeight: 700 }}>&nbsp;*</span>}
                     </div>
                   ))}
@@ -834,7 +885,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                 {/* rows */}
                 {rows.length === 0 ? (
                   <div style={{ padding: "18px 16px", fontSize: 13, color: C.muted3, background: "#fff" }}>
-                    No rows yet. Use the button below to add your first entry.
+                    {t("ui.noRowsYet")}
                   </div>
                 ) : (
                   rows.map((row) => (
@@ -857,7 +908,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                             type="text"
                             size="small"
                             icon={<ReloadOutlined />}
-                            title="Clear this row's values"
+                            title={t("ui.clearRowTitle")}
                             className="hover:bg-amber-50 hover:text-amber-600"
                             onClick={() => {
                               const rowPath = [...fieldPath, row.name];
@@ -904,7 +955,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                     borderRadius: 9,
                   }}
                 >
-                  {field.addButtonLabel || "Add Row"}
+                  {field.addButtonLabel || t("ui.addRow")}
                 </Button>
               </div>
             )}
