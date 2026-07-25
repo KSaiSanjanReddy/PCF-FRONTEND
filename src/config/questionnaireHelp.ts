@@ -137,7 +137,7 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
   },
   "product.manufacturing_sites": {
     plain:
-      "Each factory or site where the product is made, with its region, country and subdivision.",
+      "Each factory or site where the product is made, with its region and country (subdivision optional).",
     whereToFind: "Your facility address records.",
     example: "Plant 2, Pune, Maharashtra, India",
   },

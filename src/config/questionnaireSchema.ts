@@ -153,6 +153,10 @@ export interface QuestionnaireField {
   // country. Suggestions come from countrySubdivisions; free text is always
   // allowed so any state can be typed manually.
   subdivisionOf?: string;
+  // Table-column only (select): filter this column's options by the sibling
+  // Region column (continent). Used by Q4 Country — disabled until Region is
+  // picked; changing Region clears Country (+ Subdivision if present).
+  countryOfRegion?: string;
   // Table-column only (select): each option can be chosen in at most one row.
   // Options already selected in other rows of the same table are disabled, and
   // the "Add Row" button hides once every option is used. Used by Q27 volume

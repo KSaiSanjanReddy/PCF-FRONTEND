@@ -35,6 +35,7 @@ const en: QuestionnaireCatalog = {
     selectEllipsis: "Select…",
     selectGeography: "Select geography",
     selectCountryFirst: "Select a country first",
+    selectRegionFirst: "Select a region first",
     selectState: "Select or type state / province",
     searchLocation: "Search location…",
     pickComponent: "Pick a component",

@@ -18,6 +18,7 @@ import type { FormInstance } from "antd";
 import { PlusOutlined, DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { QuestionnaireField } from "../../../config/questionnaireSchema";
 import { getSubdivisionsForCountry } from "../../../config/countrySubdivisions";
+import { getCountriesForRegion } from "../../../config/regionCountries";
 import { C } from "./theme";
 import { MiniYesNo, optionsAreYesNo, optionAsPair, dateValueProps } from "./controls";
 import supplierQuestionnaireService from "../../../lib/supplierQuestionnaireService";
@@ -249,6 +250,7 @@ const SubdivisionCell: React.FC<{
   rowName: number;
   countryCol: string;
 }> = ({ col, form, fieldPath, rowName, countryCol }) => {
+  const { t } = useQuestionnaireLocale();
   const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
   const country = row[countryCol];
   const states = React.useMemo(() => getSubdivisionsForCountry(country), [country]);
@@ -258,10 +260,10 @@ const SubdivisionCell: React.FC<{
     return (q ? states.filter((s) => s.toLowerCase().includes(q)) : states).map((s) => ({ value: s }));
   }, [states, query]);
   const placeholder = !country
-    ? "Select a country first"
+    ? t("ui.selectCountryFirst")
     : states.length
-      ? "Select or type state / province"
-      : "Type state / province";
+      ? (col.placeholder || t("ui.selectState"))
+      : t("ui.selectState");
   return (
     <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
       <AutoComplete
@@ -272,6 +274,59 @@ const SubdivisionCell: React.FC<{
         placeholder={placeholder}
         style={{ width: "100%", fontSize: 13 }}
       />
+    </Form.Item>
+  );
+};
+
+// Region → Country cascade. Country options come from getCountriesForRegion for
+// the sibling Region value. Disabled until Region is set; changing Region clears
+// Country (and Subdivision when that column exists on the table).
+const CountryByRegionCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+  regionCol: string;
+  subdivisionCol?: string;
+}> = ({ col, form, fieldPath, rowName, regionCol, subdivisionCol }) => {
+  const { t } = useQuestionnaireLocale();
+  const row = (Form.useWatch([...fieldPath, rowName], form) as any) || {};
+  const region = row[regionCol] as string | undefined;
+  const allCountries = React.useMemo(() => {
+    if (!Array.isArray(col.options)) return [] as string[];
+    return col.options.map((opt) => String(optionAsPair(opt).value));
+  }, [col.options]);
+  const countries = React.useMemo(
+    () => getCountriesForRegion(region, allCountries),
+    [region, allCountries]
+  );
+  const ready = !!region;
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
+      <Select
+        placeholder={ready ? (col.placeholder || "Select country") : t("ui.selectRegionFirst")}
+        style={{ width: "100%", fontSize: 13 }}
+        showSearch
+        allowClear
+        disabled={!ready}
+        filterOption={(input, option) =>
+          String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+        onChange={(v) => {
+          if (!subdivisionCol) return;
+          const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
+          const prev = arr[rowName] || {};
+          arr[rowName] = { ...prev, [col.name]: v, [subdivisionCol]: undefined };
+          form.setFieldValue(fieldPath, arr);
+        }}
+        notFoundContent={!ready ? t("ui.selectRegionFirst") : "No countries for this region"}
+      >
+        {countries.map((c) => (
+          <Select.Option key={c} value={c}>
+            {translateOptionLabel(c, c, t)}
+          </Select.Option>
+        ))}
+      </Select>
     </Form.Item>
   );
 };
@@ -617,6 +672,9 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   columns.forEach((c) => { if (c.efTaxonomyLevel) (taxNames as any)[c.efTaxonomyLevel] = c.name; });
   // Geography column (Q10) — cleared by TaxonomyCell whenever a taxonomy level changes.
   const geoColName = columns.find((c) => c.efGeography)?.name;
+  // Region → Country cascade: which country columns depend on which region columns.
+  const countryByRegionCols = columns.filter((c) => c.countryOfRegion);
+  const subdivisionColName = columns.find((c) => c.subdivisionOf)?.name;
   // A unique-across-rows select column caps the table at one row per option, so
   // the Add button hides once every option has been used.
   const uniqueCol = columns.find((c) => c.uniqueAcrossRows && Array.isArray(c.options));
@@ -690,6 +748,20 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
           fieldPath={fieldPath}
           rowName={rowName}
           countryCol={col.subdivisionOf}
+        />
+      );
+    }
+
+    // Region → Country cascade (Q4 / Q16).
+    if (col.countryOfRegion) {
+      return (
+        <CountryByRegionCell
+          col={col}
+          form={form}
+          fieldPath={fieldPath}
+          rowName={rowName}
+          regionCol={col.countryOfRegion}
+          subdivisionCol={subdivisionColName}
         />
       );
     }
@@ -783,6 +855,9 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
     }
 
     if (col.type === "select") {
+      // If this is a Region column that drives Country filters, clear Country
+      // (+ Subdivision) when Region changes so stale countries can't stick.
+      const dependentCountryCols = countryByRegionCols.filter((c) => c.countryOfRegion === col.name);
       return (
         <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
           <Select
@@ -793,6 +868,18 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
             filterOption={(input, option) =>
               String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
             }
+            onChange={(v) => {
+              if (dependentCountryCols.length === 0) return;
+              const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
+              const prev = arr[rowName] || {};
+              const next: any = { ...prev, [col.name]: v };
+              for (const c of dependentCountryCols) {
+                next[c.name] = undefined;
+              }
+              if (subdivisionColName) next[subdivisionColName] = undefined;
+              arr[rowName] = next;
+              form.setFieldValue(fieldPath, arr);
+            }}
           >
             {(col.options || []).map((opt) => {
               const { label, value } = optionAsPair(opt);

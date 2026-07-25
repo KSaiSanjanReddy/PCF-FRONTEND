@@ -643,7 +643,7 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
             qc_it_energy_in_q10: qcItInQ10,
             qc_it_energy: qcItRows.map((q: any) => ({
                 mpn: q.mpn,
-                equipment_type: q.equipmentType,
+                equipment_type: q.equipmentType ?? q.item,
                 category: q.category,
                 sub_category: q.subCategory,
                 group: q.materialGroup,

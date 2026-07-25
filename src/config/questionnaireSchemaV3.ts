@@ -435,11 +435,25 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         columns: [
           { name: "site_name", label: "Site Name", type: "text", placeholder: "Site name" },
           { name: "site_address", label: "Site Address", type: "text", placeholder: "Address" },
-          // Subdivision suggestions are driven by the selected Country
-          // (subdivisionOf) and always allow a manually typed value.
-          { name: "subdivision", label: "Subdivision", type: "text", required: true, subdivisionOf: "country", placeholder: "Select or type state / province" },
+          // Order: Region → Country → Subdivision. Country options are filtered
+          // by the selected Region (countryOfRegion). Subdivision is optional.
           { name: "region", label: "Region", type: "select", options: REGIONS, required: true, placeholder: "Select region" },
-          { name: "country", label: "Country", type: "select", options: COUNTRIES, required: true, placeholder: "Select country" },
+          {
+            name: "country",
+            label: "Country",
+            type: "select",
+            options: COUNTRIES,
+            required: true,
+            countryOfRegion: "region",
+            placeholder: "Select country",
+          },
+          {
+            name: "subdivision",
+            label: "Subdivision",
+            type: "text",
+            subdivisionOf: "country",
+            placeholder: "Select or type state / province (optional)",
+          },
           { name: "notes", label: "Notes", type: "text", placeholder: "Optional notes" },
         ],
       },
@@ -780,14 +794,14 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         columns: [
           { name: "mpn", label: "MPN Code", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
           { name: "equipment_type", label: "Equipment Type", type: "text", placeholder: "e.g. CMM, oven, test rig" },
-          { name: "category", label: "Category (Energy type)", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
-          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
-          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
-          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
-          // Geography (5th cascade level) — narrows the exact EF row, same as Q10.
-          { name: "geography", label: "Geography (Electricity Sourcing)", type: "select", efGeography: true, placeholder: "Select geography" },
-          { name: "value", label: "Total Quantity", type: "number", min: 0, placeholder: "0.00" },
-          { name: "unit", label: "Unit", type: "select", options: ENERGY_UNITS, placeholder: "Select unit" },
+          // Same 5-level EF cascade as Q10: Category → Sub → Group → Specific Type → Geography.
+          { name: "category", label: "Category (Energy type)", type: "select", efTaxonomyLevel: "category", required: true, placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
+          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
+          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", required: true, placeholder: "Search specific type…" },
+          { name: "geography", label: "Geography (Electricity Sourcing)", type: "select", efGeography: true, required: true, placeholder: "Select geography" },
+          { name: "value", label: "Total Quantity", type: "number", min: 0, required: true, placeholder: "0.00" },
+          { name: "unit", label: "Unit", type: "select", options: ENERGY_UNITS, required: true, placeholder: "Select unit" },
         ],
       },
       {
@@ -866,7 +880,14 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "packaging_weight", label: "Weight (Per Component)", type: "number", required: true, min: 0, placeholder: "0.00" },
           { name: "unit", label: "Units", type: "select", options: MASS_UNITS, required: true, placeholder: "Select unit" },
           { name: "region", label: "Region", type: "select", options: REGIONS, placeholder: "Select region" },
-          { name: "country", label: "Country", type: "select", options: COUNTRIES, placeholder: "Select country" },
+          {
+            name: "country",
+            label: "Country",
+            type: "select",
+            options: COUNTRIES,
+            countryOfRegion: "region",
+            placeholder: "Select country",
+          },
           { name: "recycled_percent", label: "Recycled (%)", type: "number", min: 0, max: 100, placeholder: "0-100" },
           // Carbon and biogenic are separate answers, so they are captured as
           // separate inputs (mirrors the Q8 BOM table).
