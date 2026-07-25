@@ -33,6 +33,7 @@ import {
   getTransportModeDropdown,
   type DropdownItem,
 } from "../../lib/questionnaireDropdownService";
+import { useQuestionnaireLocale, translateOption } from "./i18n";
 
 interface QuestionnairePreviewModalProps {
   open: boolean;
@@ -150,6 +151,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
   onSubmit,
   isSubmitting = false,
 }) => {
+  const { t, catalog } = useQuestionnaireLocale();
   const [dropdownMaps, setDropdownMaps] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -256,18 +258,18 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (value === true || value === "Yes" || value === "yes") {
       return (
         <Tag color="green" icon={<CheckCircleOutlined />}>
-          Yes
+          {t("ui.yes")}
         </Tag>
       );
     }
     if (value === false || value === "No" || value === "no") {
       return (
         <Tag color="red" icon={<CloseCircleOutlined />}>
-          No
+          {t("ui.no")}
         </Tag>
       );
     }
-    return <Tag color="green">Acknowledged</Tag>;
+    return <Tag color="green">{t("ui.acknowledged")}</Tag>;
   };
 
   // Render a table field
@@ -290,7 +292,10 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     const columns = field.columns
       .filter((col) => !col.name.startsWith("bom_id") && !col.name.startsWith("product_id"))
       .map((col) => ({
-        title: col.label || col.name,
+        title: (() => {
+          const tr = t(`fields.${col.name}`);
+          return tr !== `fields.${col.name}` ? tr : col.label || col.name;
+        })(),
         dataIndex: col.name,
         key: col.name,
         render: (val: any) => {
@@ -302,7 +307,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
           if (typeof val === "number") {
             return val.toLocaleString(undefined, { maximumFractionDigits: 20 });
           }
-          return safeToString(val);
+          return translateOption(val, t);
         },
       }));
 
@@ -335,7 +340,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
         <div className="flex flex-wrap gap-1">
           {value.map((v: string, i: number) => (
             <Tag key={i} color="blue">
-              {v}
+              {translateOption(v, t)}
             </Tag>
           ))}
         </div>
@@ -347,7 +352,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
         <div className="flex flex-wrap gap-1">
           {value.map((v: string, i: number) => (
             <Tag key={i} color="blue">
-              {v}
+              {translateOption(v, t)}
             </Tag>
           ))}
         </div>
@@ -380,14 +385,20 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (field.type === "select" && field.apiDropdown) {
       return resolveDropdownValue(value, field);
     }
+    if (field.type === "select") {
+      return translateOption(value, t);
+    }
     if (typeof value === "number") {
       return value.toLocaleString(undefined, { maximumFractionDigits: 20 });
     }
-    return safeToString(value);
+    return translateOption(value, t);
   };
 
   // Get a clean label — keep question numbers, only strip "(Optional)" suffix
-  const getCleanLabel = (label: string): string => {
+  const getCleanLabel = (field: QuestionnaireField): string => {
+    const tr = t(`fields.${field.name}`);
+    const label =
+      tr !== `fields.${field.name}` ? tr : field.label || field.name;
     return label.replace(/\s*\(Optional\)\s*$/i, "").trim();
   };
 
@@ -423,7 +434,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (fields.length === 0) {
       return (
         <div className="text-center py-6 text-gray-400 text-sm">
-          No data entered for this section
+          {t("ui.noDataSection")}
         </div>
       );
     }
@@ -443,7 +454,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
               return (
                 <Descriptions.Item
                   key={field.name}
-                  label={getCleanLabel(field.label || field.name)}
+                  label={getCleanLabel(field)}
                 >
                   {renderFieldValue(field, value)}
                 </Descriptions.Item>
@@ -458,7 +469,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
           return (
             <div key={field.name} className="mt-4">
               <div className="text-sm font-medium text-gray-700 mb-2">
-                {getCleanLabel(field.label || field.name)}
+                {getCleanLabel(field)}
               </div>
               {renderTable(field, value)}
             </div>
@@ -502,10 +513,10 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
           </div>
           <div>
             <div className="text-lg font-semibold text-gray-900">
-              Questionnaire Preview
+              {t("ui.previewTitle")}
             </div>
             <div className="text-sm text-gray-500 font-normal">
-              Review your responses before submitting
+              {t("ui.previewSubtitle")}
             </div>
           </div>
         </div>
@@ -515,7 +526,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
       footer={
         <div className="flex justify-end gap-2">
           <Button onClick={onClose} disabled={isSubmitting}>
-            Close Preview
+            {t("ui.closePreview")}
           </Button>
           {onSubmit && (
             <Button
@@ -525,7 +536,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
               onClick={() => onSubmit()}
               className="!bg-green-600 hover:!bg-green-700 !border-green-600"
             >
-              Submit Questionnaire
+              {t("ui.submitQuestionnaire")}
             </Button>
           )}
         </div>
@@ -542,7 +553,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     >
       {loadingDropdowns ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <LoadingSpinner size="lg" label="Loading preview..." />
+          <LoadingSpinner size="lg" label={t("ui.loadingPreview")} />
         </div>
       ) : (
         <Collapse
@@ -567,10 +578,13 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
                     >
                       <span className={config.color}>{config.icon}</span>
                     </div>
-                    <span className="font-medium">{section.title}</span>
+                    <span className="font-medium">
+                      {catalog.sections[section.id]?.title || section.title}
+                    </span>
                     {answeredCount > 0 && (
                       <Tag color="green" className="ml-2">
-                        {answeredCount} {answeredCount === 1 ? "item" : "items"}
+                        {answeredCount}{" "}
+                        {answeredCount === 1 ? t("ui.item") : t("ui.items")}
                       </Tag>
                     )}
                   </div>

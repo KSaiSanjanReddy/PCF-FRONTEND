@@ -53,6 +53,12 @@ import QuestionnaireAssistant from "./QuestionnaireAssistant";
 import QuestionnairePreviewModal from "./QuestionnairePreviewModal";
 import { buildPdfSections } from "./buildPdfSections";
 import {
+  QuestionnaireLocaleProvider,
+  useQuestionnaireLocale,
+  LOCALES,
+  type Locale,
+} from "./i18n";
+import {
   getFuelTypeDropdown,
   getSubFuelTypeDropdown,
   getEnergySourceDropdown,
@@ -78,6 +84,15 @@ const deriveReferenceEnd = (start: any): dayjs.Dayjs | undefined => {
 };
 
 const SupplierQuestionnaire: React.FC = () => {
+  return (
+    <QuestionnaireLocaleProvider>
+      <SupplierQuestionnaireInner />
+    </QuestionnaireLocaleProvider>
+  );
+};
+
+const SupplierQuestionnaireInner: React.FC = () => {
+  const { t, locale, setLocale, catalog } = useQuestionnaireLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -1062,8 +1077,33 @@ const SupplierQuestionnaire: React.FC = () => {
 
   const completedCount = completedSteps.size;
 
+  /** Drop blank rows from optional tables so they never block Next / Submit. */
+  const pruneEmptyOptionalTables = () => {
+    QUESTIONNAIRE_SCHEMA.forEach((section) => {
+      section.fields.forEach((field) => {
+        if (field.type !== "table" || field.required) return;
+        const path = field.name.split(".");
+        const rows = form.getFieldValue(path);
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const kept = rows.filter((row: any) => {
+          if (!row || typeof row !== "object") return false;
+          return Object.values(row).some(
+            (v) => v !== undefined && v !== null && v !== "",
+          );
+        });
+        if (kept.length !== rows.length) {
+          form.setFieldValue(path, kept);
+        }
+      });
+    });
+  };
+
   const handleNext = async () => {
     try {
+      // Optional tables (e.g. Q27 volumes) must not block navigation — strip
+      // blank rows the supplier added then left empty before validating.
+      pruneEmptyOptionalTables();
+
       // Validate current step fields
       const values = await form.validateFields();
 
@@ -1092,7 +1132,7 @@ const SupplierQuestionnaire: React.FC = () => {
       // question. Ant Design already marks each required field inline, so we
       // don't surface a separate error summary.
       message.warning({
-        content: "Please fill in the required questions before continuing.",
+        content: t("ui.fillRequired"),
         duration: 3,
       });
       const firstErrorField = document.querySelector(
@@ -1167,7 +1207,7 @@ const SupplierQuestionnaire: React.FC = () => {
       setLastSaved(new Date());
       setAutoSaveStatus("saved");
       message.success({
-        content: "Draft saved successfully! Your progress has been saved.",
+        content: t("ui.draftSaved"),
         duration: 2,
       });
 
@@ -1176,7 +1216,7 @@ const SupplierQuestionnaire: React.FC = () => {
       setAutoSaveStatus("idle");
       message.error({
         content:
-          "Unable to save your draft. Please check your internet connection and try again. Your progress may be lost if you leave this page.",
+          t("ui.draftSaveFailed"),
         duration: 5,
       });
     } finally {
@@ -1186,6 +1226,7 @@ const SupplierQuestionnaire: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      pruneEmptyOptionalTables();
       const values = await form.validateFields();
       const finalData = deepMerge(formData, values, false, true);
 
@@ -1275,7 +1316,7 @@ const SupplierQuestionnaire: React.FC = () => {
     setIsDownloadingPdf(true);
     try {
       // V3 form uses static option lists, not API-backed dropdown IDs — empty maps are fine.
-      const sections = buildPdfSections(formData, {});
+      const sections = buildPdfSections(formData, {}, t);
 
       const supplierName =
         formData?.company?.legal_name ||
@@ -1300,7 +1341,7 @@ const SupplierQuestionnaire: React.FC = () => {
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        message.success({ content: "PDF report downloaded successfully!", duration: 3 });
+        message.success({ content: t("ui.pdfDownloaded"), duration: 3 });
       } else {
         message.error({
           content: result.message || "Failed to generate PDF. Please try again.",
@@ -1663,9 +1704,14 @@ const SupplierQuestionnaire: React.FC = () => {
   const currentSection = QUESTIONNAIRE_SCHEMA[currentStep];
   const totalSteps = QUESTIONNAIRE_SCHEMA.length;
   const isLastStep = currentStep === totalSteps - 1;
-  const sectionMeta = SECTION_META[currentSection?.id ?? ""] || {
-    blurb: currentSection?.description || "",
-  };
+  const sectionCopy = catalog.sections[currentSection?.id ?? ""];
+  const sectionTitle =
+    sectionCopy?.title || currentSection?.title || "";
+  const sectionBlurb =
+    sectionCopy?.blurb ||
+    SECTION_META[currentSection?.id ?? ""]?.blurb ||
+    currentSection?.description ||
+    "";
 
   const stepDot = (
     status: "done" | "current" | "upcoming",
@@ -1715,10 +1761,10 @@ const SupplierQuestionnaire: React.FC = () => {
             color: "#64748b",
           }}
         >
-          Progress
+          {t("ui.progress")}
         </span>
         <span style={{ fontSize: 12.5, fontWeight: 600 }}>
-          {currentStep + 1} of {totalSteps}
+          {currentStep + 1} {t("ui.of")} {totalSteps}
         </span>
       </div>
       <div
@@ -1750,7 +1796,10 @@ const SupplierQuestionnaire: React.FC = () => {
         }}
       >
         <span>
-          {answeredCount} of {totalQuestionsCount} answered
+          {t("ui.ofAnswered", {
+            answered: answeredCount,
+            total: totalQuestionsCount,
+          })}
         </span>
         <span style={{ fontWeight: 600, color: "#64748b" }}>
           {progressPercentage}%
@@ -1789,7 +1838,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 color: isCur ? "#0f1b24" : done ? "#475569" : "#94a3b8",
               }}
             >
-              {s.title}
+              {catalog.sections[s.id]?.title || s.title}
             </span>
           </div>
         );
@@ -1839,8 +1888,8 @@ const SupplierQuestionnaire: React.FC = () => {
         )}
         <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-.01em" }}>
           {isClientMode
-            ? "Manufacturer Own Emissions Questionnaire"
-            : "Supplier Questionnaire"}
+            ? t("ui.manufacturerQuestionnaire")
+            : t("ui.supplierQuestionnaire")}
         </span>
         <span
           className="hidden sm:inline"
@@ -1852,7 +1901,7 @@ const SupplierQuestionnaire: React.FC = () => {
             paddingLeft: 14,
           }}
         >
-          Product Carbon Footprint · ISO 14067
+          {t("ui.pcfIso")}
         </span>
         <div
           style={{
@@ -1862,6 +1911,14 @@ const SupplierQuestionnaire: React.FC = () => {
             gap: 14,
           }}
         >
+          <Select
+            size="small"
+            value={locale}
+            onChange={(v: Locale) => setLocale(v)}
+            options={LOCALES.map((l) => ({ value: l.value, label: l.label }))}
+            style={{ width: 118 }}
+            aria-label={t("ui.language")}
+          />
           {isCreateMode && (lastSaved || autoSaveStatus !== "idle") && (
             <span
               className="hidden sm:flex"
@@ -1881,7 +1938,7 @@ const SupplierQuestionnaire: React.FC = () => {
                   background: autoSaveStatus === "saving" ? "#f59e0b" : "#22c55e",
                 }}
               />
-              {autoSaveStatus === "saving" ? "Saving…" : "Auto-saved"}
+              {autoSaveStatus === "saving" ? t("ui.saving") : t("ui.autoSaved")}
             </span>
           )}
           {isCreateMode && (
@@ -1890,7 +1947,7 @@ const SupplierQuestionnaire: React.FC = () => {
               onClick={handleSaveDraft}
               loading={isSaving}
             >
-              <span className="hidden sm:inline">Save draft</span>
+              <span className="hidden sm:inline">{t("ui.saveDraft")}</span>
             </Button>
           )}
         </div>
@@ -1931,7 +1988,10 @@ const SupplierQuestionnaire: React.FC = () => {
                 color: "#16a34a",
               }}
             >
-              Step {currentStep + 1} of {totalSteps}
+              {t("ui.stepOf", {
+                current: currentStep + 1,
+                total: totalSteps,
+              })}
             </span>
             <h1
               style={{
@@ -1941,7 +2001,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 margin: "5px 0 6px",
               }}
             >
-              {currentSection?.title}
+              {sectionTitle}
             </h1>
             <p
               style={{
@@ -1951,7 +2011,7 @@ const SupplierQuestionnaire: React.FC = () => {
                 lineHeight: 1.5,
               }}
             >
-              {sectionMeta.blurb}
+              {sectionBlurb}
             </p>
 
             {currentSection && (
@@ -2007,11 +2067,11 @@ const SupplierQuestionnaire: React.FC = () => {
                 disabled={currentStep === 0}
                 icon={<ArrowLeftOutlined />}
               >
-                Previous
+                {t("ui.previous")}
               </Button>
               {!isLastStep ? (
                 <Button type="primary" size="large" onClick={handleNext}>
-                  Save &amp; continue →
+                  {t("ui.saveContinue")}
                 </Button>
               ) : (
                 <Button
@@ -2025,7 +2085,7 @@ const SupplierQuestionnaire: React.FC = () => {
                     setIsPreviewOpen(true);
                   }}
                 >
-                  Preview &amp; Submit
+                  {t("ui.previewSubmit")}
                 </Button>
               )}
             </div>
@@ -2035,7 +2095,7 @@ const SupplierQuestionnaire: React.FC = () => {
 
       {/* Mobile sidebar drawer */}
       <Drawer
-        title="Navigation"
+        title={t("ui.navigation")}
         placement="left"
         onClose={() => setSidebarVisible(false)}
         open={sidebarVisible}

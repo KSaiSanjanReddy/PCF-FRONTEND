@@ -80,6 +80,8 @@ const DECLARED_UNITS = [
 const PRODUCTION_PERIODS = ["Monthly", "Annually"];
 
 const MASS_UNITS = ["kg", "g", "tonne", "lb"];
+/** Factory-level waste quantity: absolute mass (kg / tons) or share of product mass (%). */
+const FACTORY_WASTE_UNITS = ["kg", "tons", "%"];
 const QUANTITY_UNITS = ["kg", "g", "tonne", "lb", "litre", "m³", "piece"];
 const ENERGY_UNITS = ["kWh", "MWh", "MJ", "GJ"];
 const FUEL_UNITS = ["litre", "m³", "kg", "tonne", "kWh", "MJ", "GJ"];
@@ -592,6 +594,31 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         ],
       },
       {
+        // Q8c — inbound transport of raw materials to the manufacturing site.
+        // Optional. Same 4-level EF taxonomy as Q8b; Source / Destination drive
+        // auto distance (haversine) like Q19 when both are set.
+        name: "bom.raw_material_transport",
+        label:
+          "8c. How were the raw materials transported to your manufacturing site? (Optional)",
+        type: "table",
+        addButtonLabel: "Add Transport Leg",
+        required: false,
+        placeholder:
+          "One row per inbound raw-material transport leg, from delivery notes or freight invoices. Distance in km.",
+        columns: [
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
+          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
+          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
+          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "mpn", chainDestField: "destination" },
+          { name: "destination", label: "Destination", type: "text", placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
+          { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
+          { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, placeholder: "Select unit" },
+          { name: "distance_km", label: "Distance (km)", type: "number", min: 0, autoDistance: true, placeholder: "0" },
+        ],
+      },
+      {
         name: "bom.co_products_produced",
         label: "9. Does the same manufacturing process also yield other saleable co-products?",
         type: "radio",
@@ -677,19 +704,19 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         ],
       },
       {
-        // Q10b — number of units of each product manufactured during the
-        // reporting period (one row per MPN).
+        // Q10b — number of current components / products manufactured during
+        // the reporting period (one row per MPN). Both columns mandatory.
         name: "energy.factory_product_units",
         label:
-          "10b. How many units of each product were produced at the factory during the reporting period?",
+          "10b. How many current components produced during the reporting period?",
         type: "table",
         addButtonLabel: "Add Product",
         required: true,
         placeholder:
-          "One row per product. Number of products / components produced during the reporting period.",
+          "One row per product. Number of current components produced during the reporting period.",
         columns: [
-          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
-          { name: "units_produced", label: "No. of products / components produced", type: "number", required: true, min: 0, placeholder: "e.g. 10000" },
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
+          { name: "units_produced", label: "No of Products Current Components Produced.", type: "number", required: true, min: 0, placeholder: "e.g. 10000" },
         ],
       },
       {
@@ -727,21 +754,25 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         ],
       },
       {
+        // Q13 — optional. Gate first: if QC/IT energy is already in Q10, skip
+        // the detail table to avoid double-counting. Table shown only when No.
         name: "energy.qc_it_energy_in_q10",
         label:
-          "13. Is the quality control and production IT energy already included in the Q10 electricity total?",
+          "13. How much energy did quality control and production IT consume? (optional)",
         type: "radio",
         options: YES_NO,
         required: false,
+        placeholder:
+          "If this energy is already included in the Q10 electricity total, select 'Yes'; if 'No', enter the details below.",
       },
       {
         name: "energy.qc_it_energy",
-        label: "13.1 How much energy did quality control and production IT consume? (optional)",
+        label: "13.1 QC / IT energy details",
         type: "table",
         addButtonLabel: "Add Row",
         required: false,
         placeholder:
-          "One row per piece of QC / IT equipment whose energy is not already counted in Q10.",
+          "One row per piece of QC / IT equipment whose energy is not already counted in Q10. Maps to fossilGhgEmissions (QC and IT sub-components).",
         // Only collected when the energy is NOT already in Q10 — otherwise it
         // would double-count. Rows here are always reported to the backend with
         // alreadyInQ10 = false, which is what makes formulaEngine count them.
@@ -749,12 +780,12 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         columns: [
           { name: "mpn", label: "MPN Code", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
           { name: "equipment_type", label: "Equipment Type", type: "text", placeholder: "e.g. CMM, oven, test rig" },
-          { name: "category", label: "Category (Energy type)", type: "select", efTaxonomyLevel: "category", required: true, placeholder: "Search category…" },
-          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
-          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
-          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", required: true, placeholder: "Search specific type…" },
+          { name: "category", label: "Category (Energy type)", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
+          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
+          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
           // Geography (5th cascade level) — narrows the exact EF row, same as Q10.
-          { name: "geography", label: "Geography (Energy Sourcing)", type: "select", efGeography: true, required: true, placeholder: "Select geography" },
+          { name: "geography", label: "Geography (Electricity Sourcing)", type: "select", efGeography: true, placeholder: "Select geography" },
           { name: "value", label: "Total Quantity", type: "number", min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: ENERGY_UNITS, placeholder: "Select unit" },
         ],
@@ -772,10 +803,34 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
           { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", required: true, placeholder: "Search specific type…" },
-          { name: "quantity", label: "Quantity (Per Component)", type: "number", required: true, min: 0, placeholder: "0.00" },
-          { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, required: true, placeholder: "Select unit" },
+          { name: "quantity", label: "Waste generated at factory level", type: "number", required: true, min: 0, placeholder: "0.00" },
+          { name: "unit", label: "Unit (kg, tons or %)", type: "select", options: FACTORY_WASTE_UNITS, required: true, placeholder: "kg, tons or %" },
           { name: "energy_recovered", label: "Energy recovered? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
           { name: "polluter_pays_applied", label: "Polluter Pays Applied? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
+        ],
+      },
+      {
+        // Q14a — transport of production waste to treatment. Optional. Same
+        // shape as Q8c inbound material transport (taxonomy + route + tkm).
+        name: "energy.production_waste_transport",
+        label:
+          "14a. How was the production waste transported for treatment? (Optional)",
+        type: "table",
+        addButtonLabel: "Add Transport Leg",
+        required: false,
+        placeholder:
+          "One row per waste transport leg to treatment, from delivery notes or freight invoices. Distance in km.",
+        columns: [
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
+          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
+          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
+          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "mpn", chainDestField: "destination" },
+          { name: "destination", label: "Destination", type: "text", placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
+          { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
+          { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, placeholder: "Select unit" },
+          { name: "distance_km", label: "Distance (km)", type: "number", min: 0, autoDistance: true, placeholder: "0" },
         ],
       },
     ],
@@ -826,23 +881,29 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         ],
       },
       {
+        // Q16a — inbound packaging transport. Optional (even when packaging is
+        // included). Maps to packagingAircraftGhgEmissions /
+        // packagingFossilGhgEmissions (transport portion).
         name: "packaging.transport",
-        label: "16.1 How is each packaging item transported to your site?",
+        label:
+          "16a. How were the packaging materials transported to your manufacturing site? (Optional)",
         type: "table",
         addButtonLabel: "Add Transport Leg",
-        required: true,
+        required: false,
         dependency: { field: "packaging.include_packaging", value: "Yes, include packaging" },
         placeholder:
-          "One row per packaging transport leg, from delivery notes or freight invoices. Distance in km. Select Mode = Air for any air-freighted packaging.",
+          "Enter one row per packaging transport leg, from delivery notes or freight invoices. Weight, distance in kilometres. Select Mode = Air for any air-freighted packaging.",
         columns: [
-          { name: "product_id", label: "Packaging Product ID / MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
-          { name: "category", label: "Category (Pack Transport)", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
-          { name: "sub_category", label: "Sub category", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
+          { name: "product_id", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
           { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
+          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "product_id", chainDestField: "destination" },
+          { name: "destination", label: "Destination", type: "text", placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
           { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, placeholder: "Select unit" },
-          { name: "distance_km", label: "Distance (km)", type: "number", min: 0, placeholder: "0" },
+          { name: "distance_km", label: "Distance (km)", type: "number", min: 0, autoDistance: true, placeholder: "0" },
         ],
       },
       {
@@ -861,6 +922,32 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "quantity", label: "Quantity (Per Component)", type: "number", required: true, min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, required: true, placeholder: "Select unit" },
           { name: "energy_recovered", label: "Energy recovered? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
+        ],
+      },
+      {
+        // Q17a — transport of packaging waste to treatment. Optional. Same
+        // shape as Q14a production-waste transport. Shown only when packaging
+        // is included (Q15 = Yes).
+        name: "packaging.waste_transport",
+        label:
+          "17a. How was the packaging waste transported for treatment? (Optional)",
+        type: "table",
+        addButtonLabel: "Add Transport Leg",
+        required: false,
+        dependency: { field: "packaging.include_packaging", value: "Yes, include packaging" },
+        placeholder:
+          "One row per packaging-waste transport leg to treatment, from delivery notes or freight invoices. Distance in km.",
+        columns: [
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
+          { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
+          { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
+          { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
+          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "mpn", chainDestField: "destination" },
+          { name: "destination", label: "Destination", type: "text", placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
+          { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
+          { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, placeholder: "Select unit" },
+          { name: "distance_km", label: "Distance (km)", type: "number", min: 0, autoDistance: true, placeholder: "0" },
         ],
       },
     ],

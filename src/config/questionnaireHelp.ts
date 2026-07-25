@@ -171,17 +171,41 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
     whereToFind: "Ask your production team what saleable by-products the process creates.",
     example: "Yes",
   },
+  "bom.raw_material_transport": {
+    plain:
+      "How raw materials arrived at your manufacturing site: mode classification, source, destination, weight and distance for each inbound leg.",
+    whereToFind: "Delivery notes or freight invoices for inbound raw materials.",
+    example: "Road truck, Supplier warehouse → Plant, 12 t, 180 km",
+  },
+  "energy.factory_product_units": {
+    plain:
+      "How many current components / products were produced at the factory during the reporting period, by MPN.",
+    whereToFind: "Production reports or MES output for the reference period.",
+    example: "MPN-12345, 10000 units",
+  },
   "energy.electricity": {
     plain:
       "Electricity used to make the product over the reporting period, and how much of it was renewable.",
     whereToFind: "Meter readings or electricity invoices. The default unit is kWh.",
     example: "120000 kWh, 20% renewable",
   },
+  "energy.qc_it_energy_in_q10": {
+    plain:
+      "QC and production IT energy. If it is already in the Q10 electricity total, select Yes; if No, enter equipment-level details so it maps into fossilGhgEmissions.",
+    whereToFind: "Sub-meter readings or equipment nameplates for QC / IT loads.",
+    example: "No → CMM, 1500 kWh",
+  },
   "energy.production_waste": {
     plain:
-      "The waste your process produces, how much, and how it is treated (recycled, landfilled, incinerated).",
+      "Factory-level production and QC waste: enter the amount as kg or tons (total at the factory) or as a % of product mass, and how it is treated (recycled, landfilled, incinerated).",
     whereToFind: "Your waste contractor invoices or disposal manifests.",
-    example: "Metal scrap, 200 kg, recycled",
+    example: "Metal scrap, 200 kg (or 0.2 tons, or 5%), recycled",
+  },
+  "energy.production_waste_transport": {
+    plain:
+      "How production waste was taken to treatment: mode classification, source, destination, weight and distance for each leg.",
+    whereToFind: "Waste haulier delivery notes or freight invoices.",
+    example: "Road truck, Plant → Recycling facility, 2 t, 45 km",
   },
   "packaging.include_packaging": {
     plain:
@@ -194,6 +218,18 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
       "The packaging used to ship the product, by material type and weight per unit.",
     whereToFind: "Packaging spec sheets, or simply weigh the packaging.",
     example: "Cardboard box, 0.12 kg; LDPE film, 0.01 kg",
+  },
+  "packaging.transport": {
+    plain:
+      "How packaging materials arrived at your manufacturing site. Maps to packagingAircraftGhgEmissions and packagingFossilGhgEmissions (transport portion).",
+    whereToFind: "Delivery notes or freight invoices. Weight and distance in km; use Air for air-freighted packaging.",
+    example: "Road truck, Supplier → Plant, 0.5 t, 120 km",
+  },
+  "packaging.waste_transport": {
+    plain:
+      "How packaging waste was taken to treatment: mode classification, source, destination, weight and distance for each leg.",
+    whereToFind: "Waste haulier delivery notes or freight invoices for packaging waste.",
+    example: "Road truck, Plant → Recycling facility, 0.2 t, 30 km",
   },
   "transport.legs": {
     plain:
@@ -223,6 +259,12 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
       "Whether an independent party has checked and confirmed this footprint.",
     whereToFind: "Your verification or attestation report, if any.",
     example: "No",
+  },
+  "verification.volumes": {
+    plain:
+      "Optional. Certified or verified production / product volumes you want to report. Skip entirely if not applicable.",
+    whereToFind: "Certification or verification reports for the reference period.",
+    example: "Certified volume, 5000 units, 40%",
   },
 
   // ===== Legacy field guidance (kept for reference; not used by the V3 schema) =====

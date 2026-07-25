@@ -164,6 +164,20 @@ export function mapV3FormToBackend(
         unit: str(c.unit),
     }));
 
+    // Q8c — inbound raw-material transport legs to the manufacturing site.
+    const rawMaterialTransport = arr(bomBlock.raw_material_transport).map((t: any) => ({
+        mpn: str(t.mpn),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
+        source: str(t.source),
+        destination: str(t.destination),
+        weight: num(t.weight),
+        unit: str(t.unit),
+        distanceKm: num(t.distance_km),
+    }));
+
     const electricity = arr(energy.electricity).map((e: any) => ({
         electricityType: str(e.electricity_type),
         category: str(e.category),
@@ -243,6 +257,20 @@ export function mapV3FormToBackend(
         polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
     }));
 
+    // Q14a — transport of production waste to treatment.
+    const productionWasteTransport = arr(energy.production_waste_transport).map((t: any) => ({
+        mpn: str(t.mpn),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
+        source: str(t.source),
+        destination: str(t.destination),
+        weight: num(t.weight),
+        unit: str(t.unit),
+        distanceKm: num(t.distance_km),
+    }));
+
     const packagingMaterials = arr(packaging.materials_used).map((p: any) => ({
         productIdOrMpn: str(p.product_id),
         category: str(p.category),
@@ -269,6 +297,8 @@ export function mapV3FormToBackend(
         subCategory: str(t.sub_category),
         materialGroup: str(t.group),
         specificType: str(t.specific_type),
+        source: str(t.source),
+        destination: str(t.destination),
         weight: num(t.weight),
         unit: str(t.unit),
         distanceKm: num(t.distance_km),
@@ -283,6 +313,20 @@ export function mapV3FormToBackend(
         quantity: num(w.quantity),
         unit: str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
+    }));
+
+    // Q17a — transport of packaging waste to treatment.
+    const packagingWasteTransport = arr(packaging.waste_transport).map((t: any) => ({
+        mpn: str(t.mpn),
+        category: str(t.category),
+        subCategory: str(t.sub_category),
+        materialGroup: str(t.group),
+        specificType: str(t.specific_type),
+        source: str(t.source),
+        destination: str(t.destination),
+        weight: num(t.weight),
+        unit: str(t.unit),
+        distanceKm: num(t.distance_km),
     }));
 
     const transportLegs = arr(transport.legs).map((t: any) => ({
@@ -435,6 +479,7 @@ export function mapV3FormToBackend(
         coProducts,
         componentEfDetails,
         processConsumables,
+        rawMaterialTransport,
         electricity,
         factoryProductWeights,
         factoryProductUnits,
@@ -442,9 +487,11 @@ export function mapV3FormToBackend(
         processGases,
         qcItEnergy,
         productionWaste,
+        productionWasteTransport,
         packagingMaterials,
         packagingTransport,
         packagingWaste,
+        packagingWasteTransport,
         transportLegs,
         biomass,
         volumes,
@@ -540,6 +587,18 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
                 total_quantity: c.totalQuantity,
                 unit: c.unit,
             })),
+            raw_material_transport: (d.rawMaterialTransport ?? []).map((t: any) => ({
+                mpn: t.mpn,
+                category: t.category,
+                sub_category: t.subCategory,
+                group: t.materialGroup,
+                specific_type: t.specificType,
+                source: t.source,
+                destination: t.destination,
+                weight: t.weight,
+                unit: t.unit,
+                distance_km: t.distanceKm,
+            })),
         },
         energy: {
             factory_product_weights: (d.factoryProductWeights ?? []).map((r: any) => ({
@@ -604,6 +663,18 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
                 energy_recovered: b2yn(w.energyRecovered),
                 polluter_pays_applied: b2yn(w.polluterPaysApplied),
             })),
+            production_waste_transport: (d.productionWasteTransport ?? []).map((t: any) => ({
+                mpn: t.mpn,
+                category: t.category,
+                sub_category: t.subCategory,
+                group: t.materialGroup,
+                specific_type: t.specificType,
+                source: t.source,
+                destination: t.destination,
+                weight: t.weight,
+                unit: t.unit,
+                distance_km: t.distanceKm,
+            })),
         },
         packaging: {
             include_packaging: b2yn(d.packagingEmissionsIncluded),
@@ -629,6 +700,8 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
                 sub_category: t.subCategory,
                 group: t.materialGroup,
                 specific_type: t.specificType,
+                source: t.source,
+                destination: t.destination,
                 weight: t.weight,
                 unit: t.unit,
                 distance_km: t.distanceKm,
@@ -642,6 +715,18 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
                 quantity: w.quantity,
                 unit: w.unit,
                 energy_recovered: b2yn(w.energyRecovered),
+            })),
+            waste_transport: (d.packagingWasteTransport ?? []).map((t: any) => ({
+                mpn: t.mpn,
+                category: t.category,
+                sub_category: t.subCategory,
+                group: t.materialGroup,
+                specific_type: t.specificType,
+                source: t.source,
+                destination: t.destination,
+                weight: t.weight,
+                unit: t.unit,
+                distance_km: t.distanceKm,
             })),
         },
         transport: {
