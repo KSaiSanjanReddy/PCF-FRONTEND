@@ -35,6 +35,7 @@ const zh: QuestionnaireCatalog = {
     selectEllipsis: "选择…",
     selectGeography: "选择地理区域",
     selectCountryFirst: "请先选择国家",
+    selectRegionFirst: "请先选择地区",
     selectState: "选择或输入省/州",
     searchLocation: "搜索位置…",
     pickComponent: "选择一个部件",

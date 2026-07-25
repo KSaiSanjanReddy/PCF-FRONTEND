@@ -35,6 +35,7 @@ const hi: QuestionnaireCatalog = {
     selectEllipsis: "चुनें…",
     selectGeography: "भूगोल चुनें",
     selectCountryFirst: "पहले एक देश चुनें",
+    selectRegionFirst: "पहले एक क्षेत्र चुनें",
     selectState: "राज्य / प्रांत चुनें या टाइप करें",
     searchLocation: "स्थान खोजें…",
     pickComponent: "एक घटक चुनें",

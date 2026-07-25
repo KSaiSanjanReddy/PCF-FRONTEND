@@ -35,6 +35,7 @@ const de: QuestionnaireCatalog = {
     selectEllipsis: "Auswählen…",
     selectGeography: "Region auswählen",
     selectCountryFirst: "Zuerst ein Land auswählen",
+    selectRegionFirst: "Zuerst eine Region auswählen",
     selectState: "Bundesland / Provinz auswählen oder eingeben",
     searchLocation: "Standort suchen…",
     pickComponent: "Eine Komponente auswählen",
