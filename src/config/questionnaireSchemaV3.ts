@@ -79,10 +79,10 @@ const DECLARED_UNITS = [
 
 const PRODUCTION_PERIODS = ["Monthly", "Annually"];
 
-const MASS_UNITS = ["kg", "g", "tonne", "lb"];
+const MASS_UNITS = ["kg", "g", "tonne"];
 /** Factory-level waste quantity: absolute mass (kg / tons) or share of product mass (%). */
 const FACTORY_WASTE_UNITS = ["kg", "tons", "%"];
-const QUANTITY_UNITS = ["kg", "g", "tonne", "lb", "litre", "m³", "piece"];
+const QUANTITY_UNITS = ["kg", "g", "tonne", "litre", "m³", "piece"];
 const ENERGY_UNITS = ["kWh", "MWh", "MJ", "GJ"];
 const FUEL_UNITS = ["litre", "m³", "kg", "tonne", "kWh", "MJ", "GJ"];
 const GAS_UNITS = ["kg", "g", "tonne"];

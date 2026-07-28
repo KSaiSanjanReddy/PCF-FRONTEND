@@ -30,6 +30,7 @@ import {
   SmileOutlined,
   EyeOutlined,
   DownloadOutlined,
+  GlobalOutlined,
 } from "@ant-design/icons";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import supplierQuestionnaireService from "../../lib/supplierQuestionnaireService";
@@ -68,6 +69,11 @@ import {
   getTransportModeDropdown,
   type DropdownItem,
 } from "../../lib/questionnaireDropdownService";
+import {
+  findMissingRequired,
+  groupMissingBySection,
+  type MissingRequiredItem,
+} from "./findMissingRequired";
 
 const { Step } = Steps;
 
@@ -148,6 +154,9 @@ const SupplierQuestionnaireInner: React.FC = () => {
   // The page is fixed-height; the content column is the scroll area, so step
   // changes must scroll THIS element (not window) back to the top.
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  // After redirecting to an incomplete section on Submit, re-validate that
+  // step and scroll to the first errored field once it mounts.
+  const focusMissingAfterStepRef = useRef(false);
   const hasCalledStageUpdateRef = useRef<boolean>(false);
   const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(
     new Set(),
@@ -788,6 +797,30 @@ const SupplierQuestionnaireInner: React.FC = () => {
     contentScrollRef.current?.scrollTo({ top: 0 });
   }, [currentStep]);
 
+  // After a submit/preview redirect to an incomplete section, mark required
+  // fields inline and scroll the first one into view.
+  useEffect(() => {
+    if (!focusMissingAfterStepRef.current) return;
+    focusMissingAfterStepRef.current = false;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        await form.validateFields();
+      } catch {
+        /* expected — missing required fields */
+      }
+      if (cancelled) return;
+      const firstError = document.querySelector(
+        ".ant-form-item-has-error",
+      ) as HTMLElement | null;
+      firstError?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [currentStep, form]);
+
   // Deep merge utility to preserve nested values (especially file fields)
   // preserveTargetArrays: when true, keeps target arrays if source arrays are empty (for auto-save)
   // when false, source always wins (for draft loading)
@@ -1098,6 +1131,86 @@ const SupplierQuestionnaireInner: React.FC = () => {
     });
   };
 
+  /** Block Preview/Submit, explain what's missing, and jump to that section. */
+  const redirectToMissingRequired = (
+    missing: MissingRequiredItem[],
+    mergedData: Record<string, any>,
+  ) => {
+    if (!missing.length) return;
+
+    setFormData(mergedData);
+    setIsPreviewOpen(false);
+
+    const groups = groupMissingBySection(missing);
+    const first = groups[0];
+    const lines = groups.slice(0, 4).map((g) => {
+      const sectionTitle = catalog.sections[g.sectionId]?.title || g.sectionTitle;
+      const questions = g.items
+        .map((item) =>
+          item.detail ? `${item.questionLabel} (${item.detail})` : item.questionLabel,
+        )
+        .join(", ");
+      return t("ui.missingRequiredSection", {
+        section: sectionTitle,
+        questions,
+      });
+    });
+    const extra =
+      groups.length > 4
+        ? t("ui.missingRequiredMore", { count: groups.length - 4 })
+        : null;
+
+    const targetStep = first.stepIndex;
+    focusMissingAfterStepRef.current = true;
+
+    if (isCreateMode) {
+      supplierQuestionnaireService.saveDraft(
+        mergedData,
+        targetStep,
+        sup_id,
+        bom_pcf_id,
+      );
+      setLastSaved(new Date());
+    }
+
+    if (targetStep !== currentStep) {
+      setCurrentStep(targetStep);
+    } else {
+      // Already on the incomplete step — still validate + scroll.
+      window.setTimeout(async () => {
+        try {
+          await form.validateFields();
+        } catch {
+          /* expected */
+        }
+        document
+          .querySelector(".ant-form-item-has-error")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 80);
+    }
+
+    Modal.warning({
+      title: t("ui.missingRequiredTitle"),
+      okText: t("ui.goToIncomplete"),
+      width: 520,
+      content: (
+        <div style={{ marginTop: 8 }}>
+          <p style={{ marginBottom: 12, color: "#475569" }}>
+            {t("ui.missingRequiredIntro")}
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "#0f172a" }}>
+            {lines.map((line) => (
+              <li key={line} style={{ marginBottom: 6 }}>
+                {line}
+              </li>
+            ))}
+            {extra ? <li style={{ marginBottom: 6 }}>{extra}</li> : null}
+          </ul>
+        </div>
+      ),
+    });
+  };
+
   const handleNext = async () => {
     try {
       // Optional tables (e.g. Q27 volumes) must not block navigation — strip
@@ -1224,9 +1337,17 @@ const SupplierQuestionnaireInner: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<boolean> => {
     try {
       pruneEmptyOptionalTables();
+      const liveValues = form.getFieldsValue(true);
+      const mergedCheck = deepMerge(formData, liveValues, false, true);
+      const missing = findMissingRequired(mergedCheck);
+      if (missing.length) {
+        redirectToMissingRequired(missing, mergedCheck);
+        return false;
+      }
+
       const values = await form.validateFields();
       const finalData = deepMerge(formData, values, false, true);
 
@@ -1247,10 +1368,10 @@ const SupplierQuestionnaireInner: React.FC = () => {
         message.error({
           content: v3Save?.message
             ? `Submission failed: ${v3Save.message}`
-            : "Unable to submit the questionnaire. Please try again.",
+            : t("ui.submitFailed"),
           duration: 6,
         });
-        return;
+        return false;
       }
 
       const v3Id = v3Save?.data?.responseId ?? v3ResponseId;
@@ -1275,7 +1396,7 @@ const SupplierQuestionnaireInner: React.FC = () => {
           content: v3Submit?.message ?? "Submission validation failed.",
           duration: 6,
         });
-        return;
+        return false;
       }
 
       if (isPublicRoute || isClientMode) {
@@ -1288,13 +1409,14 @@ const SupplierQuestionnaireInner: React.FC = () => {
         });
         navigate("/supplier-questionnaire");
       }
+      return true;
     } catch (error: any) {
       console.error("Submit error:", error);
 
-      // Same gentle prompt as Next: required fields are marked inline, so just
-      // nudge the supplier and scroll to the first one.
+      // Current-step Ant Design rules failed — keep the supplier here and
+      // highlight the first invalid field.
       message.warning({
-        content: "Please fill in the required questions before submitting.",
+        content: t("ui.fillRequired"),
         duration: 3,
       });
       const firstErrorField = document.querySelector(
@@ -1303,6 +1425,7 @@ const SupplierQuestionnaireInner: React.FC = () => {
       if (firstErrorField) {
         firstErrorField.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -1393,19 +1516,20 @@ const SupplierQuestionnaireInner: React.FC = () => {
   // Keyboard shortcuts - using refs to avoid dependency issues
   const handleNextRef = useRef(handleNext);
   const handleSubmitRef = useRef(handleSubmit);
-  const openPreviewRef = useRef(() => {
-    const values = form.getFieldsValue();
-    const updatedData = deepMerge(formData, values, false, true);
-    setFormData(updatedData);
-    setIsPreviewOpen(true);
-  });
+  const openPreviewRef = useRef(() => {});
 
   useEffect(() => {
     handleNextRef.current = handleNext;
     handleSubmitRef.current = handleSubmit;
     openPreviewRef.current = () => {
-      const values = form.getFieldsValue();
+      pruneEmptyOptionalTables();
+      const values = form.getFieldsValue(true);
       const updatedData = deepMerge(formData, values, false, true);
+      const missing = findMissingRequired(updatedData);
+      if (missing.length) {
+        redirectToMissingRequired(missing, updatedData);
+        return;
+      }
       setFormData(updatedData);
       setIsPreviewOpen(true);
     };
@@ -1861,15 +1985,16 @@ const SupplierQuestionnaireInner: React.FC = () => {
       {/* Top bar */}
       <div
         style={{
-          height: 60,
+          height: 64,
           flex: "none",
           background: "#fff",
-          borderBottom: "1px solid #e9edf1",
+          borderBottom: `1px solid ${C.cardBorder}`,
           display: "flex",
           alignItems: "center",
-          gap: 16,
-          padding: "0 16px",
+          gap: 12,
+          padding: "0 20px",
           zIndex: 10,
+          boxShadow: "0 1px 0 rgba(15, 27, 36, 0.02)",
         }}
       >
         <Button
@@ -1877,6 +2002,7 @@ const SupplierQuestionnaireInner: React.FC = () => {
           type="text"
           onClick={() => setSidebarVisible(true)}
           className="lg:hidden"
+          style={{ color: C.textSoft }}
         />
         {!isPublicRoute && (
           <Button
@@ -1884,50 +2010,105 @@ const SupplierQuestionnaireInner: React.FC = () => {
             type="text"
             onClick={() => navigate("/dashboard")}
             className="hidden lg:inline-flex"
+            style={{ color: C.textSoft }}
           />
         )}
-        <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-.01em" }}>
-          {isClientMode
-            ? t("ui.manufacturerQuestionnaire")
-            : t("ui.supplierQuestionnaire")}
-        </span>
-        <span
-          className="hidden sm:inline"
-          style={{
-            fontSize: 12,
-            color: "#94a3b8",
-            fontWeight: 500,
-            borderLeft: "1px solid #e4e9ee",
-            paddingLeft: 14,
-          }}
-        >
-          {t("ui.pcfIso")}
-        </span>
+
+        {/* Title block — stacked so the bar isn't a sparse empty strip */}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: "-.02em",
+              color: C.text,
+              lineHeight: 1.2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {isClientMode
+              ? t("ui.manufacturerQuestionnaire")
+              : t("ui.supplierQuestionnaire")}
+          </div>
+          <div
+            className="hidden sm:flex"
+            style={{
+              alignItems: "center",
+              gap: 8,
+              marginTop: 3,
+              minWidth: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: C.muted,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {t("ui.pcfLabel")}
+            </span>
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: ".04em",
+                textTransform: "uppercase",
+                color: C.greenDark,
+                background: C.greenSoft,
+                border: "1px solid #bbf7d0",
+                borderRadius: 6,
+                padding: "1px 7px",
+                flex: "none",
+              }}
+            >
+              {t("ui.isoBadge")}
+            </span>
+          </div>
+        </div>
+
+        {/* Actions */}
         <div
           style={{
             marginLeft: "auto",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: 8,
+            flex: "none",
           }}
         >
           <Select
-            size="small"
+            size="middle"
             value={locale}
             onChange={(v: Locale) => setLocale(v)}
             options={LOCALES.map((l) => ({ value: l.value, label: l.label }))}
-            style={{ width: 118 }}
+            suffixIcon={<GlobalOutlined style={{ color: C.muted }} />}
+            style={{ width: 128 }}
             aria-label={t("ui.language")}
+            popupMatchSelectWidth={false}
           />
           {isCreateMode && (lastSaved || autoSaveStatus !== "idle") && (
             <span
-              className="hidden sm:flex"
+              className="hidden sm:inline-flex"
               style={{
                 alignItems: "center",
-                gap: 6,
+                gap: 7,
                 fontSize: 12.5,
-                color: "#16a34a",
+                color: autoSaveStatus === "saving" ? "#b45309" : C.greenDark,
                 fontWeight: 600,
+                background: autoSaveStatus === "saving" ? "#fffbeb" : C.greenSoft,
+                border:
+                  autoSaveStatus === "saving"
+                    ? "1px solid #fde68a"
+                    : "1px solid #bbf7d0",
+                borderRadius: 999,
+                padding: "6px 12px",
+                whiteSpace: "nowrap",
               }}
             >
               <span
@@ -1936,6 +2117,10 @@ const SupplierQuestionnaireInner: React.FC = () => {
                   height: 7,
                   borderRadius: "50%",
                   background: autoSaveStatus === "saving" ? "#f59e0b" : "#22c55e",
+                  boxShadow:
+                    autoSaveStatus === "saving"
+                      ? "0 0 0 3px rgba(245, 158, 11, 0.18)"
+                      : "0 0 0 3px rgba(34, 197, 94, 0.18)",
                 }}
               />
               {autoSaveStatus === "saving" ? t("ui.saving") : t("ui.autoSaved")}
@@ -1946,6 +2131,13 @@ const SupplierQuestionnaireInner: React.FC = () => {
               icon={<SaveOutlined />}
               onClick={handleSaveDraft}
               loading={isSaving}
+              style={{
+                borderRadius: 10,
+                fontWeight: 600,
+                borderColor: C.fieldBorder,
+                color: C.textSoft,
+                height: 36,
+              }}
             >
               <span className="hidden sm:inline">{t("ui.saveDraft")}</span>
             </Button>
@@ -2079,8 +2271,14 @@ const SupplierQuestionnaireInner: React.FC = () => {
                   size="large"
                   icon={<EyeOutlined />}
                   onClick={() => {
-                    const values = form.getFieldsValue();
+                    pruneEmptyOptionalTables();
+                    const values = form.getFieldsValue(true);
                     const updatedData = deepMerge(formData, values, false, true);
+                    const missing = findMissingRequired(updatedData);
+                    if (missing.length) {
+                      redirectToMissingRequired(missing, updatedData);
+                      return;
+                    }
                     setFormData(updatedData);
                     setIsPreviewOpen(true);
                   }}
@@ -2111,8 +2309,8 @@ const SupplierQuestionnaireInner: React.FC = () => {
         onClose={() => setIsPreviewOpen(false)}
         formData={formData}
         onSubmit={async () => {
-          await handleSubmit();
-          setIsPreviewOpen(false);
+          const ok = await handleSubmit();
+          if (ok) setIsPreviewOpen(false);
         }}
         isSubmitting={isSaving}
       />

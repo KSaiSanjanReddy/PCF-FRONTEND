@@ -30,6 +30,21 @@ import {
   type TranslateFn,
 } from "../i18n";
 
+/** Shared props so every in-table Select popup can grow past the narrow cell
+ *  and show full option labels (MPN, country, electricity type, etc.). */
+const TABLE_SELECT_POPUP = {
+  popupMatchSelectWidth: false as const,
+  listHeight: 320,
+  popupClassName: "sq-tax-select-dropdown",
+  dropdownStyle: { maxWidth: 420 } as React.CSSProperties,
+};
+
+const tableSelectOptionRender = (opt: { label?: React.ReactNode }) => (
+  <span style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
+    {opt.label}
+  </span>
+);
+
 // ── Transport distance helpers (Q19) — geocode source/destination → coords, then
 //    distance = great-circle (haversine) × a transport-mode correction factor.
 //    Mirrors the legacy DynamicQuestionnaireForm implementation. Free/open-source:
@@ -117,7 +132,15 @@ const TaxonomyCell: React.FC<{
         if (!alive) return;
         setOptions(
           level === "specific_type"
-            ? data.map((d) => ({ value: d.specific_type, label: `${d.specific_type}  ·  ${d.gwp_100} kgCO₂e/${d.unit || "unit"}` }))
+            // One row per EF name — hide GWP and collapse geography duplicates
+            // (e.g. many "At the grid" rows that only differed by country EF).
+            ? Array.from(
+                new Map(
+                  data
+                    .filter((d) => d?.specific_type)
+                    .map((d) => [String(d.specific_type), { value: String(d.specific_type), label: String(d.specific_type) }])
+                ).values()
+              )
             : data.map((v) => ({ value: String(v), label: String(v) }))
         );
       })
@@ -130,6 +153,8 @@ const TaxonomyCell: React.FC<{
       <Select
         placeholder={field.placeholder || "Select…"}
         style={{ width: "100%", fontSize: 13 }}
+        {...TABLE_SELECT_POPUP}
+        listHeight={360}
         showSearch
         loading={loading}
         disabled={!ready}
@@ -150,6 +175,7 @@ const TaxonomyCell: React.FC<{
           arr[rowName] = next;
           form.setFieldValue(fieldPath, arr);
         }}
+        optionRender={tableSelectOptionRender}
         options={options}
         notFoundContent={loading ? "Loading…" : !ready ? "Pick the previous level first" : "No matches"}
       />
@@ -220,17 +246,15 @@ const GeographyCell: React.FC<{
     <Form.Item name={[rowName, field.name]} className="mb-0" rules={requiredRule(field)} style={{ width: "100%" }}>
       <Select
         placeholder={field.placeholder || "Select geography"}
-        // Cell can be narrow, but let the popup grow so the full "CODE - Country
-        // Name" is always readable, and cap its height so long lists scroll.
         style={{ width: "100%", fontSize: 13 }}
-        popupMatchSelectWidth={false}
-        listHeight={320}
+        {...TABLE_SELECT_POPUP}
         showSearch
         loading={loading}
         disabled={!ready}
         filterOption={false}
         onSearch={setSearch}
         onDropdownVisibleChange={setOpen}
+        optionRender={tableSelectOptionRender}
         options={merged}
         notFoundContent={
           !ready ? "Pick Specific Type first" : loading || !loaded ? "Loading…" : "No matches"
@@ -306,12 +330,19 @@ const CountryByRegionCell: React.FC<{
       <Select
         placeholder={ready ? (col.placeholder || "Select country") : t("ui.selectRegionFirst")}
         style={{ width: "100%", fontSize: 13 }}
+        {...TABLE_SELECT_POPUP}
         showSearch
         allowClear
         disabled={!ready}
+        optionFilterProp="label"
         filterOption={(input, option) =>
-          String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+          String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
         }
+        options={countries.map((c) => ({
+          value: c,
+          label: translateOptionLabel(c, c, t),
+        }))}
+        optionRender={tableSelectOptionRender}
         onChange={(v) => {
           if (!subdivisionCol) return;
           const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
@@ -320,13 +351,7 @@ const CountryByRegionCell: React.FC<{
           form.setFieldValue(fieldPath, arr);
         }}
         notFoundContent={!ready ? t("ui.selectRegionFirst") : "No countries for this region"}
-      >
-        {countries.map((c) => (
-          <Select.Option key={c} value={c}>
-            {translateOptionLabel(c, c, t)}
-          </Select.Option>
-        ))}
-      </Select>
+      />
     </Form.Item>
   );
 };
@@ -358,20 +383,22 @@ const UniqueSelectCell: React.FC<{
       <Select
         placeholder={col.placeholder}
         style={{ width: "100%", fontSize: 13 }}
+        {...TABLE_SELECT_POPUP}
         showSearch={Array.isArray(col.options) && col.options.length > 5}
+        optionFilterProp="label"
         filterOption={(input, option) =>
-          String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+          String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
         }
-      >
-        {(col.options || []).map((opt) => {
+        options={(col.options || []).map((opt) => {
           const { label, value } = optionAsPair(opt);
-          return (
-            <Select.Option key={String(value)} value={value} disabled={takenElsewhere.has(String(value))}>
-              {translateOptionLabel(label, value, t)}
-            </Select.Option>
-          );
+          return {
+            value,
+            label: translateOptionLabel(label, value, t),
+            disabled: takenElsewhere.has(String(value)),
+          };
         })}
-      </Select>
+        optionRender={tableSelectOptionRender}
+      />
     </Form.Item>
   );
 };
@@ -439,7 +466,14 @@ const colMinWidth = (col: QuestionnaireField): number => {
     return col.name === "product_id" || col.name === "mpn" || col.name === "mpn_code"
       ? 160
       : 220;
-  if (col.apiDropdown === "bomMaterials") return 240;
+  if (col.apiDropdown === "bomMaterials") return 280;
+  // EF taxonomy cascade columns hold long names — give them more room in the
+  // table so the selected value isn't truncated to "Electricity — …".
+  if (col.efTaxonomyLevel === "specific_type") return 260;
+  if (col.efTaxonomyLevel === "sub_category") return 220;
+  if (col.efTaxonomyLevel === "category") return 180;
+  if (col.efTaxonomyLevel === "group") return 160;
+  if (col.efGeography) return 180;
   if (col.type === "select" && optionsAreYesNo(col.options)) return 110;
   if (col.type === "select" && Array.isArray(col.options) && col.options.length) {
     const longest = col.options.reduce(
@@ -744,9 +778,13 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
               placeholder={col.placeholder || "Pick a component"}
               style={{ width: "100%", fontSize: 13 }}
               showSearch
+              {...TABLE_SELECT_POPUP}
+              optionFilterProp="label"
               filterOption={(input, option) =>
-                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
+              options={bomOptions.map((o) => ({ value: o.id, label: o.name }))}
+              optionRender={tableSelectOptionRender}
               onChange={(value) => {
                 const selected = bomOptions.find((o) => o.id === value);
                 const arr = [...(form.getFieldValue(fieldPath) || [])];
@@ -770,13 +808,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                     };
                 form.setFieldValue(fieldPath, arr);
               }}
-            >
-              {bomOptions.map((o) => (
-                <Select.Option key={o.id} value={o.id}>
-                  {o.name}
-                </Select.Option>
-              ))}
-            </Select>
+            />
           </Form.Item>
         </div>
       );
@@ -805,11 +837,21 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
           <Select
             placeholder={col.placeholder}
             style={{ width: "100%", fontSize: 13 }}
+            {...TABLE_SELECT_POPUP}
             mode={col.mode}
             showSearch={Array.isArray(col.options) && col.options.length > 5}
+            optionFilterProp="label"
             filterOption={(input, option) =>
-              String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
+            options={(col.options || []).map((opt) => {
+              const { label, value } = optionAsPair(opt);
+              return {
+                value,
+                label: translateOptionLabel(label, value, t),
+              };
+            })}
+            optionRender={tableSelectOptionRender}
             onChange={(v) => {
               if (dependentCountryCols.length === 0) return;
               const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
@@ -822,16 +864,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
               arr[rowName] = next;
               form.setFieldValue(fieldPath, arr);
             }}
-          >
-            {(col.options || []).map((opt) => {
-              const { label, value } = optionAsPair(opt);
-              return (
-                <Select.Option key={String(value)} value={value}>
-                  {translateOptionLabel(label, value, t)}
-                </Select.Option>
-              );
-            })}
-          </Select>
+          />
         </Form.Item>
       );
     }
