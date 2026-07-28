@@ -361,22 +361,29 @@ export const FieldControl: React.FC<FieldControlProps> = ({
           placeholder={field.placeholder || t("ui.selectOption")}
           disabled={isDisabled}
           showSearch={Array.isArray(field.options) && field.options.length > 5}
+          popupMatchSelectWidth={false}
+          popupClassName="sq-tax-select-dropdown"
+          dropdownStyle={{ maxWidth: 420 }}
+          optionFilterProp="label"
           filterOption={(input: string, option: any) =>
-            String(option?.children ?? "")
+            String(option?.label ?? option?.children ?? "")
               .toLowerCase()
               .includes(input.toLowerCase())
           }
           style={{ width: "100%" }}
-        >
-          {(field.options || []).map((opt) => {
+          options={(field.options || []).map((opt) => {
             const { label, value } = optionAsPair(opt);
-            return (
-              <Select.Option key={String(value)} value={value}>
-                {translateOptionLabel(label, value, t)}
-              </Select.Option>
-            );
+            return {
+              value,
+              label: translateOptionLabel(label, value, t),
+            };
           })}
-        </Select>
+          optionRender={(opt: { label?: React.ReactNode }) => (
+            <span style={{ whiteSpace: "normal", wordBreak: "break-word" }}>
+              {opt.label}
+            </span>
+          )}
+        />
       );
     case "radio":
       return optionsAreYesNo(field.options) ? (
