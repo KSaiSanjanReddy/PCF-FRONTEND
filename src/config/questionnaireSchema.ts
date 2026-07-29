@@ -107,14 +107,17 @@ export interface QuestionnaireField {
   locationRole?: "source" | "destination";
   distanceTarget?: string;
   modeField?: string;
-  // Table-column only: when set on a "source" location cell, rows sharing the
-  // same key value can auto-fan-out the selected location to their
-  // corresponding destination cells.
+  // Table-column only (a `locationRole: "source"` cell): CHAINED transport legs.
+  // When set, this Source auto-locks (read-only) to the DESTINATION of the nearest
+  // earlier row that shares this row's value in `chainKeyField` (the MPN column) —
+  // i.e. each additional leg for a component starts where its previous leg ended.
+  // The first leg for a given MPN stays editable. `chainDestField` names the
+  // destination column to carry over (defaults to "destination"). Used by Q19.
   chainKeyField?: string;
   chainDestField?: string;
   // Table-column only: this number cell auto-fills from the row's source +
   // destination coordinates (stored by the location cells) via haversine ×
-  // correction factor. Still editable for a manual override. Used by Q19.
+  // correction factor. Read-only — the supplier cannot override it. Used by Q19.
   autoDistance?: boolean;
   dependsOnField?: string;
   efSource?: "electricity" | "fuel" | "packaging" | "vehicle" | "waste" | "materials";
