@@ -30,6 +30,9 @@ import Q5ReferencePeriod from "./Q5ReferencePeriod";
 import Q8aEmissionFactors from "./Q8aEmissionFactors";
 import Q20BiobasedFeedstock from "./Q20BiobasedFeedstock";
 import Q20LandUse from "./Q20LandUse";
+import Q24Boundary from "./Q24Boundary";
+import Q25DataQuality from "./Q25DataQuality";
+import Q26Verification from "./Q26Verification";
 import { C, cardStyle, numberBadge, tagFor } from "./theme";
 import { useQuestionnaireLocale } from "../i18n";
 
@@ -496,6 +499,27 @@ const QuestionnaireCardForm: React.FC<Props> = ({
             ) : /* Q20 land use sub-fields (20a/20b/20c) per component (≥2 BOMs). */
             group.num === "20" && section.id === "section_g_biobased" && bomComponents.length >= 2 ? (
               <Q20LandUse
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q24 — boundary & carbon capture per component (≥2 BOMs). */
+            group.num === "24" && section.id === "section_i_boundary_dqr" && bomComponents.length >= 2 ? (
+              <Q24Boundary
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q25 — data quality rating per component (≥2 BOMs). */
+            group.num === "25" && section.id === "section_i_boundary_dqr" && bomComponents.length >= 2 ? (
+              <Q25DataQuality
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q26 — certification & verification per component (≥2 BOMs). */
+            group.num === "26" && section.id === "section_j_verification" && bomComponents.length >= 2 ? (
+              <Q26Verification
                 bomComponents={bomComponents}
                 form={form}
                 isClientMode={isClientMode}
