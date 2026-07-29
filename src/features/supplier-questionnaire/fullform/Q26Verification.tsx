@@ -10,7 +10,7 @@
  * Stored under `verification.q26_items[i].*`.
  * When < 2 components the parent uses the original 26a–26n sub-fields.
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { Form, Input, Select, DatePicker } from "antd";
 import type { FormInstance } from "antd";
 import { C, REQ_TAG, OPT_TAG, ffStyle } from "./theme";
@@ -64,6 +64,10 @@ const td: React.CSSProperties = {
 
 const FIELD_PATH = ["verification", "q26_items"];
 
+const ATTESTATION_TYPE_DEFAULT = "PCF Program Certification";
+const CONFORMANT_STANDARDS_DEFAULT =
+  "Catena-X Product Carbon Footprint Rulebook v4";
+
 const YesNoCell: React.FC<{
   rowIdx: number;
   fieldName: string;
@@ -92,9 +96,25 @@ const TextField: React.FC<{
   fieldName: string;
   placeholder?: string;
   disabled?: boolean;
+  initialValue?: any;
+  rules?: any[];
   isClientMode?: boolean;
-}> = ({ rowIdx, fieldName, placeholder, disabled, isClientMode }) => (
-  <Form.Item name={[...FIELD_PATH, rowIdx, fieldName]} className="mb-0" noStyle>
+}> = ({
+  rowIdx,
+  fieldName,
+  placeholder,
+  disabled,
+  initialValue,
+  rules,
+  isClientMode,
+}) => (
+  <Form.Item
+    name={[...FIELD_PATH, rowIdx, fieldName]}
+    className="mb-0"
+    noStyle
+    initialValue={initialValue}
+    rules={rules}
+  >
     <Input
       placeholder={placeholder}
       disabled={disabled || isClientMode}
@@ -120,7 +140,19 @@ const DateField: React.FC<{
 );
 
 const Q26Verification: React.FC<Props> = ({ bomComponents, form, isClientMode }) => (
-  <div style={{ marginTop: 14, overflowX: "auto" }}>
+  (() => {
+    const q26Items = (Form.useWatch(FIELD_PATH, form) as any[]) || [];
+
+    const pcfVerifiedYesByIndex = useMemo(() => {
+      const set = new Set<number>();
+      q26Items.forEach((r, idx) => {
+        if (r?.pcf_verified === "Yes") set.add(idx);
+      });
+      return set;
+    }, [q26Items]);
+
+    return (
+      <div style={{ marginTop: 14, overflowX: "auto" }}>
     <table
       style={{
         width: "100%",
@@ -200,20 +232,64 @@ const Q26Verification: React.FC<Props> = ({ bomComponents, form, isClientMode })
             </td>
             <td style={{ ...td, minWidth: 190 }}>
               {/* Fixed default — locked */}
-              <TextField rowIdx={i} fieldName="attestation_type" placeholder="PCF Program Certification" disabled isClientMode={isClientMode} />
+              <TextField
+                rowIdx={i}
+                fieldName="attestation_type"
+                placeholder={ATTESTATION_TYPE_DEFAULT}
+                disabled
+                initialValue={ATTESTATION_TYPE_DEFAULT}
+                isClientMode={isClientMode}
+              />
             </td>
             <td style={{ ...td, minWidth: 220 }}>
               {/* Fixed default — locked */}
-              <TextField rowIdx={i} fieldName="conformant_standards" placeholder="Catena-X PCF Rulebook v4" disabled isClientMode={isClientMode} />
+              <TextField
+                rowIdx={i}
+                fieldName="conformant_standards"
+                placeholder={CONFORMANT_STANDARDS_DEFAULT}
+                disabled
+                initialValue={CONFORMANT_STANDARDS_DEFAULT}
+                isClientMode={isClientMode}
+              />
             </td>
             <td style={{ ...td, minWidth: 170 }}>
-              <TextField rowIdx={i} fieldName="attestation_scheme_standard" placeholder="Scheme standard" isClientMode={isClientMode} />
+              <TextField
+                rowIdx={i}
+                fieldName="attestation_scheme_standard"
+                placeholder="Scheme standard"
+                isClientMode={isClientMode}
+                rules={
+                  pcfVerifiedYesByIndex.has(i)
+                    ? [{ required: true, message: "Required." }]
+                    : undefined
+                }
+              />
             </td>
             <td style={{ ...td, minWidth: 150 }}>
-              <TextField rowIdx={i} fieldName="attestation_id" placeholder="Attestation ID" isClientMode={isClientMode} />
+              <TextField
+                rowIdx={i}
+                fieldName="attestation_id"
+                placeholder="Attestation ID"
+                isClientMode={isClientMode}
+                rules={
+                  pcfVerifiedYesByIndex.has(i)
+                    ? [{ required: true, message: "Required." }]
+                    : undefined
+                }
+              />
             </td>
             <td style={{ ...td, minWidth: 160 }}>
-              <TextField rowIdx={i} fieldName="attestation_issuer" placeholder="Issuing body" isClientMode={isClientMode} />
+              <TextField
+                rowIdx={i}
+                fieldName="attestation_issuer"
+                placeholder="Issuing body"
+                isClientMode={isClientMode}
+                rules={
+                  pcfVerifiedYesByIndex.has(i)
+                    ? [{ required: true, message: "Required." }]
+                    : undefined
+                }
+              />
             </td>
             <td style={{ ...td, minWidth: 140 }}>
               <TextField rowIdx={i} fieldName="issuer_id" placeholder="URN / BPN" isClientMode={isClientMode} />
@@ -228,7 +304,9 @@ const Q26Verification: React.FC<Props> = ({ bomComponents, form, isClientMode })
         ))}
       </tbody>
     </table>
-  </div>
+      </div>
+    );
+  })()
 );
 
 export default Q26Verification;
