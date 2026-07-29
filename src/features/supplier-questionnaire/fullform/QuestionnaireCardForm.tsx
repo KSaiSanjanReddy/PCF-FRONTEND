@@ -25,6 +25,7 @@ import {
 import { NoticeCard, LocalizedConsentCards } from "./ConsentNotice";
 import QuestionTable from "./QuestionTable";
 import Q2ProductTable from "./Q2FormatCompare";
+import Q3DeclaredBasis from "./Q3DeclaredBasis";
 import Q4ManufacturingSites from "./Q4ManufacturingSites";
 import Q5ReferencePeriod from "./Q5ReferencePeriod";
 import Q8aEmissionFactors from "./Q8aEmissionFactors";
@@ -493,6 +494,13 @@ const QuestionnaireCardForm: React.FC<Props> = ({
             {/* Q2 — product details per component (≥2 BOMs). */}
             {group.num === "2" && section.id === "section_a_company_product" && bomComponents.length >= 2 ? (
               <Q2ProductTable
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q3 — declared basis per component (≥2 BOMs). */
+            group.num === "3" && section.id === "section_a_company_product" && bomComponents.length >= 2 ? (
+              <Q3DeclaredBasis
                 bomComponents={bomComponents}
                 form={form}
                 isClientMode={isClientMode}

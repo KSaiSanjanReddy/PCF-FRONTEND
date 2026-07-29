@@ -21,6 +21,41 @@ export type MissingRequiredItem = {
   detail?: string;
 };
 
+/**
+ * When >= 2 BOM components, some questions store answers in per-component
+ * item arrays instead of the schema scalar paths. Map scalar field → items.
+ */
+const MULTI_COMPONENT_ITEM_FIELDS: Record<
+  string,
+  { itemsPath: string; column: string; questionLabel: string }
+> = {
+  "product.declared_unit": {
+    itemsPath: "product.q3_items",
+    column: "declared_unit",
+    questionLabel: "Q3",
+  },
+  "product.declared_unit_quantity": {
+    itemsPath: "product.q3_items",
+    column: "declared_unit_quantity",
+    questionLabel: "Q3",
+  },
+  "product.declared_mass": {
+    itemsPath: "product.q3_items",
+    column: "declared_mass",
+    questionLabel: "Q3",
+  },
+  "product.price": {
+    itemsPath: "product.q3_items",
+    column: "price",
+    questionLabel: "Q3",
+  },
+  "product.production_period": {
+    itemsPath: "product.q3_items",
+    column: "production_period",
+    questionLabel: "Q3",
+  },
+};
+
 const getNested = (obj: any, path: string): any =>
   path.split(".").reduce((acc, part) => {
     if (acc === null || acc === undefined) return undefined;
@@ -132,11 +167,35 @@ const tableStatus = (
   return { ok: true };
 };
 
+/** Validate a multi-component items array for required columns. */
+const multiComponentItemsStatus = (
+  values: any,
+  itemsPath: string,
+  requiredColumns: string[],
+): { ok: boolean; detail?: string } => {
+  const rows = getNested(values, itemsPath);
+  if (!Array.isArray(rows) || rows.length < 2) {
+    return { ok: false, detail: "per-component answers missing" };
+  }
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || typeof row !== "object") {
+      return { ok: false, detail: `row ${i + 1}: incomplete` };
+    }
+    const missing = requiredColumns.filter((col) => !isCellFilled(row[col]));
+    if (missing.length) {
+      return { ok: false, detail: `row ${i + 1}: ${missing.join(", ")}` };
+    }
+  }
+  return { ok: true };
+};
+
 export function findMissingRequired(
   values: Record<string, any>,
   sections: QuestionnaireSection[] = QUESTIONNAIRE_SCHEMA,
 ): MissingRequiredItem[] {
   const missing: MissingRequiredItem[] = [];
+  const checkedItemPaths = new Set<string>();
 
   sections.forEach((section, stepIndex) => {
     section.fields.forEach((field) => {
@@ -160,6 +219,33 @@ export function findMissingRequired(
 
       // Non-table: only enforce when marked required.
       if (!field.required) return;
+
+      // Multi-component override: validate item rows once per itemsPath.
+      const mc = MULTI_COMPONENT_ITEM_FIELDS[field.name];
+      if (mc) {
+        const items = getNested(values, mc.itemsPath);
+        if (Array.isArray(items) && items.length >= 2) {
+          if (!checkedItemPaths.has(mc.itemsPath)) {
+            checkedItemPaths.add(mc.itemsPath);
+            const cols = Object.values(MULTI_COMPONENT_ITEM_FIELDS)
+              .filter((x) => x.itemsPath === mc.itemsPath)
+              .map((x) => x.column);
+            const status = multiComponentItemsStatus(values, mc.itemsPath, cols);
+            if (!status.ok) {
+              missing.push({
+                stepIndex,
+                sectionId: section.id,
+                sectionTitle: section.title,
+                fieldName: mc.itemsPath,
+                questionLabel: mc.questionLabel,
+                detail: status.detail,
+              });
+            }
+          }
+          return;
+        }
+      }
+
       if (!isScalarAnswered(field, getNested(values, field.name))) {
         missing.push({
           stepIndex,
