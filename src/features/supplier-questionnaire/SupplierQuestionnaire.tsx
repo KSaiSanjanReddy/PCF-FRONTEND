@@ -179,7 +179,15 @@ const SupplierQuestionnaireInner: React.FC = () => {
   // client-uploaded BOM. Used as the option list for every MPN dropdown so
   // suppliers cannot lose options by deleting/re-adding rows.
   const [bomComponents, setBomComponents] = useState<
-    Array<{ bom_id: string; material_number: string; component_name: string }>
+    Array<{
+      bom_id: string;
+      material_number: string;
+      component_name: string;
+      detail_description?: string | null;
+      quantity?: number | string | null;
+      price?: number | string | null;
+      weight_kg?: number | string | null;
+    }>
   >([]);
 
   useEffect(() => {
@@ -213,9 +221,24 @@ const SupplierQuestionnaireInner: React.FC = () => {
       prev.length > 0
         ? prev
         : [
-            { bom_id: "dev-bom-1", material_number: "MPN-1001", component_name: "Sample Housing" },
-            { bom_id: "dev-bom-2", material_number: "MPN-1002", component_name: "Sample PCB" },
-            { bom_id: "dev-bom-3", material_number: "MPN-1003", component_name: "Sample Cable Assembly" },
+            {
+              bom_id: "dev-bom-1",
+              material_number: "MPN-1001",
+              component_name: "Sample Housing",
+              detail_description: "Aluminum housing assembly",
+            },
+            {
+              bom_id: "dev-bom-2",
+              material_number: "MPN-1002",
+              component_name: "Sample PCB",
+              detail_description: "Main control board",
+            },
+            {
+              bom_id: "dev-bom-3",
+              material_number: "MPN-1003",
+              component_name: "Sample Cable Assembly",
+              detail_description: "Power harness",
+            },
           ]
     );
   }, [sup_id, bom_pcf_id, isClientMode]);
