@@ -90,13 +90,14 @@ const RegionCell: React.FC<{
 const CountryCell: React.FC<{
   rowIdx: number;
   form: FormInstance;
+  allCountries: string[];
   isClientMode?: boolean;
-}> = ({ rowIdx, form, isClientMode }) => {
+}> = ({ rowIdx, form, allCountries, isClientMode }) => {
   const region = Form.useWatch(
     ["product", "manufacturing_sites_items", rowIdx, "region"],
     form,
   ) as string | undefined;
-  const options = region ? getCountriesForRegion(region) : [];
+  const options = region ? getCountriesForRegion(region, allCountries) : [];
   return (
     <Form.Item
       name={["product", "manufacturing_sites_items", rowIdx, "country"]}
@@ -178,6 +179,8 @@ const Q4ManufacturingSites: React.FC<Props> = ({
   // Pull the region options from the schema columns.
   const regionOptions: string[] =
     (baseField.columns?.find((c) => c.name === "region")?.options as string[] | undefined) ?? [];
+  const countryOptions: string[] =
+    (baseField.columns?.find((c) => c.name === "country")?.options as string[] | undefined) ?? [];
 
   return (
     <div style={{ marginTop: 14, overflowX: "auto" }}>
@@ -280,7 +283,12 @@ const Q4ManufacturingSites: React.FC<Props> = ({
 
               {/* Country */}
               <td style={{ ...td, minWidth: 155 }}>
-                <CountryCell rowIdx={i} form={form} isClientMode={isClientMode} />
+                <CountryCell
+                  rowIdx={i}
+                  form={form}
+                  allCountries={countryOptions}
+                  isClientMode={isClientMode}
+                />
               </td>
 
               {/* Subdivision */}

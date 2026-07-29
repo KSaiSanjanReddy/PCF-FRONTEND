@@ -107,6 +107,11 @@ export interface QuestionnaireField {
   locationRole?: "source" | "destination";
   distanceTarget?: string;
   modeField?: string;
+  // Table-column only: when set on a "source" location cell, rows sharing the
+  // same key value can auto-fan-out the selected location to their
+  // corresponding destination cells.
+  chainKeyField?: string;
+  chainDestField?: string;
   // Table-column only: this number cell auto-fills from the row's source +
   // destination coordinates (stored by the location cells) via haversine ×
   // correction factor. Still editable for a manual override. Used by Q19.
