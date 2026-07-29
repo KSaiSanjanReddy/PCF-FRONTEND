@@ -455,7 +455,6 @@ const QuestionnaireCardForm: React.FC<Props> = ({
                     baseField={tableField}
                     form={form}
                     isClientMode={isClientMode}
-                    onValuesChange={onValuesChange}
                   />
                 ) : group.num === "8a" && section.id === "section_c_bom" && bomComponents.length >= 2 ? (
                   /* Q8a — one EF row per component */
