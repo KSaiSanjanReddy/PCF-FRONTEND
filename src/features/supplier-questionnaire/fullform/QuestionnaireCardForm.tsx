@@ -33,6 +33,7 @@ import Q20LandUse from "./Q20LandUse";
 import Q24Boundary from "./Q24Boundary";
 import Q25DataQuality from "./Q25DataQuality";
 import Q26Verification from "./Q26Verification";
+import Q27VerifiedVolumes from "./Q27VerifiedVolumes";
 import { C, cardStyle, numberBadge, tagFor } from "./theme";
 import { useQuestionnaireLocale } from "../i18n";
 
@@ -470,6 +471,13 @@ const QuestionnaireCardForm: React.FC<Props> = ({
                     form={form}
                     isClientMode={isClientMode}
                     onValuesChange={onValuesChange}
+                  />
+                ) : group.num === "27" && section.id === "section_j_verification" && bomComponents.length >= 2 ? (
+                  /* Q27 — certified/verified volumes per component (optional) */
+                  <Q27VerifiedVolumes
+                    bomComponents={bomComponents}
+                    form={form}
+                    isClientMode={isClientMode}
                   />
                 ) : (
                   <QuestionTable
