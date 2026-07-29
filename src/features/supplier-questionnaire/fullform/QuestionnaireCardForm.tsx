@@ -24,6 +24,17 @@ import {
 } from "./controls";
 import { NoticeCard, LocalizedConsentCards } from "./ConsentNotice";
 import QuestionTable from "./QuestionTable";
+import Q2ProductTable from "./Q2FormatCompare";
+import Q3DeclaredBasis from "./Q3DeclaredBasis";
+import Q4ManufacturingSites from "./Q4ManufacturingSites";
+import Q5ReferencePeriod from "./Q5ReferencePeriod";
+import Q8aEmissionFactors from "./Q8aEmissionFactors";
+import Q20BiobasedFeedstock from "./Q20BiobasedFeedstock";
+import Q20LandUse from "./Q20LandUse";
+import Q24Boundary from "./Q24Boundary";
+import Q25DataQuality from "./Q25DataQuality";
+import Q26Verification from "./Q26Verification";
+import Q27VerifiedVolumes from "./Q27VerifiedVolumes";
 import { C, cardStyle, numberBadge, tagFor } from "./theme";
 import { useQuestionnaireLocale } from "../i18n";
 
@@ -437,49 +448,134 @@ const QuestionnaireCardForm: React.FC<Props> = ({
           <>
             {tableField && (
               <div style={{ marginTop: 16 }}>
-                <QuestionTable
-                  field={tableField}
-                  form={form}
-                  bomComponents={bomComponents}
-                  isClientMode={isClientMode}
-                  onValuesChange={onValuesChange}
-                />
+                {group.num === "4" && section.id === "section_a_company_product" && bomComponents.length >= 2 ? (
+                  /* Q4 — one site row per component */
+                  <Q4ManufacturingSites
+                    bomComponents={bomComponents}
+                    baseField={tableField}
+                    form={form}
+                    isClientMode={isClientMode}
+                    onValuesChange={onValuesChange}
+                  />
+                ) : group.num === "8a" && section.id === "section_c_bom" && bomComponents.length >= 2 ? (
+                  /* Q8a — one EF row per component */
+                  <Q8aEmissionFactors
+                    bomComponents={bomComponents}
+                    form={form}
+                    isClientMode={isClientMode}
+                  />
+                ) : group.num === "20" && section.id === "section_g_biobased" && bomComponents.length >= 2 ? (
+                  /* Q20 — feedstock table per component with full taxonomy cascade */
+                  <Q20BiobasedFeedstock
+                    bomComponents={bomComponents}
+                    baseField={tableField}
+                    form={form}
+                    isClientMode={isClientMode}
+                    onValuesChange={onValuesChange}
+                  />
+                ) : group.num === "27" && section.id === "section_j_verification" && bomComponents.length >= 2 ? (
+                  /* Q27 — certified/verified volumes per component (optional) */
+                  <Q27VerifiedVolumes
+                    bomComponents={bomComponents}
+                    form={form}
+                    isClientMode={isClientMode}
+                  />
+                ) : (
+                  <QuestionTable
+                    field={tableField}
+                    form={form}
+                    bomComponents={bomComponents}
+                    isClientMode={isClientMode}
+                    onValuesChange={onValuesChange}
+                  />
+                )}
               </div>
             )}
-            {visibleSubs.length > 0 && (
-              <div
-                style={{
-                  margin: "14px 0 0 40px",
-                  background: C.panelBg,
-                  border: `1px solid ${C.hairline}`,
-                  borderRadius: 13,
-                  padding: "13px 16px 16px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 13 }}>
-                  <span style={{ fontSize: 14, lineHeight: 1, color: C.green }}>↪</span>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      letterSpacing: ".07em",
-                      textTransform: "uppercase",
-                      color: C.muted2,
-                    }}
-                  >
-                    {groupSubsLabel}
-                  </span>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "#aab6bf" }}>
-                    {visibleSubs.length}{" "}
-                    {visibleSubs.length === 1 ? t("ui.field") : t("ui.fields")}
-                  </span>
+            {/* Q2 — product details per component (≥2 BOMs). */}
+            {group.num === "2" && section.id === "section_a_company_product" && bomComponents.length >= 2 ? (
+              <Q2ProductTable
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q3 — declared basis per component (≥2 BOMs). */
+            group.num === "3" && section.id === "section_a_company_product" && bomComponents.length >= 2 ? (
+              <Q3DeclaredBasis
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q5 — reference period per component (≥2 BOMs). */
+            group.num === "5" && section.id === "section_b_scope_period" && bomComponents.length >= 2 ? (
+              <Q5ReferencePeriod
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q20 land use sub-fields (20a/20b/20c) per component (≥2 BOMs). */
+            group.num === "20" && section.id === "section_g_biobased" && bomComponents.length >= 2 ? (
+              <Q20LandUse
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q24 — boundary & carbon capture per component (≥2 BOMs). */
+            group.num === "24" && section.id === "section_i_boundary_dqr" && bomComponents.length >= 2 ? (
+              <Q24Boundary
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q25 — data quality rating per component (≥2 BOMs). */
+            group.num === "25" && section.id === "section_i_boundary_dqr" && bomComponents.length >= 2 ? (
+              <Q25DataQuality
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : /* Q26 — certification & verification per component (≥2 BOMs). */
+            group.num === "26" && section.id === "section_j_verification" && bomComponents.length >= 2 ? (
+              <Q26Verification
+                bomComponents={bomComponents}
+                form={form}
+                isClientMode={isClientMode}
+              />
+            ) : (
+              visibleSubs.length > 0 && (
+                <div
+                  style={{
+                    margin: "14px 0 0 40px",
+                    background: C.panelBg,
+                    border: `1px solid ${C.hairline}`,
+                    borderRadius: 13,
+                    padding: "13px 16px 16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 13 }}>
+                    <span style={{ fontSize: 14, lineHeight: 1, color: C.green }}>↪</span>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        letterSpacing: ".07em",
+                        textTransform: "uppercase",
+                        color: C.muted2,
+                      }}
+                    >
+                      {groupSubsLabel}
+                    </span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: "#aab6bf" }}>
+                      {visibleSubs.length}{" "}
+                      {visibleSubs.length === 1 ? t("ui.field") : t("ui.fields")}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                    {subFields.map((f, i) =>
+                      renderSub(f, (group.num || "") + String.fromCharCode(97 + i)),
+                    )}
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-                  {subFields.map((f, i) =>
-                    renderSub(f, (group.num || "") + String.fromCharCode(97 + i)),
-                  )}
-                </div>
-              </div>
+              )
             )}
           </>
         )}

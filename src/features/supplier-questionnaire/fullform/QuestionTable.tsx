@@ -94,7 +94,7 @@ const TAX_CHILDREN: Record<string, string[]> = {
 // Specific Type). Each level fetches DB-distinct values filtered by the row's
 // higher-level picks, is searchable (server-side), and disabled until its
 // parents are chosen. Picking a level clears the deeper ones.
-const TaxonomyCell: React.FC<{
+export const TaxonomyCell: React.FC<{
   field: QuestionnaireField;
   form: FormInstance;
   fieldPath: string[];
