@@ -625,7 +625,9 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
           { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", placeholder: "Search group…" },
           { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", placeholder: "Search specific type…" },
-          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type", chainKeyField: "mpn", chainDestField: "destination" },
+          // Source is always supplier-entered (no leg chaining). Distance still
+          // auto-computes from Source + Destination coords when both are set.
+          { name: "source", label: "Source", type: "text", placeholder: "Search origin…", locationRole: "source", distanceTarget: "distance_km", modeField: "specific_type" },
           { name: "destination", label: "Destination", type: "text", placeholder: "Search destination…", locationRole: "destination", distanceTarget: "distance_km", modeField: "specific_type" },
           { name: "weight", label: "Weight", type: "number", min: 0, placeholder: "0.00" },
           { name: "unit", label: "Unit", type: "select", options: MASS_UNITS, placeholder: "Select unit" },
