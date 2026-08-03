@@ -684,6 +684,7 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         placeholder:
           "Use meter readings or electricity invoices for the reporting period. Default unit is kWh.",
         columns: [
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
           { name: "electricity_type", label: "Electricity Type", type: "select", options: ELECTRICITY_TYPES, required: true, placeholder: "Select type" },
           { name: "category", label: "Category (Electricity)", type: "select", efTaxonomyLevel: "category", required: true, placeholder: "Search category…" },
           { name: "sub_category", label: "Sub category", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
@@ -713,9 +714,9 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         addButtonLabel: "Add Product",
         required: true,
         placeholder:
-          "List EVERY product manufactured at this factory. These weights are added together to split the factory's electricity fairly across all products.",
+          "List EVERY product manufactured at this factory. These weights are added together to split the factory's electricity fairly across all products. Use the same MPN as Q10.",
         columns: [
-          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
           { name: "total_weight_kg", label: "Total weight produced at factory level (kg)", type: "number", required: true, min: 0, placeholder: "e.g. 25000" },
         ],
       },
@@ -743,7 +744,7 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         addButtonLabel: "Add Row",
         required: false,
         columns: [
-          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", placeholder: "Select MPN" },
+          { name: "mpn", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
           { name: "fuel_carrier", label: "Fuel / energy carrier", type: "select", options: FUEL_CARRIERS, placeholder: "Select fuel" },
           { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", placeholder: "Search category…" },
           { name: "sub_category", label: "Sub-Category", type: "select", efTaxonomyLevel: "sub_category", placeholder: "Search sub-category…" },
