@@ -179,6 +179,7 @@ export function mapV3FormToBackend(
     }));
 
     const electricity = arr(energy.electricity).map((e: any) => ({
+        mpn: str(e.mpn),
         electricityType: str(e.electricity_type),
         category: str(e.category),
         subCategory: str(e.sub_category),
@@ -610,6 +611,7 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
                 units_produced: r.unitsProduced,
             })),
             electricity: (d.electricity ?? []).map((e: any) => ({
+                mpn: e.mpn,
                 electricity_type: e.electricityType,
                 category: e.category,
                 sub_category: e.subCategory,
