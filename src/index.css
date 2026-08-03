@@ -316,6 +316,27 @@ nav a.sidebar-menu-item.active {
   border-radius: 10px;
 }
 
+/* EF taxonomy / geography / MPN dropdowns: width follows the longest option
+   (no forced wide empty min-width). Cap + wrap only for very long names. */
+.sq-tax-select-dropdown.ant-select-dropdown {
+  width: max-content !important;
+  max-width: min(420px, 90vw) !important;
+}
+.sq-tax-select-dropdown .ant-select-item {
+  min-height: auto;
+  height: auto !important;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.35;
+}
+.sq-tax-select-dropdown .ant-select-item-option-content {
+  /* max-content above sizes to the full label; once capped by max-width, wrap. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
+
 .sq-fullform .ant-input-number {
   width: 100%;
 }
