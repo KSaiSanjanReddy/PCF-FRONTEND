@@ -93,6 +93,18 @@ export interface SupplierOnboarding {
   update_date?: string;
 }
 
+export interface ActiveLoginUser {
+  user_id: string;
+  user_name: string;
+  user_role: string;
+  user_email: string;
+  user_phone_number?: string;
+  login_count: number;
+  last_login_at?: string;
+  is_logged_in: boolean;
+  session_last_activity_at?: string;
+}
+
 // Permission Types
 export interface ModulePermission {
   permission_id?: string;
