@@ -495,6 +495,19 @@ class AuthService {
 
   // Logout user
   logout(): void {
+    const token = this.token || localStorage.getItem("token");
+    if (token) {
+      fetch(`${API_BASE_URL}/api/user/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+      }).catch((error) => {
+        console.error("Logout sync failed:", error);
+      });
+    }
+
     this.token = null;
     this.user = null;
     localStorage.removeItem("token");
