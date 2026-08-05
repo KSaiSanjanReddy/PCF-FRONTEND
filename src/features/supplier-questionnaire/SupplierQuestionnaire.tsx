@@ -72,6 +72,7 @@ import {
 import {
   findMissingRequired,
   groupMissingBySection,
+  isMultiComponentFieldAnswered,
   type MissingRequiredItem,
 } from "./findMissingRequired";
 
@@ -953,21 +954,14 @@ const SupplierQuestionnaireInner: React.FC = () => {
     const checkStepCompletion = async () => {
       try {
         const values = form.getFieldsValue();
+        const merged = deepMerge(formData, values, true);
         const section = QUESTIONNAIRE_SCHEMA[currentStep];
         if (section) {
-          const requiredFields = section.fields.filter(
-            (f) => f.required && !f.dependency,
+          // Use the same multi-component-aware required check as submit.
+          const missingHere = findMissingRequired(merged).filter(
+            (m) => m.stepIndex === currentStep,
           );
-          const hasRequiredData = requiredFields.every((field) => {
-            const fieldValue = form.getFieldValue(field.name.split("."));
-            return (
-              fieldValue !== undefined &&
-              fieldValue !== null &&
-              fieldValue !== ""
-            );
-          });
-
-          if (hasRequiredData) {
+          if (missingHere.length === 0) {
             setCompletedSteps((prev) => new Set([...prev, currentStep]));
           }
         }
@@ -1048,6 +1042,13 @@ const SupplierQuestionnaireInner: React.FC = () => {
       };
 
       const isFieldAnswered = (field: any): boolean => {
+        const multi = isMultiComponentFieldAnswered(
+          field.name,
+          field.type,
+          mergedValues,
+        );
+        if (multi !== null) return multi;
+
         const fieldValue = getNestedValue(mergedValues, field.name);
 
         // Check if field has a value
