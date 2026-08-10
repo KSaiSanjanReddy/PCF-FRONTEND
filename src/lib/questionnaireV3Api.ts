@@ -133,9 +133,18 @@ export function mapV3FormToBackend(
         declared_mass: productRaw.declared_mass ?? firstQ3.declared_mass,
         price: productRaw.price ?? firstQ3.price,
         production_period: productRaw.production_period ?? firstQ3.production_period,
-        manufacturing_sites: arr(productRaw.manufacturing_sites).length
-            ? productRaw.manufacturing_sites
-            : productRaw.manufacturing_sites_items,
+        // Prefer multi-component items when they actually have region/country.
+        // An empty Form.List stub on manufacturing_sites must not win over
+        // filled manufacturing_sites_items (that caused sites[0] missing region/country).
+        manufacturing_sites: (() => {
+            const items = arr(productRaw.manufacturing_sites_items);
+            const scalar = arr(productRaw.manufacturing_sites);
+            const filled = (rows: any[]) =>
+                rows.some((r) => r && (r.region || r.country || r.site_name));
+            if (filled(items)) return items;
+            if (filled(scalar)) return scalar;
+            return items.length ? items : scalar;
+        })(),
     };
 
     const periodItems = arr(spRaw.reference_period_items);
@@ -232,7 +241,9 @@ export function mapV3FormToBackend(
             arr(biobasedRaw.land_use_items)[0]?.forest_converted,
     };
 
-    const sites = arr(product.manufacturing_sites).map((s: any, i: number) => ({
+    const sites = arr(product.manufacturing_sites)
+        .filter((s: any) => s && (s.region || s.country || s.site_name || s.site_address))
+        .map((s: any, i: number) => ({
         siteName: str(s.site_name),
         siteAddress: str(s.site_address),
         region: str(s.region),
@@ -554,10 +565,12 @@ export function mapV3FormToBackend(
         productOrSectorSpecificRules: str(methodology.product_sector_pcr),
         ipccGwpVersion: str(methodology.ipcc_gwp_version),
 
-        // Q22
+        // Q22 — backend QuestionnaireInput keys (NOT certificateScheme /
+        // freeAttributionUsed — those names are dropped and submit fails when
+        // massBalancingUsed is true).
         massBalancingUsed: yesNoToBool(methodology.mass_balancing_used),
-        certificateScheme: str(methodology.certificate_scheme),
-        freeAttributionUsed: yesNoToBool(methodology.free_attribution_used),
+        massBalancingCertificateScheme: str(methodology.certificate_scheme),
+        freeAttributionInMassBalancing: yesNoToBool(methodology.free_attribution_used),
 
         // Q23
         allocationRationale: str(methodology.allocation_rationale),
