@@ -247,13 +247,20 @@ const tableStatus = (
     if (!hasAny) return;
 
     const missingCols = columns
-      .filter(
-        (c) =>
-          c.required &&
-          !c.readOnly &&
-          depMet(c.dependency, values, row) &&
-          !isCellFilled(row[c.name]),
-      )
+      .filter((c) => {
+        if (!c.required || c.readOnly) return false;
+        if (!depMet(c.dependency, values, row)) return false;
+        // Auto-distance (Q19 etc.): UI shows km from coords but the store can
+        // lag. Treat as filled when both endpoints are present.
+        if (
+          (c as any).autoDistance &&
+          isCellFilled(row.source) &&
+          isCellFilled(row.destination)
+        ) {
+          return false;
+        }
+        return !isCellFilled(row[c.name]);
+      })
       .map((c) => c.label || c.name);
 
     if (missingCols.length) {
@@ -288,13 +295,26 @@ const multiComponentItemsStatus = (
     return { ok: false, detail: "per-component answers missing" };
   }
   const conditionals = MULTI_COMPONENT_CONDITIONAL[itemsPath] ?? [];
+  const isQ5Period = itemsPath === "scope_period.reference_period_items";
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row || typeof row !== "object") {
       return { ok: false, detail: `row ${i + 1}: incomplete` };
     }
-    const missing = requiredColumns.filter((col) => !isCellFilled(row[col]));
+    const missing = requiredColumns.filter((col) => {
+      // Q5 end is auto-derived from start (start + 1 year − 1 day). Treat it
+      // as answered when start is filled so stale drafts / placeholder UI
+      // ("Auto (start + 1 year)") do not block submit.
+      if (
+        isQ5Period &&
+        col === "reference_end" &&
+        isCellFilled(row.reference_start)
+      ) {
+        return false;
+      }
+      return !isCellFilled(row[col]);
+    });
     if (missing.length) {
       return { ok: false, detail: `row ${i + 1}: ${missing.join(", ")}` };
     }
@@ -322,16 +342,26 @@ export function isMultiComponentFieldAnswered(
   const tableRemap = MULTI_COMPONENT_TABLE_FIELDS[fieldName];
   if (tableRemap && isMultiItemsActive(values, tableRemap.itemsPath)) {
     const rows = getNested(values, tableRemap.itemsPath);
-    return (
-      Array.isArray(rows) &&
-      rows.length >= 2 &&
-      rows.every(
+    if (!Array.isArray(rows) || rows.length < 2) return false;
+
+    // Q4 sites — region + country required on every row.
+    if (tableRemap.itemsPath === "product.manufacturing_sites_items") {
+      return rows.every(
         (row) =>
           row &&
           typeof row === "object" &&
           isCellFilled(row.region) &&
           isCellFilled(row.country),
-      )
+      );
+    }
+
+    // Optional remapped tables (Q8a / Q20 / Q27): count as answered when at
+    // least one row has any real cell value (same as single-component tables).
+    return rows.some(
+      (row) =>
+        row &&
+        typeof row === "object" &&
+        Object.values(row).some(isCellFilled),
     );
   }
 

@@ -6,7 +6,7 @@
  * column. Answers are stored under `product.items[i].*` and wired into the
  * parent Ant Form instance so they are saved/submitted normally.
  */
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, Input } from "antd";
 import type { FormInstance } from "antd";
 import { C, REQ_TAG, OPT_TAG, ffStyle } from "./theme";
@@ -43,7 +43,31 @@ const td: React.CSSProperties = {
   verticalAlign: "top",
 };
 
+const empty = (v: any) => v === undefined || v === null || v === "";
+
 const Q2ProductTable: React.FC<Props> = ({ bomComponents, form, isClientMode }) => {
+  // initialValue alone is not enough after draft rehydrate / setFieldsValue —
+  // explicitly seed locked BOM identity into the store so validation sees it.
+  useEffect(() => {
+    if (!bomComponents.length) return;
+    bomComponents.forEach((c, i) => {
+      const base = ["product", "items", i] as const;
+      const row = form.getFieldValue(["product", "items", i]) || {};
+      if (empty(row.name) && c.component_name) {
+        form.setFieldValue([...base, "name"], c.component_name);
+      }
+      if (empty(row.product_id) && c.material_number) {
+        form.setFieldValue([...base, "product_id"], c.material_number);
+      }
+      if (empty(row.description) && c.detail_description) {
+        form.setFieldValue([...base, "description"], c.detail_description);
+      }
+      if (empty(row.bom_id) && c.bom_id) {
+        form.setFieldValue([...base, "bom_id"], c.bom_id);
+      }
+    });
+  }, [bomComponents, form]);
+
   if (!bomComponents.length) {
     return (
       <div
@@ -103,7 +127,6 @@ const Q2ProductTable: React.FC<Props> = ({ bomComponents, form, isClientMode }) 
         <tbody>
           {bomComponents.map((c, i) => (
             <tr key={c.bom_id} style={{ background: i % 2 === 0 ? "#fff" : C.panelBg }}>
-              {/* Component label column — informational, not an editable field */}
               <td style={td}>
                 <div style={{ fontWeight: 700, color: C.text, fontSize: 13 }}>
                   {c.component_name || `Component ${i + 1}`}
@@ -113,28 +136,24 @@ const Q2ProductTable: React.FC<Props> = ({ bomComponents, form, isClientMode }) 
                 </div>
               </td>
 
-              {/* Product name — locked, from BOM */}
               <td style={td}>
                 <Form.Item name={["product", "items", i, "name"]} className="mb-0" noStyle initialValue={c.component_name}>
                   <Input disabled style={ffStyle} />
                 </Form.Item>
               </td>
 
-              {/* MPN — locked, from BOM */}
               <td style={td}>
                 <Form.Item name={["product", "items", i, "product_id"]} className="mb-0" noStyle initialValue={c.material_number}>
                   <Input disabled style={ffStyle} />
                 </Form.Item>
               </td>
 
-              {/* Description — locked, from BOM */}
               <td style={{ ...td, minWidth: 170 }}>
                 <Form.Item name={["product", "items", i, "description"]} className="mb-0" noStyle initialValue={c.detail_description || ""}>
                   <Input disabled placeholder="—" style={ffStyle} />
                 </Form.Item>
               </td>
 
-              {/* Classification — editable */}
               <td style={{ ...td, minWidth: 160 }}>
                 <Form.Item name={["product", "items", i, "classification"]} className="mb-0" noStyle>
                   <Input
@@ -143,7 +162,6 @@ const Q2ProductTable: React.FC<Props> = ({ bomComponents, form, isClientMode }) 
                     style={ffStyle}
                   />
                 </Form.Item>
-                {/* Hidden bom_id so it's always persisted with the row */}
                 <Form.Item name={["product", "items", i, "bom_id"]} noStyle initialValue={c.bom_id}>
                   <Input type="hidden" />
                 </Form.Item>

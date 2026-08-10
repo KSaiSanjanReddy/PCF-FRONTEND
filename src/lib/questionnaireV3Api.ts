@@ -100,17 +100,137 @@ export function mapV3FormToBackend(
     ctx: V3MapperContext
 ): Record<string, any> {
     const company = formData?.company ?? {};
-    const product = formData?.product ?? {};
-    const sp = formData?.scope_period ?? {};
-    const bomBlock = formData?.bom ?? {};
+    const productRaw = formData?.product ?? {};
+    const spRaw = formData?.scope_period ?? {};
+    const bomBlockRaw = formData?.bom ?? {};
     const energy = formData?.energy ?? {};
     const packaging = formData?.packaging ?? {};
     const transport = formData?.transport ?? {};
-    const biobased = formData?.biobased ?? {};
+    const biobasedRaw = formData?.biobased ?? {};
     const methodology = formData?.methodology ?? {};
-    const boundary = formData?.boundary ?? {};
-    const dqr = formData?.dqr ?? {};
-    const verification = formData?.verification ?? {};
+    const boundaryRaw = formData?.boundary ?? {};
+    const dqrRaw = formData?.dqr ?? {};
+    const verificationRaw = formData?.verification ?? {};
+
+    // Multi-component UIs write per-row `*_items` arrays. Promote into the
+    // schema paths the backend columns / nested mappers still expect so a
+    // filled multi-component form does not save empty scalars.
+    const productItems = arr(productRaw.items);
+    const firstProduct =
+        productItems.find((r: any) => r?.name || r?.product_id) ?? productItems[0] ?? {};
+    const q3Items = arr(productRaw.q3_items);
+    const firstQ3 =
+        q3Items.find((r: any) => r?.declared_unit || r?.declared_mass) ?? q3Items[0] ?? {};
+    const product = {
+        ...productRaw,
+        name: productRaw.name ?? firstProduct.name,
+        product_id: productRaw.product_id ?? firstProduct.product_id,
+        description: productRaw.description ?? firstProduct.description,
+        classification: productRaw.classification ?? firstProduct.classification,
+        declared_unit: productRaw.declared_unit ?? firstQ3.declared_unit,
+        declared_unit_quantity:
+            productRaw.declared_unit_quantity ?? firstQ3.declared_unit_quantity,
+        declared_mass: productRaw.declared_mass ?? firstQ3.declared_mass,
+        price: productRaw.price ?? firstQ3.price,
+        production_period: productRaw.production_period ?? firstQ3.production_period,
+        manufacturing_sites: arr(productRaw.manufacturing_sites).length
+            ? productRaw.manufacturing_sites
+            : productRaw.manufacturing_sites_items,
+    };
+
+    const periodItems = arr(spRaw.reference_period_items);
+    const firstPeriod =
+        periodItems.find((r: any) => r?.reference_start) ?? periodItems[0] ?? {};
+    const sp = {
+        ...spRaw,
+        reference_start: spRaw.reference_start ?? firstPeriod.reference_start,
+        reference_end: spRaw.reference_end ?? firstPeriod.reference_end,
+    };
+
+    const bomBlock = {
+        ...bomBlockRaw,
+        component_ef_details: arr(bomBlockRaw.component_ef_details).length
+            ? bomBlockRaw.component_ef_details
+            : bomBlockRaw.component_ef_items,
+    };
+
+    const q24Items = arr(boundaryRaw.q24_items);
+    const firstQ24 =
+        q24Items.find(
+            (r: any) =>
+                r?.ccs_ccu_used != null ||
+                r?.excluded_flows ||
+                r?.exempted_percent != null,
+        ) ?? q24Items[0] ?? {};
+    const boundary = {
+        ...boundaryRaw,
+        ccs_ccu_used: boundaryRaw.ccs_ccu_used ?? firstQ24.ccs_ccu_used,
+        excluded_flows: boundaryRaw.excluded_flows ?? firstQ24.excluded_flows,
+        exempted_percent: boundaryRaw.exempted_percent ?? firstQ24.exempted_percent,
+    };
+
+    const q25Items = arr(dqrRaw.q25_items);
+    const firstQ25 = q25Items.find((r: any) => r?.primary_data_share != null) ?? q25Items[0] ?? {};
+    const dqr = {
+        ...dqrRaw,
+        primary_data_share: dqrRaw.primary_data_share ?? firstQ25.primary_data_share,
+        secondary_ef_source: dqrRaw.secondary_ef_source ?? firstQ25.secondary_ef_source,
+        data_year: dqrRaw.data_year ?? firstQ25.data_year,
+        technological: dqrRaw.technological ?? firstQ25.technological,
+        geographical: dqrRaw.geographical ?? firstQ25.geographical,
+        temporal: dqrRaw.temporal ?? firstQ25.temporal,
+    };
+
+    const q26Items = arr(verificationRaw.q26_items);
+    const firstQ26 =
+        q26Items.find(
+            (r: any) => r?.product_certified != null || r?.pcf_verified != null,
+        ) ?? q26Items[0] ?? {};
+    const verification = {
+        ...verificationRaw,
+        product_certified: verificationRaw.product_certified ?? firstQ26.product_certified,
+        certification_scheme:
+            verificationRaw.certification_scheme ?? firstQ26.certification_scheme,
+        certificate_number:
+            verificationRaw.certificate_number ?? firstQ26.certificate_number,
+        certificate_valid_from:
+            verificationRaw.certificate_valid_from ?? firstQ26.certificate_valid_from,
+        certificate_valid_to:
+            verificationRaw.certificate_valid_to ?? firstQ26.certificate_valid_to,
+        pcf_verified: verificationRaw.pcf_verified ?? firstQ26.pcf_verified,
+        attestation_type: verificationRaw.attestation_type ?? firstQ26.attestation_type,
+        conformant_standards:
+            verificationRaw.conformant_standards ?? firstQ26.conformant_standards,
+        attestation_scheme_standard:
+            verificationRaw.attestation_scheme_standard ??
+            firstQ26.attestation_scheme_standard,
+        attestation_id: verificationRaw.attestation_id ?? firstQ26.attestation_id,
+        attestation_issuer:
+            verificationRaw.attestation_issuer ?? firstQ26.attestation_issuer,
+        issuer_id: verificationRaw.issuer_id ?? firstQ26.issuer_id,
+        attestation_url: verificationRaw.attestation_url ?? firstQ26.attestation_url,
+        attestation_completed_at:
+            verificationRaw.attestation_completed_at ?? firstQ26.attestation_completed_at,
+        volumes: arr(verificationRaw.volumes).length
+            ? verificationRaw.volumes
+            : verificationRaw.q27_items,
+    };
+
+    const biobased = {
+        ...biobasedRaw,
+        details: arr(biobasedRaw.details).length
+            ? biobasedRaw.details
+            : biobasedRaw.feedstock_items,
+        uses_agri_forestry_land:
+            biobasedRaw.uses_agri_forestry_land ??
+            arr(biobasedRaw.land_use_items)[0]?.uses_agri_forestry_land,
+        land_area_hectares:
+            biobasedRaw.land_area_hectares ??
+            arr(biobasedRaw.land_use_items)[0]?.land_area_hectares,
+        forest_converted:
+            biobasedRaw.forest_converted ??
+            arr(biobasedRaw.land_use_items)[0]?.forest_converted,
+    };
 
     const sites = arr(product.manufacturing_sites).map((s: any, i: number) => ({
         siteName: str(s.site_name),

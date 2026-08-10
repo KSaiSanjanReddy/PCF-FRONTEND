@@ -310,21 +310,56 @@ const SupplierQuestionnaireInner: React.FC = () => {
   // (user picks a date, or a draft is rehydrated), writing the derived end into
   // both the form store and formData. Guards against churn by only updating when
   // the derived value actually differs from what's stored.
+  //
+  // Multi-component (≥2 BOM rows) stores dates on reference_period_items[];
+  // the scalar path above is unused there, so we sync each row the same way.
   const referenceStart = formData?.scope_period?.reference_start;
+  const referencePeriodItems = formData?.scope_period?.reference_period_items;
   useEffect(() => {
     const derived = deriveReferenceEnd(referenceStart);
-    if (!derived) return;
-    const derivedStr = derived.format("YYYY-MM-DD");
-    const current = formData?.scope_period?.reference_end;
-    const currentStr = current ? dayjs(current).format("YYYY-MM-DD") : "";
-    if (currentStr === derivedStr) return;
-    form.setFieldValue(["scope_period", "reference_end"], derived);
-    setFormData((prev) => ({
-      ...prev,
-      scope_period: { ...(prev?.scope_period ?? {}), reference_end: derived },
-    }));
+    if (derived) {
+      const derivedStr = derived.format("YYYY-MM-DD");
+      const current = formData?.scope_period?.reference_end;
+      const currentStr = current ? dayjs(current).format("YYYY-MM-DD") : "";
+      if (currentStr !== derivedStr) {
+        form.setFieldValue(["scope_period", "reference_end"], derived);
+        setFormData((prev) => ({
+          ...prev,
+          scope_period: { ...(prev?.scope_period ?? {}), reference_end: derived },
+        }));
+      }
+    }
+
+    if (Array.isArray(referencePeriodItems) && referencePeriodItems.length >= 2) {
+      let changed = false;
+      const next = referencePeriodItems.map((row: any, i: number) => {
+        const rowDerived = deriveReferenceEnd(row?.reference_start);
+        if (!rowDerived) return row;
+        const derivedStr = rowDerived.format("YYYY-MM-DD");
+        const currentStr = row?.reference_end
+          ? dayjs(row.reference_end).format("YYYY-MM-DD")
+          : "";
+        if (currentStr === derivedStr) return row;
+        changed = true;
+        // Nested write — avoid replacing the whole items array (races other cells).
+        form.setFieldValue(
+          ["scope_period", "reference_period_items", i, "reference_end"],
+          rowDerived,
+        );
+        return { ...row, reference_end: rowDerived };
+      });
+      if (changed) {
+        setFormData((prev) => ({
+          ...prev,
+          scope_period: {
+            ...(prev?.scope_period ?? {}),
+            reference_period_items: next,
+          },
+        }));
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [referenceStart]);
+  }, [referenceStart, referencePeriodItems]);
 
   // BACKFILL component_name for every Form.List row that has an MPN selected
   // (saved before the bomMaterials onChange started writing component_name).
