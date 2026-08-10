@@ -82,12 +82,13 @@ export default function Support() {
                     Back to Help Centre
                 </button>
                 <div className={styles.topBarBrand}>
-                    <div className={styles.brandIcon}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </div>
-                    <span className={styles.brandName}>Enviguide Support</span>
+                    <img
+                        src="/logo.png"
+                        alt="Enviguide"
+                        className={styles.brandLogo}
+                        draggable={false}
+                    />
+                    <span className={styles.brandName}>Enviraan Support</span>
                 </div>
             </div>
 
@@ -118,8 +119,14 @@ export default function Support() {
                         <div className={styles.infoCard}>
                             <div className={styles.cardHeader}>
                                 <span className={styles.cardIconWrap}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path
+                                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                                            stroke="#22c55e"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
                                     </svg>
                                 </span>
                                 <span className={styles.cardTitle}>Direct Support</span>
