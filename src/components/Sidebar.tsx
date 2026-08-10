@@ -422,7 +422,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       Unlock the full potential of Enviraan with our expert-led
                       documentation.
                     </p>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2.5">
                       <Link
                         to="/help-centre"
                         className="group inline-flex items-center gap-1.5 text-sm font-semibold text-green-400 hover:text-green-300 transition-colors duration-200"
@@ -432,7 +432,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       </Link>
                       <Link
                         to="/support"
-                        className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-green-500/15 px-3 py-2 text-sm font-semibold text-green-400 hover:bg-green-500/25 hover:text-green-300 transition-colors duration-200"
+                        className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-400 transition-colors duration-200"
                       >
                         <MessageCircle className="h-4 w-4" />
                         Contact Us
