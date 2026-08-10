@@ -383,7 +383,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Knowledge Base Card - flows directly below the menu (incl. Settings) */}
               {isMinimized ? (
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
                   <Link
                     to="/help-centre"
                     title="Knowledge Base"
@@ -393,6 +393,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <BookOpen className="h-5 w-5" />
                     <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-xl">
                       Knowledge Base
+                    </div>
+                  </Link>
+                  <Link
+                    to="/support"
+                    title="Contact Us"
+                    aria-label="Open the Support Center"
+                    className="group relative flex items-center justify-center w-11 h-11 mx-auto rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all duration-200"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-xl">
+                      Contact Us
                     </div>
                   </Link>
                 </div>
@@ -411,13 +422,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                       Unlock the full potential of Enviraan with our expert-led
                       documentation.
                     </p>
-                    <Link
-                      to="/help-centre"
-                      className="group inline-flex items-center gap-1.5 text-sm font-semibold text-green-400 hover:text-green-300 transition-colors duration-200"
-                    >
-                      Browse Guides
-                      <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                    </Link>
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        to="/help-centre"
+                        className="group inline-flex items-center gap-1.5 text-sm font-semibold text-green-400 hover:text-green-300 transition-colors duration-200"
+                      >
+                        Browse Guides
+                        <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                      </Link>
+                      <Link
+                        to="/support"
+                        className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-green-500/15 px-3 py-2 text-sm font-semibold text-green-400 hover:bg-green-500/25 hover:text-green-300 transition-colors duration-200"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Contact Us
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
