@@ -76,11 +76,12 @@ const RegionCell: React.FC<{
       {...TABLE_SELECT_POPUP}
       options={options.map((o) => ({ value: o, label: o }))}
       style={{ width: "100%" }}
-      onChange={(v) => {
-        const path = ["product", "manufacturing_sites_items"];
-        const arr = [...((form.getFieldValue(path) as any[]) || [])];
-        arr[rowIdx] = { ...(arr[rowIdx] || {}), region: v, country: undefined, subdivision: undefined };
-        form.setFieldValue(path, arr);
+      onChange={() => {
+        // Nested clears only — never replace the whole items array (that races
+        // Form.Item's own write of `region` and can wipe the selection).
+        const base = ["product", "manufacturing_sites_items", rowIdx] as const;
+        form.setFieldValue([...base, "country"], undefined);
+        form.setFieldValue([...base, "subdivision"], undefined);
       }}
     />
   </Form.Item>
@@ -114,10 +115,10 @@ const CountryCell: React.FC<{
         options={options.map((o) => ({ value: o, label: o }))}
         style={{ width: "100%" }}
         onChange={() => {
-          const path = ["product", "manufacturing_sites_items"];
-          const arr = [...((form.getFieldValue(path) as any[]) || [])];
-          arr[rowIdx] = { ...(arr[rowIdx] || {}), subdivision: undefined };
-          form.setFieldValue(path, arr);
+          form.setFieldValue(
+            ["product", "manufacturing_sites_items", rowIdx, "subdivision"],
+            undefined,
+          );
         }}
       />
     </Form.Item>

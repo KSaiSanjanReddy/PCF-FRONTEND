@@ -345,10 +345,15 @@ const CountryByRegionCell: React.FC<{
         optionRender={tableSelectOptionRender}
         onChange={(v) => {
           if (!subdivisionCol) return;
-          const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
-          const prev = arr[rowName] || {};
-          arr[rowName] = { ...prev, [col.name]: v, [subdivisionCol]: undefined };
-          form.setFieldValue(fieldPath, arr);
+          // Nested clear only — do not replace the whole Form.List array.
+          form.setFieldValue(
+            [...fieldPath, rowName, col.name],
+            v,
+          );
+          form.setFieldValue(
+            [...fieldPath, rowName, subdivisionCol],
+            undefined,
+          );
         }}
         notFoundContent={!ready ? t("ui.selectRegionFirst") : "No countries for this region"}
       />
@@ -608,9 +613,7 @@ const LocationCell: React.FC<{
       coordsChanged = true;
     }
     if (form.getFieldValue([...fieldPath, rowName, col.name]) !== lockedText) {
-      const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
-      arr[rowName] = { ...(arr[rowName] || {}), [col.name]: lockedText };
-      form.setFieldValue(fieldPath, arr);
+      form.setFieldValue([...fieldPath, rowName, col.name], lockedText);
     }
     if (coordsChanged) notifyCoordsChanged();
   });
@@ -667,9 +670,7 @@ const DistanceCell: React.FC<{
   // if the auto-save clobbers the field (the displayed value stays put regardless).
   React.useEffect(() => {
     if (shown != null && form.getFieldValue([...fieldPath, rowName, col.name]) !== shown) {
-      const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
-      arr[rowName] = { ...(arr[rowName] || {}), [col.name]: shown };
-      form.setFieldValue(fieldPath, arr);
+      form.setFieldValue([...fieldPath, rowName, col.name], shown);
     }
   });
 
@@ -912,15 +913,17 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
             optionRender={tableSelectOptionRender}
             onChange={(v) => {
               if (dependentCountryCols.length === 0) return;
-              const arr = [...((form.getFieldValue(fieldPath) as any[]) || [])];
-              const prev = arr[rowName] || {};
-              const next: any = { ...prev, [col.name]: v };
+              // Nested clears — avoid whole-array replace racing Form.Item.
               for (const c of dependentCountryCols) {
-                next[c.name] = undefined;
+                form.setFieldValue([...fieldPath, rowName, c.name], undefined);
               }
-              if (subdivisionColName) next[subdivisionColName] = undefined;
-              arr[rowName] = next;
-              form.setFieldValue(fieldPath, arr);
+              if (subdivisionColName) {
+                form.setFieldValue(
+                  [...fieldPath, rowName, subdivisionColName],
+                  undefined,
+                );
+              }
+              void v;
             }}
           />
         </Form.Item>

@@ -9,7 +9,7 @@
  * single-component path in SupplierQuestionnaire).
  * When < 2 components the parent uses the original 5a/5b sub-fields.
  */
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, DatePicker, Input } from "antd";
 import type { FormInstance } from "antd";
 import dayjs from "dayjs";
@@ -47,6 +47,19 @@ const td: React.CSSProperties = {
   verticalAlign: "middle",
 };
 
+const deriveReferenceEnd = (start: any): dayjs.Dayjs | undefined => {
+  if (!start) return undefined;
+  const d = dayjs(start);
+  if (!d.isValid()) return undefined;
+  return d.add(1, "year").subtract(1, "day");
+};
+
+const endKey = (v: any): string => {
+  if (!v) return "";
+  const d = dayjs(v);
+  return d.isValid() ? d.format("YYYY-MM-DD") : "";
+};
+
 /**
  * Start-date cell — updates this component's end date when changed
  * (start + 1 year − 1 day).
@@ -69,12 +82,13 @@ const StartCell: React.FC<{
       disabled={isClientMode}
       style={{ ...ffStyle, width: "100%" }}
       onChange={(val) => {
-        if (!val || !val.isValid()) return;
-        const end = dayjs(val).add(1, "year").subtract(1, "day");
-        const path = ["scope_period", "reference_period_items"];
-        const arr = [...((form.getFieldValue(path) as any[]) || [])];
-        arr[rowIdx] = { ...(arr[rowIdx] || {}), reference_end: end };
-        form.setFieldValue(path, arr);
+        // Write end on the nested field path (not by replacing the whole
+        // array) so we don't race Form.Item's own write of reference_start.
+        const end = deriveReferenceEnd(val);
+        form.setFieldValue(
+          ["scope_period", "reference_period_items", rowIdx, "reference_end"],
+          end ?? null,
+        );
       }}
     />
   </Form.Item>
@@ -100,79 +114,104 @@ const EndCell: React.FC<{
   </Form.Item>
 );
 
-const Q5ReferencePeriod: React.FC<Props> = ({ bomComponents, form, isClientMode }) => (
+const Q5ReferencePeriod: React.FC<Props> = ({ bomComponents, form, isClientMode }) => {
+  // Keep every row's end date filled whenever start exists (user pick, draft
+  // rehydrate, or programmatic set). Mirrors the single-component effect in
+  // SupplierQuestionnaire — without this, the UI shows the "Auto" placeholder
+  // while validation still requires reference_end.
+  const items = Form.useWatch(["scope_period", "reference_period_items"], form);
+
+  useEffect(() => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    items.forEach((row: any, i: number) => {
+      const derived = deriveReferenceEnd(row?.reference_start);
+      if (!derived) return;
+      if (endKey(row?.reference_end) === derived.format("YYYY-MM-DD")) return;
+      form.setFieldValue(
+        ["scope_period", "reference_period_items", i, "reference_end"],
+        derived,
+      );
+    });
+  }, [items, form]);
+
+  return (
     <div style={{ marginTop: 14, overflowX: "auto" }}>
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "separate",
-        borderSpacing: 0,
-        minWidth: 560,
-        fontSize: 13,
-        background: "#fff",
-        border: `1px solid ${C.hairline}`,
-        borderRadius: 12,
-        overflow: "hidden",
-      }}
-    >
-      <thead>
-        <tr>
-          <th style={{ ...th, borderTopLeftRadius: 12 }}>Component</th>
-          <th style={th}>
-            Reference period: start <span style={REQ_TAG}>Req</span>
-          </th>
-          <th style={{ ...th, borderTopRightRadius: 12 }}>
-            Reference period: end{" "}
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: ".04em",
-                textTransform: "uppercase",
-                color: C.greenDark,
-                background: C.greenSoft,
-                border: "1px solid #bbf7d0",
-                borderRadius: 6,
-                padding: "2px 7px",
-                whiteSpace: "nowrap",
-                marginLeft: 4,
-              }}
-            >
-              Auto
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {bomComponents.map((c, i) => (
-          <tr key={c.bom_id} style={{ background: i % 2 === 0 ? "#fff" : C.panelBg }}>
-            {/* Component label — locked */}
-            <td style={{ ...td, minWidth: 150 }}>
-              <div style={{ fontWeight: 700, color: C.text }}>{c.component_name || `Component ${i + 1}`}</div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{c.material_number}</div>
-              <Form.Item
-                name={["scope_period", "reference_period_items", i, "bom_id"]}
-                noStyle
-                initialValue={c.bom_id}
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "separate",
+          borderSpacing: 0,
+          minWidth: 560,
+          fontSize: 13,
+          background: "#fff",
+          border: `1px solid ${C.hairline}`,
+          borderRadius: 12,
+          overflow: "hidden",
+        }}
+      >
+        <thead>
+          <tr>
+            <th style={{ ...th, borderTopLeftRadius: 12 }}>Component</th>
+            <th style={th}>
+              Reference period: start <span style={REQ_TAG}>Req</span>
+            </th>
+            <th style={{ ...th, borderTopRightRadius: 12 }}>
+              Reference period: end{" "}
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: ".04em",
+                  textTransform: "uppercase",
+                  color: C.greenDark,
+                  background: C.greenSoft,
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 6,
+                  padding: "2px 7px",
+                  whiteSpace: "nowrap",
+                  marginLeft: 4,
+                }}
               >
-                <Input type="hidden" />
-              </Form.Item>
-            </td>
-
-            {/* Start date — editable, auto-fills end */}
-            <td style={{ ...td, minWidth: 190 }}>
-              <StartCell rowIdx={i} form={form} isClientMode={isClientMode} />
-            </td>
-
-            {/* End date — locked, auto-derived */}
-            <td style={{ ...td, minWidth: 190 }}>
-              <EndCell rowIdx={i} isClientMode={isClientMode} />
-            </td>
+                Auto
+              </span>
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+        </thead>
+        <tbody>
+          {bomComponents.map((c, i) => (
+            <tr key={c.bom_id} style={{ background: i % 2 === 0 ? "#fff" : C.panelBg }}>
+              {/* Component label — locked */}
+              <td style={{ ...td, minWidth: 150 }}>
+                <div style={{ fontWeight: 700, color: C.text }}>
+                  {c.component_name || `Component ${i + 1}`}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+                  {c.material_number}
+                </div>
+                <Form.Item
+                  name={["scope_period", "reference_period_items", i, "bom_id"]}
+                  noStyle
+                  initialValue={c.bom_id}
+                >
+                  <Input type="hidden" />
+                </Form.Item>
+              </td>
+
+              {/* Start date — editable, auto-fills end */}
+              <td style={{ ...td, minWidth: 190 }}>
+                <StartCell rowIdx={i} form={form} isClientMode={isClientMode} />
+              </td>
+
+              {/* End date — locked, auto-derived */}
+              <td style={{ ...td, minWidth: 190 }}>
+                <EndCell rowIdx={i} isClientMode={isClientMode} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default Q5ReferencePeriod;
