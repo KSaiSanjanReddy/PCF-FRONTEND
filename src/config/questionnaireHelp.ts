@@ -197,9 +197,9 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
   },
   "energy.production_waste": {
     plain:
-      "Factory-level production and QC waste: enter the amount as kg or tons (total at the factory) or as a % of product mass, and how it is treated (recycled, landfilled, incinerated).",
+      "Factory-level production and QC waste. In Waste Material, list the same materials in the same order as question 8 (only those materials are allowed). Then enter the amount as kg or tons (total at the factory) or as a % of product mass, and how it is treated.",
     whereToFind: "Your waste contractor invoices or disposal manifests.",
-    example: "Metal scrap, 200 kg (or 0.2 tons, or 5%), recycled",
+    example: "Same Q8 materials, in the same order — e.g. Steel scrap 200 kg, recycled",
   },
   "energy.production_waste_transport": {
     plain:

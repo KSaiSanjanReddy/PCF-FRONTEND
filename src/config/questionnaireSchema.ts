@@ -162,6 +162,14 @@ export interface QuestionnaireField {
   // the "Add Row" button hides once every option is used. Used by Q27 volume
   // types.
   uniqueAcrossRows?: boolean;
+  // Table-column only (Q14 Waste Material): the supplier types a material name,
+  // but it must be one of the materials listed in Q8 (same set, same order
+  // guidance). Options are derived live from bom.bill_of_materials.
+  q8MaterialsOnly?: boolean;
+  // Table-column only: the first row is editable; every later row shows the
+  // same value and cannot be edited. Used by Q14 "Waste generated at factory
+  // level" so factory waste is entered once and applied to all materials.
+  sameAsFirstRow?: boolean;
 }
 
 export interface QuestionnaireSection {

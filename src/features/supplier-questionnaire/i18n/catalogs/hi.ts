@@ -72,6 +72,8 @@ const hi: QuestionnaireCatalog = {
     noDataSection: "इस अनुभाग के लिए कोई डेटा दर्ज नहीं किया गया",
     item: "आइटम",
     items: "आइटम",
+    q8MaterialsPlaceholder: "प्रश्न 8 की सामग्री लिखें",
+    q8MaterialsEmpty: "पहले प्रश्न 8 में सामग्री दर्ज करें",
   },
   validation: {
     requiredCheckboxAck: "{{number}} को स्वीकार करने के लिए कृपया इस बॉक्स को चेक करें",
@@ -83,6 +85,7 @@ const hi: QuestionnaireCatalog = {
     maxValue: "कृपया ऐसा मान दर्ज करें जो {{max}} से अधिक न हो",
     exclusiveMin: "कृपया {{min}} से अधिक का मान दर्ज करें",
     maxLength: "कृपया अपना उत्तर {{max}} वर्ण या उससे कम तक सीमित रखें",
+    q8MaterialsOnly: "केवल प्रश्न 8 में सूचीबद्ध सामग्री का उपयोग करें, उसी क्रम में।",
   },
   consent: {
     noticeTitle: "डेटा गोपनीयता (GDPR)",
@@ -259,6 +262,7 @@ const hi: QuestionnaireCatalog = {
       },
       "14": {
         label: "क्या उत्पादन और गुणवत्ता-नियंत्रण अपशिष्ट उत्पन्न हुआ, और इसका उपचार कैसे किया गया?",
+        help: "प्रश्न 8 में दर्ज की गई सामग्री को उसी क्रम में सूचीबद्ध करें। कारखाना-स्तर पर उत्पन्न अपशिष्ट केवल पहली पंक्ति में दर्ज होता है और सभी सामग्रियों पर लागू होता है।",
       },
       "10a": {
         label: "रिपोर्टिंग अवधि के दौरान कारखाना स्तर पर निर्मित प्रत्येक उत्पाद का कुल वजन क्या है?",
@@ -435,6 +439,8 @@ const hi: QuestionnaireCatalog = {
     equipment_type: "उपकरण प्रकार",
     value: "कुल मात्रा",
     "energy.production_waste": "क्या उत्पादन और गुणवत्ता-नियंत्रण अपशिष्ट उत्पन्न हुआ, और इसका उपचार कैसे किया गया?",
+    "energy.production_waste.waste_material": "अपशिष्ट सामग्री",
+    waste_material: "अपशिष्ट सामग्री",
     "energy.production_waste.quantity": "कारखाने स्तर पर उत्पन्न अपशिष्ट",
     "energy.production_waste.unit": "इकाई (kg, tons या %)",
     energy_recovered: "ऊर्जा पुनर्प्राप्त? (हाँ/नहीं)",

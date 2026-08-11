@@ -379,6 +379,7 @@ export const SECTION_LAYOUT: Record<string, QuestionGroup[]> = {
       num: "14",
       label:
         "What production and quality-control waste was generated, and how was it treated?",
+      help: "List the same materials in the same order as entered in question 8. Waste generated at factory level is entered once on the first row and applied to every material.",
       tableName: "energy.production_waste",
     },
     {

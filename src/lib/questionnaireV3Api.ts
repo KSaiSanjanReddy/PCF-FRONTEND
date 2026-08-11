@@ -377,14 +377,20 @@ export function mapV3FormToBackend(
         alreadyInQ10: false,
     }));
 
-    const productionWaste = arr(energy.production_waste).map((w: any) => ({
+    const productionWasteRows = arr(energy.production_waste);
+    const q14FactoryQty = productionWasteRows[0] ? num(productionWasteRows[0].quantity) : undefined;
+    const q14FactoryUnit = productionWasteRows[0] ? str(productionWasteRows[0].unit) : undefined;
+    const productionWaste = productionWasteRows.map((w: any) => ({
         productIdOrMpn: str(w.product_id),
+        // Q14 Waste Material — typed Q8 material name. Backend column is waste_type.
+        wasteType: str(w.waste_material),
         category: str(w.category),
         subCategory: str(w.sub_category),
         materialGroup: str(w.group),
         specificType: str(w.specific_type),
-        quantity: num(w.quantity),
-        unit: str(w.unit),
+        // Factory-level qty/unit are entered once on row 1 and applied to all rows.
+        quantity: q14FactoryQty ?? num(w.quantity),
+        unit: q14FactoryUnit ?? str(w.unit),
         energyRecovered: yesNoToBool(w.energy_recovered),
         polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
     }));
@@ -789,6 +795,7 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
             })),
             production_waste: (d.productionWaste ?? []).map((w: any) => ({
                 product_id: w.productIdOrMpn,
+                waste_material: w.wasteType,
                 category: w.category,
                 sub_category: w.subCategory,
                 group: w.materialGroup,

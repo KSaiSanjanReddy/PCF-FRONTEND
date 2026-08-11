@@ -29,6 +29,7 @@ import {
   translateOptionLabel,
   type TranslateFn,
 } from "../i18n";
+import { q8MaterialLabels, isQ8Material } from "../q8Materials";
 
 /** Shared props so every in-table Select popup can grow past the narrow cell
  *  and show full option labels (MPN, country, electricity type, etc.). */
@@ -361,6 +362,61 @@ const CountryByRegionCell: React.FC<{
   );
 };
 
+/** Q14 Waste Material — type a name, restricted to the materials listed in Q8. */
+const Q8MaterialCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+}> = ({ col, form, fieldPath, rowName }) => {
+  const { t } = useQuestionnaireLocale();
+  const q8Rows = Form.useWatch(["bom", "bill_of_materials"], form) as any[] | undefined;
+  const materials = React.useMemo(() => q8MaterialLabels(q8Rows), [q8Rows]);
+
+  const rules: any[] = [
+    ...requiredRule(col),
+    {
+      validator: async (_: unknown, value: unknown) => {
+        if (!isQ8Material(value, materials)) {
+          return Promise.reject(new Error(t("validation.q8MaterialsOnly")));
+        }
+        return Promise.resolve();
+      },
+    },
+  ];
+
+  const snapToCanonical = () => {
+    const path = [...fieldPath, rowName, col.name];
+    const raw = form.getFieldValue(path);
+    const typed = String(raw ?? "").trim();
+    if (!typed) return;
+    const match = materials.find((m) => m.toLowerCase() === typed.toLowerCase());
+    if (match && match !== raw) form.setFieldValue(path, match);
+  };
+
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={rules}>
+      <AutoComplete
+        options={materials.map((m) => ({ value: m, label: m }))}
+        placeholder={
+          materials.length
+            ? col.placeholder || t("ui.q8MaterialsPlaceholder")
+            : t("ui.q8MaterialsEmpty")
+        }
+        style={cellInput}
+        {...TABLE_SELECT_POPUP}
+        filterOption={(input, option) =>
+          String(option?.value ?? "").toLowerCase().includes(input.toLowerCase())
+        }
+        onBlur={snapToCanonical}
+        notFoundContent={
+          materials.length ? undefined : t("ui.q8MaterialsEmpty")
+        }
+      />
+    </Form.Item>
+  );
+};
+
 // Select cell whose options are unique across the table's rows: any value
 // already chosen in another row is disabled here, so each option can be picked
 // only once (Q27 volume types). Watches the whole Form.List array so disabling
@@ -472,6 +528,8 @@ const colMinWidth = (col: QuestionnaireField): number => {
       ? 160
       : 220;
   if (col.apiDropdown === "bomMaterials") return 280;
+  if (col.q8MaterialsOnly) return 180;
+  if (col.sameAsFirstRow && col.type === "number") return 130;
   // EF taxonomy cascade columns hold long names — give them more room in the
   // table so the selected value isn't truncated to "Electricity — …".
   if (col.efTaxonomyLevel === "specific_type") return 260;
@@ -644,6 +702,92 @@ const LocationCell: React.FC<{
 // store). The DISPLAY reads from the coords (clobber-proof — the auto-save wipes
 // the form value), while the value is mirrored into the form field for saving +
 // required-validation. Editable: a manual entry overrides until coords change.
+/** First row is editable; later rows show the same value and cannot be edited. */
+const SameAsFirstRowCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+}> = ({ col, form, fieldPath, rowName }) => {
+  const firstVal = Form.useWatch([...fieldPath, 0, col.name], form);
+  const lockedStyle: React.CSSProperties = { ...cellInput, background: "#f7fafb" };
+
+  if (rowName > 0) {
+    return (
+      <div style={{ width: "100%" }}>
+        <Form.Item name={[rowName, col.name]} hidden>
+          {col.type === "number" ? <InputNumber controls={false} /> : <Input />}
+        </Form.Item>
+        {col.type === "number" ? (
+          <InputNumber
+            value={firstVal}
+            disabled
+            readOnly
+            controls={false}
+            placeholder={col.placeholder}
+            style={lockedStyle}
+          />
+        ) : col.type === "select" ? (
+          <Select
+            value={firstVal}
+            disabled
+            placeholder={col.placeholder}
+            style={{ width: "100%", fontSize: 13 }}
+            options={(col.options || []).map((opt) => {
+              const { label, value } = optionAsPair(opt);
+              return { value, label };
+            })}
+          />
+        ) : (
+          <Input
+            value={firstVal ?? ""}
+            disabled
+            readOnly
+            placeholder={col.placeholder}
+            style={lockedStyle}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (col.type === "number") {
+    return (
+      <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={requiredRule(col)}>
+        <InputNumber
+          placeholder={col.placeholder}
+          min={col.min}
+          max={col.max}
+          controls={false}
+          style={cellInput}
+        />
+      </Form.Item>
+    );
+  }
+
+  if (col.type === "select") {
+    return (
+      <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={requiredRule(col)}>
+        <Select
+          placeholder={col.placeholder}
+          style={{ width: "100%", fontSize: 13 }}
+          {...TABLE_SELECT_POPUP}
+          options={(col.options || []).map((opt) => {
+            const { label, value } = optionAsPair(opt);
+            return { value, label };
+          })}
+        />
+      </Form.Item>
+    );
+  }
+
+  return (
+    <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={requiredRule(col)}>
+      <Input placeholder={col.placeholder} style={cellInput} />
+    </Form.Item>
+  );
+};
+
 const DistanceCell: React.FC<{
   col: QuestionnaireField;
   form: FormInstance;
@@ -715,11 +859,61 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   const uniqueCol = columns.find((c) => c.uniqueAcrossRows && Array.isArray(c.options));
   const maxRows = uniqueCol?.options ? uniqueCol.options.length : undefined;
   const flexIdx = (() => {
-    const i = columns.findIndex((c) => c.type === "text" && !c.readOnly);
+    const i = columns.findIndex(
+      (c) => c.type === "text" && !c.readOnly && !c.q8MaterialsOnly,
+    );
     return i >= 0 ? i : columns.length - 1;
   })();
   const innerMinWidth =
     columns.reduce((a, c, i) => a + (i === flexIdx ? 160 : colMinWidth(c)), 0) + 56;
+
+  // Q14: fill empty Waste Material cells from Q8 in the same row order.
+  const q8MaterialCol = columns.find((c) => c.q8MaterialsOnly);
+  const q8BomRows = Form.useWatch(["bom", "bill_of_materials"], form) as any[] | undefined;
+  React.useEffect(() => {
+    if (!q8MaterialCol) return;
+    const mats = q8MaterialLabels(q8BomRows);
+    if (!mats.length) return;
+    const existing = form.getFieldValue(fieldPath);
+    if (!Array.isArray(existing) || existing.length === 0) return;
+    let changed = false;
+    const next = existing.map((row: any, i: number) => {
+      if (!row || typeof row !== "object") return row;
+      if (row[q8MaterialCol.name]) return row;
+      if (!mats[i]) return row;
+      changed = true;
+      return { ...row, [q8MaterialCol.name]: mats[i] };
+    });
+    if (changed) form.setFieldValue(fieldPath, next);
+    // fieldPath is derived from field.name; depend on the string, not the array.
+  }, [q8BomRows, q8MaterialCol, form, field.name]);
+
+  // Q14 factory-level quantity: copy the first row onto every later row so
+  // the supplier enters it once. Later cells are read-only in the UI.
+  const sameAsFirstCols = columns.filter((c) => c.sameAsFirstRow);
+  const tableRows = Form.useWatch(fieldPath, form) as any[] | undefined;
+  React.useEffect(() => {
+    if (!sameAsFirstCols.length) return;
+    const existing = form.getFieldValue(fieldPath);
+    if (!Array.isArray(existing) || existing.length < 2) return;
+    const first = existing[0] && typeof existing[0] === "object" ? existing[0] : {};
+    let changed = false;
+    const next = existing.map((row: any, i: number) => {
+      if (i === 0) return row;
+      let r = row && typeof row === "object" ? row : {};
+      for (const c of sameAsFirstCols) {
+        if (String(r[c.name] ?? "") !== String(first[c.name] ?? "")) {
+          changed = true;
+          r = { ...r, [c.name]: first[c.name] };
+        }
+      }
+      return r;
+    });
+    if (changed) {
+      form.setFieldValue(fieldPath, next);
+      onValuesChange?.({}, form.getFieldsValue(true));
+    }
+  }, [tableRows, form, field.name, onValuesChange]);
 
   const bomOptions = (bomComponents || [])
     .map((item) => ({
@@ -815,6 +1009,18 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
     // Category → Sub → Group → Specific Type picks.
     if (col.efGeography) {
       return <GeographyCell field={col} form={form} fieldPath={fieldPath} rowName={rowName} taxNames={taxNames} />;
+    }
+
+    // Q14 Waste Material — typed, but only Q8 BOM materials are allowed.
+    if (col.q8MaterialsOnly) {
+      return (
+        <Q8MaterialCell
+          col={col}
+          form={form}
+          fieldPath={fieldPath}
+          rowName={rowName}
+        />
+      );
     }
 
     // BOM-sourced MPN dropdown — auto-fills sibling cells on change.
@@ -930,6 +1136,18 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
       );
     }
 
+    // Q14 factory-level quantity: only the first row is editable.
+    if (col.sameAsFirstRow) {
+      return (
+        <SameAsFirstRowCell
+          col={col}
+          form={form}
+          fieldPath={fieldPath}
+          rowName={rowName}
+        />
+      );
+    }
+
     // Q19 auto-distance cell — re-renders reliably when the location cells fill it.
     if (col.type === "number" && col.autoDistance) {
       return <DistanceCell col={col} form={form} fieldPath={fieldPath} rowName={rowName} />;
@@ -937,8 +1155,14 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
 
     if (col.type === "number") {
       return (
-        <Form.Item name={[rowName, col.name]} className="mb-0" rules={requiredRule(col)}>
-          <InputNumber placeholder={col.placeholder} min={col.min} max={col.max} style={cellInput} />
+        <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={requiredRule(col)}>
+          <InputNumber
+            placeholder={col.placeholder}
+            min={col.min}
+            max={col.max}
+            controls={false}
+            style={cellInput}
+          />
         </Form.Item>
       );
     }
@@ -1068,7 +1292,26 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                 <Button
                   type="text"
                   icon={<PlusOutlined />}
-                  onClick={() => add()}
+                  onClick={() => {
+                    const seed: Record<string, any> = {};
+                    const q8Col = columns.find((c) => c.q8MaterialsOnly);
+                    if (q8Col) {
+                      const mats = q8MaterialLabels(
+                        form.getFieldValue(["bom", "bill_of_materials"]),
+                      );
+                      if (mats[rows.length]) seed[q8Col.name] = mats[rows.length];
+                    }
+                    const first =
+                      ((form.getFieldValue(fieldPath) as any[]) || [])[0] || {};
+                    columns
+                      .filter((c) => c.sameAsFirstRow)
+                      .forEach((c) => {
+                        if (first[c.name] !== undefined && first[c.name] !== null && first[c.name] !== "") {
+                          seed[c.name] = first[c.name];
+                        }
+                      });
+                    add(Object.keys(seed).length ? seed : undefined);
+                  }}
                   style={{
                     fontSize: 13,
                     fontWeight: 600,

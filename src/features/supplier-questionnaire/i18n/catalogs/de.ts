@@ -72,6 +72,8 @@ const de: QuestionnaireCatalog = {
     noDataSection: "Für diesen Abschnitt wurden keine Daten eingegeben",
     item: "Eintrag",
     items: "Einträge",
+    q8MaterialsPlaceholder: "Material aus Frage 8 eingeben",
+    q8MaterialsEmpty: "Zuerst Materialien in Frage 8 eintragen",
   },
   validation: {
     requiredCheckboxAck: "Bitte aktivieren Sie dieses Kästchen, um {{number}} zu bestätigen",
@@ -83,6 +85,7 @@ const de: QuestionnaireCatalog = {
     maxValue: "Bitte geben Sie einen Wert ein, der {{max}} nicht überschreitet",
     exclusiveMin: "Bitte geben Sie einen Wert größer als {{min}} ein",
     maxLength: "Bitte beschränken Sie Ihre Antwort auf höchstens {{max}} Zeichen",
+    q8MaterialsOnly: "Verwenden Sie nur die in Frage 8 aufgeführten Materialien, in derselben Reihenfolge.",
   },
   consent: {
     noticeTitle: "Datenschutz (DSGVO)",
@@ -259,6 +262,7 @@ const de: QuestionnaireCatalog = {
       },
       "14": {
         label: "Welche Produktions- und Qualitätskontrollabfälle sind angefallen und wie wurden sie behandelt?",
+        help: "Listen Sie dieselben Materialien in derselben Reihenfolge auf wie in Frage 8. Die Abfallmenge auf Werksebene wird nur in der ersten Zeile eingegeben und gilt für alle Materialien.",
       },
       "10a": {
         label: "Wie hoch ist das Gesamtgewicht jedes hergestellten Produkts auf Werksebene während des Berichtszeitraums?",
@@ -435,6 +439,8 @@ const de: QuestionnaireCatalog = {
     equipment_type: "Gerätetyp",
     value: "Gesamtmenge",
     "energy.production_waste": "Welche Produktions- und Qualitätskontrollabfälle sind angefallen und wie wurden sie behandelt?",
+    "energy.production_waste.waste_material": "Abfallmaterial",
+    waste_material: "Abfallmaterial",
     "energy.production_waste.quantity": "Abfallmenge auf Werksebene",
     "energy.production_waste.unit": "Einheit (kg, tons oder %)",
     energy_recovered: "Energie zurückgewonnen? (J/N)",

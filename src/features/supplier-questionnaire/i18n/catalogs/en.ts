@@ -72,6 +72,8 @@ const en: QuestionnaireCatalog = {
     noDataSection: "No data entered for this section",
     item: "item",
     items: "items",
+    q8MaterialsPlaceholder: "Type a material from question 8",
+    q8MaterialsEmpty: "List materials in question 8 first",
   },
   validation: {
     requiredCheckboxAck: "Please check this box to acknowledge {{number}}",
@@ -83,6 +85,7 @@ const en: QuestionnaireCatalog = {
     maxValue: "Please enter a value that does not exceed {{max}}",
     exclusiveMin: "Please enter a value greater than {{min}}",
     maxLength: "Please limit your response to {{max}} characters or less",
+    q8MaterialsOnly: "Use only the materials listed in question 8, in the same order.",
   },
   consent: {
     noticeTitle: "Data privacy (GDPR)",
@@ -259,6 +262,7 @@ const en: QuestionnaireCatalog = {
       },
       "14": {
         label: "What production and quality-control waste was generated, and how was it treated?",
+        help: "List the same materials in the same order as entered in question 8. Waste generated at factory level is entered once on the first row and applied to every material.",
       },
       "10a": {
         label: "What is the total weight of each product manufactured at the factory level during the reporting period?",
@@ -435,6 +439,8 @@ const en: QuestionnaireCatalog = {
     equipment_type: "Equipment Type",
     value: "Total Quantity",
     "energy.production_waste": "What production and quality-control waste were generated, and how was it treated?",
+    "energy.production_waste.waste_material": "Waste Material",
+    waste_material: "Waste Material",
     "energy.production_waste.quantity": "Waste generated at factory level",
     "energy.production_waste.unit": "Unit (kg, tons or %)",
     energy_recovered: "Energy recovered? (Y/N)",
