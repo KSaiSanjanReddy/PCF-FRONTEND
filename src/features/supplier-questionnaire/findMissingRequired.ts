@@ -13,7 +13,6 @@ import type {
   QuestionnaireSection,
 } from "../../config/questionnaireSchema";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
-import { q8MaterialLabels, isQ8Material } from "./q8Materials";
 
 export type MissingRequiredItem = {
   stepIndex: number;
@@ -251,8 +250,14 @@ const tableStatus = (
       .filter((c) => {
         if (!c.required || c.readOnly) return false;
         if (!depMet(c.dependency, values, row)) return false;
-        // Q14 factory-level qty/unit: only the first row is editable.
-        if (c.sameAsFirstRow && i > 0) return false;
+        // Q14 factory-level qty/unit: only the first row of each MPN is editable.
+        if (c.sameAsFirstRow) {
+          const mpn = String(row.product_id ?? row.mpn ?? "").trim();
+          const lead = list.findIndex(
+            (r) => String(r?.product_id ?? r?.mpn ?? "").trim() === mpn,
+          );
+          if (lead >= 0 && i !== lead) return false;
+        }
         // Auto-distance (Q19 etc.): UI shows km from coords but the store can
         // lag. Treat as filled when both endpoints are present.
         if (
@@ -272,25 +277,6 @@ const tableStatus = (
       completeCount += 1;
     }
   });
-
-  // Q14 Waste Material must be one of the materials listed in Q8.
-  const q8OnlyCols = columns.filter((c) => c.q8MaterialsOnly);
-  if (q8OnlyCols.length) {
-    const allowed = q8MaterialLabels(getNested(values, "bom.bill_of_materials"));
-    if (allowed.length) {
-      list.forEach((row, i) => {
-        if (!row || typeof row !== "object") return;
-        for (const c of q8OnlyCols) {
-          if (!isCellFilled(row[c.name])) continue;
-          if (!isQ8Material(row[c.name], allowed)) {
-            incomplete.push(
-              `row ${i + 1}: ${c.label || c.name} must match question 8`,
-            );
-          }
-        }
-      });
-    }
-  }
 
   if (field.required && completeCount === 0) {
     return { ok: false, detail: incomplete[0] };

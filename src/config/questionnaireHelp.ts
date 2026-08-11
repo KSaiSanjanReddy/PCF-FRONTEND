@@ -197,9 +197,9 @@ export const FIELD_HELP: Record<string, FieldHelp> = {
   },
   "energy.production_waste": {
     plain:
-      "Factory-level production and QC waste. In Waste Material, list the same materials in the same order as question 8 (only those materials are allowed). Then enter the amount as kg or tons (total at the factory) or as a % of product mass, and how it is treated.",
+      "One row is created for each material in question 8, in the same order. Type the waste material name yourself (it does not have to match question 8). Enter factory-level waste as kg, tons, or % of factory mass once on the first row of each product; later rows of that product reuse it. Classify each row and say how it is treated.",
     whereToFind: "Your waste contractor invoices or disposal manifests.",
-    example: "Same Q8 materials, in the same order — e.g. Steel scrap 200 kg, recycled",
+    example: "e.g. iron / rubber / plastic — 10000 kg on the first row of that MPN",
   },
   "energy.production_waste_transport": {
     plain:

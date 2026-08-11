@@ -262,7 +262,7 @@ const en: QuestionnaireCatalog = {
       },
       "14": {
         label: "What production and quality-control waste was generated, and how was it treated?",
-        help: "List the same materials in the same order as entered in question 8. Waste generated at factory level is entered once on the first row and applied to every material.",
+        help: "One row per material in question 8, in the same order. Type the waste material name yourself. Enter factory-level waste once on the first row of each product; later rows of that product reuse it.",
       },
       "10a": {
         label: "What is the total weight of each product manufactured at the factory level during the reporting period?",

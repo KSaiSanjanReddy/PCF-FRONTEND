@@ -262,7 +262,7 @@ const de: QuestionnaireCatalog = {
       },
       "14": {
         label: "Welche Produktions- und Qualitätskontrollabfälle sind angefallen und wie wurden sie behandelt?",
-        help: "Listen Sie dieselben Materialien in derselben Reihenfolge auf wie in Frage 8. Die Abfallmenge auf Werksebene wird nur in der ersten Zeile eingegeben und gilt für alle Materialien.",
+        help: "Für jedes Material aus Frage 8 wird in derselben Reihenfolge eine Zeile angelegt. Geben Sie den Abfallnamen selbst ein (muss nicht mit Frage 8 übereinstimmen). Die Abfallmenge auf Werksebene wird nur in der ersten Zeile jedes Produkts eingegeben; spätere Zeilen desselben Produkts übernehmen sie.",
       },
       "10a": {
         label: "Wie hoch ist das Gesamtgewicht jedes hergestellten Produkts auf Werksebene während des Berichtszeitraums?",

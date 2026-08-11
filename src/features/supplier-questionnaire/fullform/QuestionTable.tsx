@@ -3,7 +3,7 @@
  * (header row, horizontal scroll, add/remove), built on Ant Form.List so
  * validation + persistence behave exactly like the legacy renderer.
  *
- * Preserves the only two V3 special behaviours:
+ * Preserves the V3 special behaviours:
  *  - bomMaterials dropdown: selecting an MPN auto-fills component_name / bom_id
  *    / material_number / product_name into the row (brute-force whole-array
  *    rewrite, same as the legacy renderer), and the Component Name cell is a
@@ -11,6 +11,8 @@
  *  - lockAddRemove (Q8): rows are seeded from the BOM (see autopopulate effect
  *    in QuestionnaireCardForm); the per-row action is "Clear" (wipe editable
  *    cells, keep read-only + link fields) and Add is hidden.
+ *  - syncFromQ8 (Q14): row count and MPN lock to Q8; waste names are free text;
+ *    factory qty/unit editable only on the first row of each MPN.
  */
 import React from "react";
 import { AutoComplete, Form, Input, InputNumber, Select, DatePicker, Button } from "antd";
@@ -29,7 +31,19 @@ import {
   translateOptionLabel,
   type TranslateFn,
 } from "../i18n";
-import { q8MaterialLabels, isQ8Material } from "../q8Materials";
+
+function mpnKey(row: any): string {
+  return String(row?.product_id ?? row?.mpn ?? "").trim();
+}
+
+/** First row in `rows` that shares this MPN (table order). */
+function firstIndexOfMpn(rows: any[] | undefined, mpn: unknown): number {
+  const key = String(mpn ?? "").trim();
+  const list = Array.isArray(rows) ? rows : [];
+  if (!key) return 0;
+  const idx = list.findIndex((r) => mpnKey(r) === key);
+  return idx >= 0 ? idx : 0;
+}
 
 /** Shared props so every in-table Select popup can grow past the narrow cell
  *  and show full option labels (MPN, country, electricity type, etc.). */
@@ -362,61 +376,6 @@ const CountryByRegionCell: React.FC<{
   );
 };
 
-/** Q14 Waste Material — type a name, restricted to the materials listed in Q8. */
-const Q8MaterialCell: React.FC<{
-  col: QuestionnaireField;
-  form: FormInstance;
-  fieldPath: string[];
-  rowName: number;
-}> = ({ col, form, fieldPath, rowName }) => {
-  const { t } = useQuestionnaireLocale();
-  const q8Rows = Form.useWatch(["bom", "bill_of_materials"], form) as any[] | undefined;
-  const materials = React.useMemo(() => q8MaterialLabels(q8Rows), [q8Rows]);
-
-  const rules: any[] = [
-    ...requiredRule(col),
-    {
-      validator: async (_: unknown, value: unknown) => {
-        if (!isQ8Material(value, materials)) {
-          return Promise.reject(new Error(t("validation.q8MaterialsOnly")));
-        }
-        return Promise.resolve();
-      },
-    },
-  ];
-
-  const snapToCanonical = () => {
-    const path = [...fieldPath, rowName, col.name];
-    const raw = form.getFieldValue(path);
-    const typed = String(raw ?? "").trim();
-    if (!typed) return;
-    const match = materials.find((m) => m.toLowerCase() === typed.toLowerCase());
-    if (match && match !== raw) form.setFieldValue(path, match);
-  };
-
-  return (
-    <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={rules}>
-      <AutoComplete
-        options={materials.map((m) => ({ value: m, label: m }))}
-        placeholder={
-          materials.length
-            ? col.placeholder || t("ui.q8MaterialsPlaceholder")
-            : t("ui.q8MaterialsEmpty")
-        }
-        style={cellInput}
-        {...TABLE_SELECT_POPUP}
-        filterOption={(input, option) =>
-          String(option?.value ?? "").toLowerCase().includes(input.toLowerCase())
-        }
-        onBlur={snapToCanonical}
-        notFoundContent={
-          materials.length ? undefined : t("ui.q8MaterialsEmpty")
-        }
-      />
-    </Form.Item>
-  );
-};
-
 // Select cell whose options are unique across the table's rows: any value
 // already chosen in another row is disabled here, so each option can be picked
 // only once (Q27 volume types). Watches the whole Form.List array so disabling
@@ -513,6 +472,9 @@ interface QuestionTableProps {
   // Parent auto-save hook — re-fired after a programmatic set (e.g. Q19 distance)
   // so the parent's formData picks it up (setFieldValue alone doesn't fire it).
   onValuesChange?: (changed: any, all: any) => void;
+  // Q8 rows from the wizard snapshot. Needed because Q8 is on another step so
+  // Form.useWatch(["bom","bill_of_materials"]) is empty on the Q14 page.
+  q8Rows?: any[];
 }
 
 const cellInput: React.CSSProperties = {
@@ -528,7 +490,6 @@ const colMinWidth = (col: QuestionnaireField): number => {
       ? 160
       : 220;
   if (col.apiDropdown === "bomMaterials") return 280;
-  if (col.q8MaterialsOnly) return 180;
   if (col.sameAsFirstRow && col.type === "number") return 130;
   // EF taxonomy cascade columns hold long names — give them more room in the
   // table so the selected value isn't truncated to "Electricity — …".
@@ -702,17 +663,21 @@ const LocationCell: React.FC<{
 // store). The DISPLAY reads from the coords (clobber-proof — the auto-save wipes
 // the form value), while the value is mirrored into the form field for saving +
 // required-validation. Editable: a manual entry overrides until coords change.
-/** First row is editable; later rows show the same value and cannot be edited. */
+/** First row of each MPN is editable; later rows of that MPN are locked copies. */
 const SameAsFirstRowCell: React.FC<{
   col: QuestionnaireField;
   form: FormInstance;
   fieldPath: string[];
   rowName: number;
 }> = ({ col, form, fieldPath, rowName }) => {
-  const firstVal = Form.useWatch([...fieldPath, 0, col.name], form);
+  const allRows = Form.useWatch(fieldPath, form) as any[] | undefined;
+  const myMpn = Form.useWatch([...fieldPath, rowName, "product_id"], form);
+  const leadIdx = firstIndexOfMpn(allRows, myMpn);
+  const leadVal = Form.useWatch([...fieldPath, leadIdx, col.name], form);
+  const locked = rowName !== leadIdx;
   const lockedStyle: React.CSSProperties = { ...cellInput, background: "#f7fafb" };
 
-  if (rowName > 0) {
+  if (locked) {
     return (
       <div style={{ width: "100%" }}>
         <Form.Item name={[rowName, col.name]} hidden>
@@ -720,7 +685,7 @@ const SameAsFirstRowCell: React.FC<{
         </Form.Item>
         {col.type === "number" ? (
           <InputNumber
-            value={firstVal}
+            value={leadVal}
             disabled
             readOnly
             controls={false}
@@ -729,7 +694,7 @@ const SameAsFirstRowCell: React.FC<{
           />
         ) : col.type === "select" ? (
           <Select
-            value={firstVal}
+            value={leadVal}
             disabled
             placeholder={col.placeholder}
             style={{ width: "100%", fontSize: 13 }}
@@ -740,7 +705,7 @@ const SameAsFirstRowCell: React.FC<{
           />
         ) : (
           <Input
-            value={firstVal ?? ""}
+            value={leadVal ?? ""}
             disabled
             readOnly
             placeholder={col.placeholder}
@@ -785,6 +750,39 @@ const SameAsFirstRowCell: React.FC<{
     <Form.Item name={[rowName, col.name]} className="mb-0" style={{ width: "100%" }} rules={requiredRule(col)}>
       <Input placeholder={col.placeholder} style={cellInput} />
     </Form.Item>
+  );
+};
+
+const LockedMpnCell: React.FC<{
+  col: QuestionnaireField;
+  form: FormInstance;
+  fieldPath: string[];
+  rowName: number;
+  bomOptions: Array<{ id: string; name: string }>;
+}> = ({ col, form, fieldPath, rowName, bomOptions }) => {
+  const raw = Form.useWatch([...fieldPath, rowName, col.name], form);
+  const opt = bomOptions.find((o) => o.id === raw);
+  return (
+    <div style={{ width: "100%" }}>
+      <Form.Item name={[rowName, "bom_id"]} hidden>
+        <Input type="hidden" />
+      </Form.Item>
+      <Form.Item name={[rowName, "material_number"]} hidden>
+        <Input type="hidden" />
+      </Form.Item>
+      <Form.Item name={[rowName, "product_name"]} hidden>
+        <Input type="hidden" />
+      </Form.Item>
+      <Form.Item name={[rowName, col.name]} hidden>
+        <Input />
+      </Form.Item>
+      <Input
+        readOnly
+        value={opt?.name || raw || ""}
+        placeholder={col.placeholder}
+        style={{ ...cellInput, background: "#f7fafb" }}
+      />
+    </div>
   );
 };
 
@@ -842,6 +840,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   bomComponents = [],
   isClientMode,
   onValuesChange,
+  q8Rows,
 }) => {
   const { t } = useQuestionnaireLocale();
   const fieldPath = field.name.split(".");
@@ -858,56 +857,73 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
   // the Add button hides once every option has been used.
   const uniqueCol = columns.find((c) => c.uniqueAcrossRows && Array.isArray(c.options));
   const maxRows = uniqueCol?.options ? uniqueCol.options.length : undefined;
+  const hideRowActions = !!field.syncFromQ8;
   const flexIdx = (() => {
-    const i = columns.findIndex(
-      (c) => c.type === "text" && !c.readOnly && !c.q8MaterialsOnly,
-    );
+    const i = columns.findIndex((c) => c.type === "text" && !c.readOnly);
     return i >= 0 ? i : columns.length - 1;
   })();
   const innerMinWidth =
-    columns.reduce((a, c, i) => a + (i === flexIdx ? 160 : colMinWidth(c)), 0) + 56;
+    columns.reduce((a, c, i) => a + (i === flexIdx ? 160 : colMinWidth(c)), 0) +
+    (hideRowActions ? 0 : 56);
 
-  // Q14: fill empty Waste Material cells from Q8 in the same row order.
-  const q8MaterialCol = columns.find((c) => c.q8MaterialsOnly);
-  const q8BomRows = Form.useWatch(["bom", "bill_of_materials"], form) as any[] | undefined;
+  // Q14: keep one row per Q8 material, same order, MPN copied from Q8.
+  // Prefer the wizard snapshot (q8Rows) — Q8 is on another step, so watching
+  // bom.bill_of_materials on this page is usually empty.
+  const q8Watched = Form.useWatch(["bom", "bill_of_materials"], form) as any[] | undefined;
+  const q8BomRows =
+    Array.isArray(q8Watched) && q8Watched.length
+      ? q8Watched
+      : Array.isArray(q8Rows) && q8Rows.length
+        ? q8Rows
+        : q8Watched;
   React.useEffect(() => {
-    if (!q8MaterialCol) return;
-    const mats = q8MaterialLabels(q8BomRows);
-    if (!mats.length) return;
+    if (!field.syncFromQ8) return;
+    const src = Array.isArray(q8BomRows) ? q8BomRows : [];
     const existing = form.getFieldValue(fieldPath);
-    if (!Array.isArray(existing) || existing.length === 0) return;
-    let changed = false;
-    const next = existing.map((row: any, i: number) => {
-      if (!row || typeof row !== "object") return row;
-      if (row[q8MaterialCol.name]) return row;
-      if (!mats[i]) return row;
-      changed = true;
-      return { ...row, [q8MaterialCol.name]: mats[i] };
+    const dst = Array.isArray(existing) ? existing : [];
+    const same =
+      src.length === dst.length &&
+      src.every((r: any, i: number) => mpnKey(r) === mpnKey(dst[i]));
+    if (same) return;
+    const next = src.map((q8: any, i: number) => {
+      const prev = dst[i] && typeof dst[i] === "object" ? dst[i] : {};
+      return {
+        ...prev,
+        product_id: q8?.product_id,
+        bom_id: q8?.bom_id,
+        material_number: q8?.material_number || q8?.product_id,
+        product_name: q8?.product_name || q8?.component_name,
+      };
     });
-    if (changed) form.setFieldValue(fieldPath, next);
-    // fieldPath is derived from field.name; depend on the string, not the array.
-  }, [q8BomRows, q8MaterialCol, form, field.name]);
+    form.setFieldValue(fieldPath, next);
+    onValuesChange?.({}, form.getFieldsValue(true));
+  }, [q8BomRows, field.syncFromQ8, form, field.name, onValuesChange]);
 
-  // Q14 factory-level quantity: copy the first row onto every later row so
-  // the supplier enters it once. Later cells are read-only in the UI.
+  // Q14 factory-level qty/unit: copy from the first row of each MPN onto later
+  // rows of that same MPN. Later cells are read-only in the UI.
   const sameAsFirstCols = columns.filter((c) => c.sameAsFirstRow);
   const tableRows = Form.useWatch(fieldPath, form) as any[] | undefined;
   React.useEffect(() => {
     if (!sameAsFirstCols.length) return;
     const existing = form.getFieldValue(fieldPath);
     if (!Array.isArray(existing) || existing.length < 2) return;
-    const first = existing[0] && typeof existing[0] === "object" ? existing[0] : {};
     let changed = false;
     const next = existing.map((row: any, i: number) => {
-      if (i === 0) return row;
-      let r = row && typeof row === "object" ? row : {};
+      const r = row && typeof row === "object" ? row : {};
+      const leadIdx = firstIndexOfMpn(existing, mpnKey(r));
+      if (i === leadIdx) return row;
+      const lead =
+        existing[leadIdx] && typeof existing[leadIdx] === "object"
+          ? existing[leadIdx]
+          : {};
+      let out = r;
       for (const c of sameAsFirstCols) {
-        if (String(r[c.name] ?? "") !== String(first[c.name] ?? "")) {
+        if (String(out[c.name] ?? "") !== String(lead[c.name] ?? "")) {
           changed = true;
-          r = { ...r, [c.name]: first[c.name] };
+          out = { ...out, [c.name]: lead[c.name] };
         }
       }
-      return r;
+      return out;
     });
     if (changed) {
       form.setFieldValue(fieldPath, next);
@@ -1011,14 +1027,15 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
       return <GeographyCell field={col} form={form} fieldPath={fieldPath} rowName={rowName} taxNames={taxNames} />;
     }
 
-    // Q14 Waste Material — typed, but only Q8 BOM materials are allowed.
-    if (col.q8MaterialsOnly) {
+    // Q14 MPN is copied from Q8 and is not editable.
+    if (col.apiDropdown === "bomMaterials" && field.syncFromQ8) {
       return (
-        <Q8MaterialCell
+        <LockedMpnCell
           col={col}
           form={form}
           fieldPath={fieldPath}
           rowName={rowName}
+          bomOptions={bomOptions}
         />
       );
     }
@@ -1226,13 +1243,13 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                       {col.required && <span style={{ color: "#dc2626", fontWeight: 700 }}>&nbsp;*</span>}
                     </div>
                   ))}
-                  <div style={{ width: 56, flex: "none" }} />
+                  {!hideRowActions && <div style={{ width: 56, flex: "none" }} />}
                 </div>
 
                 {/* rows */}
                 {rows.length === 0 ? (
                   <div style={{ padding: "18px 16px", fontSize: 13, color: C.muted3, background: "#fff" }}>
-                    {t("ui.noRowsYet")}
+                    {field.syncFromQ8 ? t("ui.q8MaterialsEmpty") : t("ui.noRowsYet")}
                   </div>
                 ) : (
                   rows.map((row) => (
@@ -1249,6 +1266,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                           </div>
                         </div>
                       ))}
+                      {!hideRowActions && (
                       <div style={{ width: 56, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {field.lockAddRemove ? (
                           <Button
@@ -1281,33 +1299,29 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
                           />
                         )}
                       </div>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
 
-            {!field.lockAddRemove && (maxRows === undefined || rows.length < maxRows) && (
+            {!field.lockAddRemove && !field.syncFromQ8 && (maxRows === undefined || rows.length < maxRows) && (
               <div style={{ padding: "10px 12px", background: C.fieldBg }}>
                 <Button
                   type="text"
                   icon={<PlusOutlined />}
                   onClick={() => {
                     const seed: Record<string, any> = {};
-                    const q8Col = columns.find((c) => c.q8MaterialsOnly);
-                    if (q8Col) {
-                      const mats = q8MaterialLabels(
-                        form.getFieldValue(["bom", "bill_of_materials"]),
-                      );
-                      if (mats[rows.length]) seed[q8Col.name] = mats[rows.length];
-                    }
-                    const first =
-                      ((form.getFieldValue(fieldPath) as any[]) || [])[0] || {};
+                    const rowsNow = (form.getFieldValue(fieldPath) as any[]) || [];
+                    const last = rowsNow[rowsNow.length - 1] || {};
+                    const leadIdx = firstIndexOfMpn(rowsNow, mpnKey(last));
+                    const lead = rowsNow[leadIdx] || {};
                     columns
                       .filter((c) => c.sameAsFirstRow)
                       .forEach((c) => {
-                        if (first[c.name] !== undefined && first[c.name] !== null && first[c.name] !== "") {
-                          seed[c.name] = first[c.name];
+                        if (lead[c.name] !== undefined && lead[c.name] !== null && lead[c.name] !== "") {
+                          seed[c.name] = lead[c.name];
                         }
                       });
                     add(Object.keys(seed).length ? seed : undefined);
@@ -1340,6 +1354,7 @@ const QuestionTable: React.FC<QuestionTableProps> = ({
           <div style={{ marginTop: 8, fontSize: 12, color: C.muted }}>
             {rows.length} {rows.length === 1 ? "item" : "items"}
             {field.lockAddRemove && " (rows are pre-set — fill in the values for each)"}
+            {field.syncFromQ8 && " (one row per material in question 8)"}
           </div>
         </div>
       )}

@@ -378,22 +378,32 @@ export function mapV3FormToBackend(
     }));
 
     const productionWasteRows = arr(energy.production_waste);
-    const q14FactoryQty = productionWasteRows[0] ? num(productionWasteRows[0].quantity) : undefined;
-    const q14FactoryUnit = productionWasteRows[0] ? str(productionWasteRows[0].unit) : undefined;
-    const productionWaste = productionWasteRows.map((w: any) => ({
-        productIdOrMpn: str(w.product_id),
-        // Q14 Waste Material — typed Q8 material name. Backend column is waste_type.
-        wasteType: str(w.waste_material),
-        category: str(w.category),
-        subCategory: str(w.sub_category),
-        materialGroup: str(w.group),
-        specificType: str(w.specific_type),
-        // Factory-level qty/unit are entered once on row 1 and applied to all rows.
-        quantity: q14FactoryQty ?? num(w.quantity),
-        unit: q14FactoryUnit ?? str(w.unit),
-        energyRecovered: yesNoToBool(w.energy_recovered),
-        polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
-    }));
+    const q14LeadOfMpn = (mpn: string | undefined) => {
+        const key = String(mpn ?? "").trim();
+        if (!key) return productionWasteRows[0];
+        return (
+            productionWasteRows.find(
+                (r: any) => String(r?.product_id ?? "").trim() === key,
+            ) ?? productionWasteRows[0]
+        );
+    };
+    const productionWaste = productionWasteRows.map((w: any) => {
+        const lead = q14LeadOfMpn(str(w.product_id));
+        return {
+            productIdOrMpn: str(w.product_id),
+            // Free-typed waste name. Backend column is waste_type.
+            wasteType: str(w.waste_material),
+            category: str(w.category),
+            subCategory: str(w.sub_category),
+            materialGroup: str(w.group),
+            specificType: str(w.specific_type),
+            // Factory-level qty/unit: first row of this MPN, copied onto later rows.
+            quantity: num(lead?.quantity) ?? num(w.quantity),
+            unit: str(lead?.unit) ?? str(w.unit),
+            energyRecovered: yesNoToBool(w.energy_recovered),
+            polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
+        };
+    });
 
     // Q14a — transport of production waste to treatment.
     const productionWasteTransport = arr(energy.production_waste_transport).map((t: any) => ({

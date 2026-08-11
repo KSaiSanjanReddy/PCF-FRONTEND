@@ -814,13 +814,13 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        syncFromQ8: true,
         placeholder:
-          "List the same materials in the same order as entered in question 8.",
+          "One row per material in question 8, in the same order. Type the waste material name yourself.",
         columns: [
           { name: "product_id", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
-          // Typed material name, restricted to the Q8 BOM materials (same set /
-          // same order). Persisted as waste_type on the backend.
-          { name: "waste_material", label: "Waste Material", type: "text", q8MaterialsOnly: true, required: true, placeholder: "Type a material from question 8" },
+          // Free-typed label (need not match Q8 Specific Type). Backend: waste_type.
+          { name: "waste_material", label: "Waste Material", type: "text", required: true, placeholder: "e.g. iron, rubber" },
           { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", required: true, placeholder: "Search category…" },
           { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
