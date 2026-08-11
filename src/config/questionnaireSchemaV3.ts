@@ -814,14 +814,19 @@ export const QUESTIONNAIRE_SCHEMA_V3: QuestionnaireSection[] = [
         type: "table",
         addButtonLabel: "Add Row",
         required: true,
+        syncFromQ8: true,
+        placeholder:
+          "One row per material in question 8, in the same order. Type the waste material name yourself.",
         columns: [
           { name: "product_id", label: "MPN", type: "select", apiDropdown: "bomMaterials", required: true, placeholder: "Select MPN" },
+          // Free-typed label (need not match Q8 Specific Type). Backend: waste_type.
+          { name: "waste_material", label: "Waste Material", type: "text", required: true, placeholder: "e.g. iron, rubber" },
           { name: "category", label: "Category", type: "select", efTaxonomyLevel: "category", required: true, placeholder: "Search category…" },
           { name: "sub_category", label: "Subcategory", type: "select", efTaxonomyLevel: "sub_category", required: true, placeholder: "Search sub-category…" },
           { name: "group", label: "Group", type: "select", efTaxonomyLevel: "group", required: true, placeholder: "Search group…" },
           { name: "specific_type", label: "Specific Type", type: "select", efTaxonomyLevel: "specific_type", required: true, placeholder: "Search specific type…" },
-          { name: "quantity", label: "Waste generated at factory level", type: "number", required: true, min: 0, placeholder: "0.00" },
-          { name: "unit", label: "Unit (kg, tons or %)", type: "select", options: FACTORY_WASTE_UNITS, required: true, placeholder: "kg, tons or %" },
+          { name: "quantity", label: "Waste generated at factory level", type: "number", required: true, min: 0, placeholder: "0.00", sameAsFirstRow: true },
+          { name: "unit", label: "Unit (kg, tons or %)", type: "select", options: FACTORY_WASTE_UNITS, required: true, placeholder: "kg, tons or %", sameAsFirstRow: true },
           { name: "energy_recovered", label: "Energy recovered? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
           { name: "polluter_pays_applied", label: "Polluter Pays Applied? (Y/N)", type: "select", options: YES_NO, placeholder: "Y/N" },
         ],

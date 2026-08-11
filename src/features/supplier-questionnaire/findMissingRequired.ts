@@ -250,6 +250,14 @@ const tableStatus = (
       .filter((c) => {
         if (!c.required || c.readOnly) return false;
         if (!depMet(c.dependency, values, row)) return false;
+        // Q14 factory-level qty/unit: only the first row of each MPN is editable.
+        if (c.sameAsFirstRow) {
+          const mpn = String(row.product_id ?? row.mpn ?? "").trim();
+          const lead = list.findIndex(
+            (r) => String(r?.product_id ?? r?.mpn ?? "").trim() === mpn,
+          );
+          if (lead >= 0 && i !== lead) return false;
+        }
         // Auto-distance (Q19 etc.): UI shows km from coords but the store can
         // lag. Treat as filled when both endpoints are present.
         if (

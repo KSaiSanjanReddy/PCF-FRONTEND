@@ -72,6 +72,8 @@ const zh: QuestionnaireCatalog = {
     noDataSection: "此部分未填写数据",
     item: "项",
     items: "项",
+    q8MaterialsPlaceholder: "输入问题 8 中的材料",
+    q8MaterialsEmpty: "请先在问题 8 中列出材料",
   },
   validation: {
     requiredCheckboxAck: "请勾选此框以确认 {{number}}",
@@ -83,6 +85,7 @@ const zh: QuestionnaireCatalog = {
     maxValue: "请输入不超过 {{max}} 的值",
     exclusiveMin: "请输入大于 {{min}} 的值",
     maxLength: "请将您的回答限制在 {{max}} 个字符以内",
+    q8MaterialsOnly: "仅可使用问题 8 中列出的材料，并保持相同顺序。",
   },
   consent: {
     noticeTitle: "数据隐私 (GDPR)",
@@ -259,6 +262,7 @@ const zh: QuestionnaireCatalog = {
       },
       "14": {
         label: "产生了哪些生产和质量控制废弃物，以及如何处理？",
+        help: "问题 8 中的每种材料会按相同顺序自动生成一行。请自行填写废弃物名称（不必与问题 8 一致）。工厂层面的废弃物数量只需在每个产品的第一行填写，该产品的后续行将沿用该数量。",
       },
       "10a": {
         label: "在报告期内，工厂层面制造的每种产品的总重量是多少？",
@@ -435,6 +439,8 @@ const zh: QuestionnaireCatalog = {
     equipment_type: "设备类型",
     value: "总数量",
     "energy.production_waste": "产生了哪些生产和质量控制废弃物，以及如何处理？",
+    "energy.production_waste.waste_material": "废弃物材料",
+    waste_material: "废弃物材料",
     "energy.production_waste.quantity": "工厂层面产生的废弃物",
     "energy.production_waste.unit": "单位（kg、tons 或 %）",
     energy_recovered: "是否回收能源？（是/否）",

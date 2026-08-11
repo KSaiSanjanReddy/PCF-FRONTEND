@@ -486,6 +486,12 @@ const QuestionnaireCardForm: React.FC<Props> = ({
                     bomComponents={bomComponents}
                     isClientMode={isClientMode}
                     onValuesChange={onValuesChange}
+                    q8Rows={
+                      (Array.isArray(values?.bom?.bill_of_materials) &&
+                      values.bom.bill_of_materials.length
+                        ? values.bom.bill_of_materials
+                        : initialValues?.bom?.bill_of_materials) || []
+                    }
                   />
                 )}
               </div>

@@ -377,17 +377,33 @@ export function mapV3FormToBackend(
         alreadyInQ10: false,
     }));
 
-    const productionWaste = arr(energy.production_waste).map((w: any) => ({
-        productIdOrMpn: str(w.product_id),
-        category: str(w.category),
-        subCategory: str(w.sub_category),
-        materialGroup: str(w.group),
-        specificType: str(w.specific_type),
-        quantity: num(w.quantity),
-        unit: str(w.unit),
-        energyRecovered: yesNoToBool(w.energy_recovered),
-        polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
-    }));
+    const productionWasteRows = arr(energy.production_waste);
+    const q14LeadOfMpn = (mpn: string | undefined) => {
+        const key = String(mpn ?? "").trim();
+        if (!key) return productionWasteRows[0];
+        return (
+            productionWasteRows.find(
+                (r: any) => String(r?.product_id ?? "").trim() === key,
+            ) ?? productionWasteRows[0]
+        );
+    };
+    const productionWaste = productionWasteRows.map((w: any) => {
+        const lead = q14LeadOfMpn(str(w.product_id));
+        return {
+            productIdOrMpn: str(w.product_id),
+            // Free-typed waste name. Backend column is waste_type.
+            wasteType: str(w.waste_material),
+            category: str(w.category),
+            subCategory: str(w.sub_category),
+            materialGroup: str(w.group),
+            specificType: str(w.specific_type),
+            // Factory-level qty/unit: first row of this MPN, copied onto later rows.
+            quantity: num(lead?.quantity) ?? num(w.quantity),
+            unit: str(lead?.unit) ?? str(w.unit),
+            energyRecovered: yesNoToBool(w.energy_recovered),
+            polluterPaysApplied: yesNoToBool(w.polluter_pays_applied),
+        };
+    });
 
     // Q14a — transport of production waste to treatment.
     const productionWasteTransport = arr(energy.production_waste_transport).map((t: any) => ({
@@ -789,6 +805,7 @@ export function mapV3BackendToForm(d: any): Record<string, any> {
             })),
             production_waste: (d.productionWaste ?? []).map((w: any) => ({
                 product_id: w.productIdOrMpn,
+                waste_material: w.wasteType,
                 category: w.category,
                 sub_category: w.subCategory,
                 group: w.materialGroup,
