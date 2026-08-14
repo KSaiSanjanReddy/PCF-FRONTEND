@@ -509,6 +509,58 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleDeleteManufacturer = async (id: string, name?: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete this client${name ? ` (${name})` : ""}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await userManagementService.deleteManufacturer(id);
+      if (result.success) {
+        message.success("Client deleted successfully!");
+        if (selectedManufacturer?.id === id) {
+          setShowManufacturerDetails(false);
+          setSelectedManufacturer(null);
+        }
+        await loadManufacturers();
+      } else {
+        message.error(result.message || "Failed to delete client");
+      }
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      message.error("Error deleting client");
+    }
+  };
+
+  const handleDeleteSupplier = async (supId: string, name?: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete this supplier${name ? ` (${name})` : ""}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await userManagementService.deleteSupplier(supId);
+      if (result.success) {
+        message.success("Supplier deleted successfully!");
+        if (selectedSupplier?.sup_id === supId) {
+          setShowSupplierDetails(false);
+          setSelectedSupplier(null);
+        }
+        await loadSuppliers();
+      } else {
+        message.error(result.message || "Failed to delete supplier");
+      }
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      message.error("Error deleting supplier");
+    }
+  };
+
   const openUserDetails = (user: BackendUser) => {
     setSelectedUser(user);
     setShowUserDetails(true);
@@ -1233,6 +1285,21 @@ const UsersPage: React.FC = () => {
                             <UserPlus className="h-5 w-5" />
                           </button>
                         </Tooltip>
+                        {canDelete("manage users") && (
+                          <Tooltip title="Delete Client">
+                            <button
+                              onClick={() =>
+                                handleDeleteManufacturer(
+                                  manufacturer.id,
+                                  manufacturer.name || manufacturer.code,
+                                )
+                              }
+                              className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </Tooltip>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1516,6 +1583,21 @@ const UsersPage: React.FC = () => {
                             <ExternalLink className="h-5 w-5" />
                           </button>
                         </Tooltip>
+                        {canDelete("manage users") && (
+                          <Tooltip title="Delete Supplier">
+                            <button
+                              onClick={() =>
+                                handleDeleteSupplier(
+                                  supplier.sup_id,
+                                  supplier.supplier_company_name || supplier.supplier_name || supplier.code,
+                                )
+                              }
+                              className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </Tooltip>
+                        )}
                       </div>
                     </td>
                   </tr>
