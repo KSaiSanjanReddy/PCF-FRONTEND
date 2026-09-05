@@ -22,17 +22,21 @@ import {
   Copy,
   ExternalLink,
   UserPlus,
+  UserCheck,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { BackendUser, Role } from "../../types";
-import type { ManufacturerOnboarding, SupplierOnboarding } from "../../types/userManagement";
+import type { ActiveLoginUser, ManufacturerOnboarding, SupplierOnboarding } from "../../types/userManagement";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { Select, DatePicker, Tabs, message, Tooltip } from "antd";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import userManagementService from "../../lib/userManagementService";
 import authService from "../../lib/authService";
 import { usePermissions } from "../../contexts/PermissionContext";
 import { getApiBaseUrl } from "../../lib/apiBaseUrl";
+
+dayjs.extend(relativeTime);
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -60,7 +64,7 @@ const SORT_OPTIONS = [
   { value: "user_role", label: "Role" },
 ];
 
-type TabKey = "enviraan" | "manufacturer" | "supplier";
+type TabKey = "enviraan" | "manufacturer" | "supplier" | "active-users";
 
 const UsersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -97,6 +101,16 @@ const UsersPage: React.FC = () => {
     pageSize: 10,
     total: 0,
     totalPages: 0,
+  });
+
+  // Active Users State
+  const [activeUsers, setActiveUsers] = useState<ActiveLoginUser[]>([]);
+  const [activeUsersLoading, setActiveUsersLoading] = useState(false);
+  const [activeUsersSearch, setActiveUsersSearch] = useState("");
+  const [activeUsersPagination, setActiveUsersPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
   });
 
   // Pagination state
@@ -278,6 +292,34 @@ const UsersPage: React.FC = () => {
     }
   }, [supplierPagination.current, supplierPagination.pageSize, supplierSearch]);
 
+  // Load Active Users
+  const loadActiveUsers = useCallback(async () => {
+    try {
+      setActiveUsersLoading(true);
+      const result = await userManagementService.getActiveLoginUsers(
+        activeUsersPagination.current,
+        activeUsersPagination.pageSize,
+        activeUsersSearch
+      );
+
+      if (result.success) {
+        setActiveUsers(result.data);
+        setActiveUsersPagination((prev) =>
+          prev.total === result.totalCount ? prev : { ...prev, total: result.totalCount }
+        );
+      } else {
+        setActiveUsers([]);
+        setActiveUsersPagination((prev) => (prev.total === 0 ? prev : { ...prev, total: 0 }));
+      }
+    } catch (error) {
+      console.error("Error loading active users:", error);
+      setActiveUsers([]);
+      setActiveUsersPagination((prev) => (prev.total === 0 ? prev : { ...prev, total: 0 }));
+    } finally {
+      setActiveUsersLoading(false);
+    }
+  }, [activeUsersPagination.current, activeUsersPagination.pageSize, activeUsersSearch]);
+
   useEffect(() => {
     if (activeTab === "enviraan") {
       loadUsers();
@@ -285,8 +327,19 @@ const UsersPage: React.FC = () => {
       loadManufacturers();
     } else if (activeTab === "supplier") {
       loadSuppliers();
+    } else if (activeTab === "active-users") {
+      loadActiveUsers();
     }
-  }, [activeTab, loadUsers, loadManufacturers, loadSuppliers]);
+  }, [activeTab, loadUsers, loadManufacturers, loadSuppliers, loadActiveUsers]);
+
+  useEffect(() => {
+    if (activeTab !== "active-users") return;
+    const intervalId = window.setInterval(() => {
+      loadActiveUsers();
+    }, 60000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeTab, loadActiveUsers]);
 
   // Fetch roles from API on mount
   useEffect(() => {
@@ -335,6 +388,8 @@ const UsersPage: React.FC = () => {
       await loadManufacturers();
     } else if (activeTab === "supplier") {
       await loadSuppliers();
+    } else if (activeTab === "active-users") {
+      await loadActiveUsers();
     }
     setRefreshing(false);
   };
@@ -346,6 +401,8 @@ const UsersPage: React.FC = () => {
       setManufacturerPagination((prev) => ({ ...prev, current: page }));
     } else if (activeTab === "supplier") {
       setSupplierPagination((prev) => ({ ...prev, current: page }));
+    } else if (activeTab === "active-users") {
+      setActiveUsersPagination((prev) => ({ ...prev, current: page }));
     }
   };
 
@@ -356,6 +413,8 @@ const UsersPage: React.FC = () => {
       setManufacturerPagination((prev) => ({ ...prev, current: 1, pageSize: size }));
     } else if (activeTab === "supplier") {
       setSupplierPagination((prev) => ({ ...prev, current: 1, pageSize: size }));
+    } else if (activeTab === "active-users") {
+      setActiveUsersPagination((prev) => ({ ...prev, current: 1, pageSize: size }));
     }
   };
 
@@ -450,6 +509,58 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleDeleteManufacturer = async (id: string, name?: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete this client${name ? ` (${name})` : ""}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await userManagementService.deleteManufacturer(id);
+      if (result.success) {
+        message.success("Client deleted successfully!");
+        if (selectedManufacturer?.id === id) {
+          setShowManufacturerDetails(false);
+          setSelectedManufacturer(null);
+        }
+        await loadManufacturers();
+      } else {
+        message.error(result.message || "Failed to delete client");
+      }
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      message.error("Error deleting client");
+    }
+  };
+
+  const handleDeleteSupplier = async (supId: string, name?: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete this supplier${name ? ` (${name})` : ""}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await userManagementService.deleteSupplier(supId);
+      if (result.success) {
+        message.success("Supplier deleted successfully!");
+        if (selectedSupplier?.sup_id === supId) {
+          setShowSupplierDetails(false);
+          setSelectedSupplier(null);
+        }
+        await loadSuppliers();
+      } else {
+        message.error(result.message || "Failed to delete supplier");
+      }
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      message.error("Error deleting supplier");
+    }
+  };
+
   const openUserDetails = (user: BackendUser) => {
     setSelectedUser(user);
     setShowUserDetails(true);
@@ -489,6 +600,7 @@ const UsersPage: React.FC = () => {
   const getCurrentPagination = () => {
     if (activeTab === "enviraan") return pagination;
     if (activeTab === "manufacturer") return manufacturerPagination;
+    if (activeTab === "active-users") return activeUsersPagination;
     return supplierPagination;
   };
 
@@ -1173,6 +1285,21 @@ const UsersPage: React.FC = () => {
                             <UserPlus className="h-5 w-5" />
                           </button>
                         </Tooltip>
+                        {canDelete("manage users") && (
+                          <Tooltip title="Delete Client">
+                            <button
+                              onClick={() =>
+                                handleDeleteManufacturer(
+                                  manufacturer.id,
+                                  manufacturer.name || manufacturer.code,
+                                )
+                              }
+                              className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </Tooltip>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1456,6 +1583,21 @@ const UsersPage: React.FC = () => {
                             <ExternalLink className="h-5 w-5" />
                           </button>
                         </Tooltip>
+                        {canDelete("manage users") && (
+                          <Tooltip title="Delete Supplier">
+                            <button
+                              onClick={() =>
+                                handleDeleteSupplier(
+                                  supplier.sup_id,
+                                  supplier.supplier_company_name || supplier.supplier_name || supplier.code,
+                                )
+                              }
+                              className="text-gray-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </Tooltip>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1473,6 +1615,159 @@ const UsersPage: React.FC = () => {
         </div>
 
         {renderPagination(supplierPagination)}
+      </div>
+    );
+  };
+
+  // Active Users Tab Content
+  const renderActiveUsersTab = () => {
+    const getSessionHealth = (lastActivity?: string) => {
+      if (!lastActivity) {
+        return {
+          label: "Unknown",
+          className: "bg-gray-100 text-gray-700",
+        };
+      }
+
+      const minutesSinceActivity = dayjs().diff(dayjs(lastActivity), "minute");
+      if (minutesSinceActivity <= 15) {
+        return {
+          label: "Online",
+          className: "bg-green-100 text-green-800",
+        };
+      }
+      if (minutesSinceActivity <= 60) {
+        return {
+          label: "Idle",
+          className: "bg-amber-100 text-amber-800",
+        };
+      }
+
+      return {
+        label: "Stale",
+        className: "bg-red-100 text-red-800",
+      };
+    };
+
+    if (activeUsersLoading) {
+      return (
+        <div className="bg-white rounded-lg shadow p-12">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-500">Loading active users...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search active users..."
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                value={activeUsersSearch}
+                onChange={(e) => {
+                  setActiveUsersSearch(e.target.value);
+                  setActiveUsersPagination((prev) => ({ ...prev, current: 1 }));
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          {activeUsers.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Logins</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {activeUsers.map((user) => (
+                  <tr key={user.user_id} className="hover:bg-gray-50">
+                    {(() => {
+                      const sessionHealth = getSessionHealth(user.session_last_activity_at);
+                      return (
+                        <>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <span className="text-sm font-medium text-green-700">
+                              {user.user_name?.charAt(0)?.toUpperCase() || "U"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{user.user_name}</div>
+                          <div className="text-sm text-gray-500">{user.user_email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {user.user_role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.last_login_at ? (
+                        <div>
+                          <div>{dayjs(user.last_login_at).format("DD MMM YYYY, hh:mm A")}</div>
+                          <div className="text-xs text-gray-500">{dayjs(user.last_login_at).fromNow()}</div>
+                        </div>
+                      ) : "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.session_last_activity_at ? (
+                        <div>
+                          <div>{dayjs(user.session_last_activity_at).format("DD MMM YYYY, hh:mm A")}</div>
+                          <div className={`text-xs ${
+                            sessionHealth.label === "Online"
+                              ? "text-green-600"
+                              : sessionHealth.label === "Idle"
+                                ? "text-amber-600"
+                                : "text-red-600"
+                          }`}>{dayjs(user.session_last_activity_at).fromNow()}</div>
+                        </div>
+                      ) : "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {user.login_count ?? 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${sessionHealth.className}`}>
+                        {sessionHealth.label}
+                      </span>
+                    </td>
+                        </>
+                      );
+                    })()}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="p-6">
+              <div className="text-center text-gray-500">
+                <UserCheck className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No active users found.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {renderPagination(activeUsersPagination)}
       </div>
     );
   };
@@ -1507,6 +1802,16 @@ const UsersPage: React.FC = () => {
         </span>
       ),
       children: renderSupplierTab(),
+    },
+    {
+      key: "active-users",
+      label: (
+        <span className="flex items-center gap-2">
+          <UserCheck className="h-4 w-4" />
+          Active Users
+        </span>
+      ),
+      children: renderActiveUsersTab(),
     },
   ];
 

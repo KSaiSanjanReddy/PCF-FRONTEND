@@ -1,5 +1,28 @@
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
 import type { QuestionnaireField } from "../../config/questionnaireSchema";
+import type { TranslateFn } from "./i18n";
+import { translateOption } from "./i18n";
+
+// Safe stringifier — dayjs / Date / plain value, never throws.
+const safeToString = (val: any): string => {
+  if (val === null || val === undefined) return "";
+  if (val instanceof Date) {
+    try { return val.toISOString().split("T")[0]; } catch { return ""; }
+  }
+  if (typeof val === "object") {
+    const v: any = val;
+    if (typeof v.format === "function") {
+      try { return v.format("YYYY-MM-DD"); } catch { /* fall through */ }
+    }
+    if (typeof v.toISOString === "function") {
+      try { return v.toISOString().split("T")[0]; } catch { /* fall through */ }
+    }
+    if (typeof v.$d !== "undefined" && v.$d instanceof Date) {
+      try { return v.$d.toISOString().split("T")[0]; } catch { /* fall through */ }
+    }
+  }
+  try { return String(val); } catch { return ""; }
+};
 
 // Shape matching the backend PDF helper contract
 export interface PdfFieldItem {
@@ -122,21 +145,29 @@ const cleanLabel = (label: string): string =>
 const formatFieldValue = (
   field: QuestionnaireField,
   value: any,
-  dropdownMaps: Record<string, Record<string, string>>
+  dropdownMaps: Record<string, Record<string, string>>,
+  t?: TranslateFn
 ): string => {
   if (!hasValue(value)) return "";
 
   if (field.type === "checkbox" && !field.options) {
-    return value === true ? "Acknowledged" : "Not Acknowledged";
+    return value === true
+      ? t?.("ui.acknowledged") || "Acknowledged"
+      : t?.("ui.notAcknowledged") || "Not Acknowledged";
   }
   if (field.type === "radio") {
-    return String(value);
+    return t ? translateOption(value, t) : safeToString(value);
   }
   if (field.type === "checkbox" && field.options) {
-    return Array.isArray(value) ? value.join(", ") : String(value);
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => (t ? translateOption(v, t) : safeToString(v)))
+        .join(", ");
+    }
+    return t ? translateOption(value, t) : safeToString(value);
   }
   if (field.type === "tags") {
-    return Array.isArray(value) ? value.join(", ") : String(value);
+    return Array.isArray(value) ? value.join(", ") : safeToString(value);
   }
   if (field.type === "file") {
     const files = Array.isArray(value) ? value : [value];
@@ -148,19 +179,46 @@ const formatFieldValue = (
   }
   if (field.type === "select" && field.apiDropdown) {
     const map = dropdownMaps[field.apiDropdown];
-    if (map && map[String(value)]) return map[String(value)];
-    return String(value);
+    const k = safeToString(value);
+    if (map && map[k]) return map[k];
+    return k;
+  }
+  if (field.type === "select") {
+    return t ? translateOption(value, t) : safeToString(value);
   }
   if (typeof value === "number") {
     return value.toLocaleString();
   }
-  return String(value);
+  return t ? translateOption(value, t) : safeToString(value);
+};
+
+const translateFieldLabel = (
+  field: QuestionnaireField,
+  t?: TranslateFn
+): string => {
+  if (t) {
+    const tr = t(`fields.${field.name}`);
+    if (tr && tr !== `fields.${field.name}`) return cleanLabel(tr);
+  }
+  return cleanLabel(field.label || field.name);
+};
+
+const translateColLabel = (
+  col: QuestionnaireField,
+  t?: TranslateFn
+): string => {
+  if (t) {
+    const tr = t(`fields.${col.name}`);
+    if (tr && tr !== `fields.${col.name}`) return tr;
+  }
+  return col.label || col.name;
 };
 
 // Main builder ----------------------------------------------------
 export const buildPdfSections = (
   formData: Record<string, any>,
-  dropdownMaps: Record<string, Record<string, string>>
+  dropdownMaps: Record<string, Record<string, string>>,
+  t?: TranslateFn
 ): PdfSection[] => {
   const sections: PdfSection[] = [];
 
@@ -189,28 +247,23 @@ export const buildPdfSections = (
             !col.name.startsWith("bom_id") && !col.name.startsWith("product_id")
         );
 
-        const columns = visibleColumns.map(
-          (col) => col.label || col.name
-        );
+        const columns = visibleColumns.map((col) => translateColLabel(col, t));
         const tableRows = rows.map((row: any) =>
           visibleColumns.map((col) => {
             const val = row[col.name];
             if (val === undefined || val === null || val === "") return "-";
             if (col.apiDropdown && dropdownMaps[col.apiDropdown]) {
-              return dropdownMaps[col.apiDropdown][String(val)] || String(val);
+              const k = safeToString(val);
+              return dropdownMaps[col.apiDropdown][k] || k;
             }
-            // Keep small decimals (e.g. transport weight 0.0002134 tons) — the
-            // default toLocaleString caps at 3 fraction digits and rounds tiny
-            // values to "0". Allow up to 8 so the supplier's entry is preserved.
-            if (typeof val === "number")
-              return val.toLocaleString(undefined, { maximumFractionDigits: 8 });
-            return String(val);
+            if (typeof val === "number") return val.toLocaleString();
+            return t ? translateOption(val, t) : safeToString(val);
           })
         );
 
         items.push({
           type: "table",
-          label: cleanLabel(field.label || field.name),
+          label: translateFieldLabel(field, t),
           columns,
           rows: tableRows,
         });
@@ -218,14 +271,18 @@ export const buildPdfSections = (
         if (!hasValue(value)) continue;
         items.push({
           type: "field",
-          label: cleanLabel(field.label || field.name),
-          value: formatFieldValue(field, value, dropdownMaps),
+          label: translateFieldLabel(field, t),
+          value: formatFieldValue(field, value, dropdownMaps, t),
         });
       }
     }
 
     if (items.length > 0) {
-      sections.push({ title: section.title, items });
+      const title =
+        (t && t(`sections.${section.id}.title`)) || section.title;
+      const resolvedTitle =
+        title === `sections.${section.id}.title` ? section.title : title;
+      sections.push({ title: resolvedTitle, items });
     }
   }
 

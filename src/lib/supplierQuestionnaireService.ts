@@ -62,6 +62,7 @@ export interface SupplierQuestionnaireData {
       material_number?: string;
       product_name: string;
       production_period: string;
+      total_weight_factory_kg?: number;
       weight_per_unit: number;
       unit: string;
       price: number;
@@ -117,7 +118,6 @@ export interface SupplierQuestionnaireData {
       quantity: number;
       unit: string;
     }[];
-    total_factory_weight_produced_kg?: number | null;
     standardized_re_certificates: boolean;
     certificates?: {
       name: string;
@@ -606,6 +606,7 @@ interface SupplierQuestionnaireApiPayload {
             mpn?: string;
             product_name: string;
             production_period: string;
+            total_weight_factory_kg?: number;
             weight_per_unit: number;
             unit: string;
             price: number;
@@ -657,7 +658,6 @@ interface SupplierQuestionnaireApiPayload {
             quantity: number;
             unit: string;
         }[];
-        total_weight_of_all_products_produced_kg?: number | null;
         do_you_acquired_standardized_re_certificates: boolean;
         scope_two_indirect_emissions_certificates_questions: {
             certificate_name: string;
@@ -1013,6 +1013,7 @@ class SupplierQuestionnaireService {
                       ...(item.mpn && { mpn: item.mpn }),
                       product_name: item.product_name || '',
                       production_period: item.production_period,
+                      total_weight_factory_kg: item.total_weight_factory_kg,
                       weight_per_unit: item.weight_per_unit,
                       unit: item.unit,
                       price: item.price,
@@ -1091,9 +1092,6 @@ class SupplierQuestionnaireService {
                       ...(item.layer4 && { layer4: item.layer4 }),
                       ...(item.ef_code && { ef_code: item.ef_code })
                   })),
-              // Q6.1 — total weight of all products produced at the factory (kg).
-              // Denominator for production-energy allocation; previously dropped here.
-              total_weight_of_all_products_produced_kg: data.scope_2?.total_factory_weight_produced_kg ?? null,
               do_you_acquired_standardized_re_certificates: this.convertToBoolean(data.scope_2?.standardized_re_certificates || false),
               scope_two_indirect_emissions_certificates_questions: this.ensureArray(data.scope_2?.certificates)
                   .filter(item => item.name && item.serial_id)
@@ -1556,6 +1554,7 @@ class SupplierQuestionnaireService {
                   ...(item.mpn && { mpn: item.mpn }),
                   product_name: item.product_name,
                   production_period: item.production_period,
+                  total_weight_factory_kg: item.total_weight_factory_kg,
                   weight_per_unit: item.weight_per_unit,
                   unit: item.unit,
                   price: item.price,
@@ -1961,7 +1960,15 @@ class SupplierQuestionnaireService {
   ): Promise<{
     success: boolean;
     message: string;
-    data: Array<{ bom_id: string; material_number: string; component_name: string }>;
+    data: Array<{
+      bom_id: string;
+      material_number: string;
+      component_name: string;
+      detail_description?: string | null;
+      quantity?: number | string | null;
+      price?: number | string | null;
+      weight_kg?: number | string | null;
+    }>;
   }> {
     try {
       const response = await fetch(
@@ -1994,6 +2001,62 @@ class SupplierQuestionnaireService {
         message: "Network error occurred",
         data: [],
       };
+    }
+  }
+
+  /**
+   * Cascading EF taxonomy for the Q8 dropdowns.
+   * level=category → string[]; sub_category/group → string[] (filtered by parents);
+   * specific_type → [{ specific_type, ef_id, gwp_100, unit, geography }].
+   */
+  async getEfTaxonomy(
+    level: "category" | "sub_category" | "group" | "specific_type" | "geography",
+    parents: { category?: string; sub_category?: string; group?: string; specific_type?: string; q?: string } = {}
+  ): Promise<any[]> {
+    try {
+      const qs = new URLSearchParams({ level });
+      if (parents.category) qs.set("category", parents.category);
+      if (parents.sub_category) qs.set("sub_category", parents.sub_category);
+      if (parents.group) qs.set("group", parents.group);
+      if (parents.specific_type) qs.set("specific_type", parents.specific_type);
+      if (parents.q) qs.set("q", parents.q);
+      const response = await fetch(
+        `${API_BASE_URL}/api/emission-factors/meta/taxonomy?${qs.toString()}`,
+        { method: "GET", headers: this.getHeaders() }
+      );
+      const result: ApiResponse = await response.json();
+      return Array.isArray(result?.data) ? result.data : [];
+    } catch (error) {
+      console.error("getEfTaxonomy error:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Distinct geographies (countries) from the emission_factors master, for the
+   * Q10 "Geography (Electricity Sourcing)" dropdown. Modelled on getEfTaxonomy.
+   *
+   * Backend contract (to be implemented on the API side):
+   *   GET /api/emission-factors/meta/geographies?q=<optional substring>
+   *   → { success: true, data: string[] }   // distinct geography values
+   *
+   * Returns [] on any error / until the endpoint exists, so the dropdown simply
+   * renders empty rather than throwing.
+   */
+  async getEfGeographies(q?: string): Promise<string[]> {
+    try {
+      const qs = new URLSearchParams();
+      if (q) qs.set("q", q);
+      const suffix = qs.toString() ? `?${qs.toString()}` : "";
+      const response = await fetch(
+        `${API_BASE_URL}/api/emission-factors/meta/geographies${suffix}`,
+        { method: "GET", headers: this.getHeaders() }
+      );
+      const result: ApiResponse = await response.json();
+      return Array.isArray(result?.data) ? result.data.map((v: any) => String(v)) : [];
+    } catch (error) {
+      console.error("getEfGeographies error:", error);
+      return [];
     }
   }
 

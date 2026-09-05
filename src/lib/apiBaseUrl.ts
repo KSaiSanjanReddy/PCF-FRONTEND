@@ -16,6 +16,6 @@ export function getApiBaseUrl(): string {
     if (host === "localhost" || host === "127.0.0.1") return "http://localhost:8000";
   }
 
-  return "https://enviguide.nextechltd.in";
+  return "https://enviraan.com";
 }
 

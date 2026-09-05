@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Layout from "../components/Layout";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -19,6 +19,9 @@ const Bookings = lazy(() => import("../pages/Bookings"));
 const HardwareManagement = lazy(() => import("../pages/HardwareManagement"));
 const DocumentsManagement = lazy(() => import("../pages/DocumentsManagement"));
 const Settings = lazy(() => import("../pages/Settings"));
+
+// Public marketing homepage (Enviraan landing)
+const Landing = lazy(() => import("../pages/Landing"));
 
 // Auth pages
 const Login = lazy(() => import("../pages/auth/Login"));
@@ -99,7 +102,7 @@ const S = ({ children }: { children: React.ReactNode }) => (
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/dashboard" replace />,
+    element: <S><Landing /></S>,
   },
   {
     path: "/login",

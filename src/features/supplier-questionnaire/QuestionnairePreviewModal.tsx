@@ -10,10 +10,15 @@ import {
   User,
   Building2,
   Package,
+  CalendarRange,
+  Layers,
   Flame,
-  Cpu,
+  Box,
   Truck,
   Leaf,
+  BookOpen,
+  BadgeCheck,
+  StickyNote,
 } from "lucide-react";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { QUESTIONNAIRE_SCHEMA } from "../../config/questionnaireSchema";
@@ -28,6 +33,7 @@ import {
   getTransportModeDropdown,
   type DropdownItem,
 } from "../../lib/questionnaireDropdownService";
+import { useQuestionnaireLocale, translateOption } from "./i18n";
 
 interface QuestionnairePreviewModalProps {
   open: boolean;
@@ -37,7 +43,7 @@ interface QuestionnairePreviewModalProps {
   isSubmitting?: boolean;
 }
 
-// Section config for icons and colors
+// Section config for icons and colors — V3 (28-question / CX-PCF Rulebook v4) section IDs.
 const SECTION_CONFIG: Record<
   string,
   { icon: React.ReactNode; color: string; bgColor: string }
@@ -47,35 +53,60 @@ const SECTION_CONFIG: Record<
     color: "text-green-600",
     bgColor: "bg-green-100",
   },
-  organization_details: {
+  section_a_company_product: {
     icon: <Building2 size={16} />,
     color: "text-blue-600",
     bgColor: "bg-blue-100",
   },
-  product_details: {
+  section_b_scope_period: {
+    icon: <CalendarRange size={16} />,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
+  },
+  section_c_bom: {
     icon: <Package size={16} />,
     color: "text-purple-600",
     bgColor: "bg-purple-100",
   },
-  scope_1: {
+  section_d_energy_process: {
     icon: <Flame size={16} />,
     color: "text-red-600",
     bgColor: "bg-red-100",
   },
-  scope_2: {
-    icon: <Cpu size={16} />,
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-100",
+  section_e_packaging: {
+    icon: <Box size={16} />,
+    color: "text-amber-600",
+    bgColor: "bg-amber-100",
   },
-  scope_3: {
+  section_f_transport: {
     icon: <Truck size={16} />,
     color: "text-orange-600",
     bgColor: "bg-orange-100",
   },
-  scope_4: {
+  section_g_biobased: {
     icon: <Leaf size={16} />,
     color: "text-teal-600",
     bgColor: "bg-teal-100",
+  },
+  section_h_methodology: {
+    icon: <BookOpen size={16} />,
+    color: "text-sky-600",
+    bgColor: "bg-sky-100",
+  },
+  section_i_boundary_dqr: {
+    icon: <Layers size={16} />,
+    color: "text-slate-600",
+    bgColor: "bg-slate-100",
+  },
+  section_j_verification: {
+    icon: <BadgeCheck size={16} />,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+  },
+  section_k_other: {
+    icon: <StickyNote size={16} />,
+    color: "text-gray-600",
+    bgColor: "bg-gray-100",
   },
 };
 
@@ -87,6 +118,32 @@ const getNestedValue = (obj: any, path: string): any => {
   }, obj);
 };
 
+// Safe stringifier — handles dayjs / Date / plain values without crashing.
+// dayjs objects can lose their internal $d Date after a deepMerge, which makes
+// the default toString throw `this.$d.toUTCString is not a function`.
+const safeToString = (val: any): string => {
+  if (val === null || val === undefined) return "";
+  if (val instanceof Date) {
+    try { return val.toISOString().split("T")[0]; } catch { return ""; }
+  }
+  if (typeof val === "object") {
+    const v: any = val;
+    if (typeof v.format === "function") {
+      try { return v.format("YYYY-MM-DD"); } catch { /* fall through */ }
+    }
+    if (typeof v.toISOString === "function") {
+      try { return v.toISOString().split("T")[0]; } catch { /* fall through */ }
+    }
+    if (typeof v.$d !== "undefined") {
+      const d = v.$d;
+      if (d instanceof Date) {
+        try { return d.toISOString().split("T")[0]; } catch { /* fall through */ }
+      }
+    }
+  }
+  try { return String(val); } catch { return ""; }
+};
+
 const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
   open,
   onClose,
@@ -94,6 +151,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
   onSubmit,
   isSubmitting = false,
 }) => {
+  const { t, catalog } = useQuestionnaireLocale();
   const [dropdownMaps, setDropdownMaps] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -159,7 +217,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     field: QuestionnaireField
   ): string => {
     if (value === null || value === undefined || value === "") return "";
-    const strVal = String(value);
+    const strVal = safeToString(value);
     if (field.apiDropdown && dropdownMaps[field.apiDropdown]) {
       return dropdownMaps[field.apiDropdown][strVal] || strVal;
     }
@@ -200,18 +258,18 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (value === true || value === "Yes" || value === "yes") {
       return (
         <Tag color="green" icon={<CheckCircleOutlined />}>
-          Yes
+          {t("ui.yes")}
         </Tag>
       );
     }
     if (value === false || value === "No" || value === "no") {
       return (
         <Tag color="red" icon={<CloseCircleOutlined />}>
-          No
+          {t("ui.no")}
         </Tag>
       );
     }
-    return <Tag color="green">Acknowledged</Tag>;
+    return <Tag color="green">{t("ui.acknowledged")}</Tag>;
   };
 
   // Render a table field
@@ -234,19 +292,22 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     const columns = field.columns
       .filter((col) => !col.name.startsWith("bom_id") && !col.name.startsWith("product_id"))
       .map((col) => ({
-        title: col.label || col.name,
+        title: (() => {
+          const tr = t(`fields.${col.name}`);
+          return tr !== `fields.${col.name}` ? tr : col.label || col.name;
+        })(),
         dataIndex: col.name,
         key: col.name,
         render: (val: any) => {
           if (val === undefined || val === null || val === "") return "-";
-          // Resolve dropdown values
           if (col.apiDropdown && dropdownMaps[col.apiDropdown]) {
-            return dropdownMaps[col.apiDropdown][String(val)] || String(val);
+            const key = safeToString(val);
+            return dropdownMaps[col.apiDropdown][key] || key;
           }
           if (typeof val === "number") {
             return val.toLocaleString(undefined, { maximumFractionDigits: 20 });
           }
-          return String(val);
+          return translateOption(val, t);
         },
       }));
 
@@ -279,7 +340,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
         <div className="flex flex-wrap gap-1">
           {value.map((v: string, i: number) => (
             <Tag key={i} color="blue">
-              {v}
+              {translateOption(v, t)}
             </Tag>
           ))}
         </div>
@@ -291,7 +352,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
         <div className="flex flex-wrap gap-1">
           {value.map((v: string, i: number) => (
             <Tag key={i} color="blue">
-              {v}
+              {translateOption(v, t)}
             </Tag>
           ))}
         </div>
@@ -317,21 +378,27 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (field.type === "textarea") {
       return (
         <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
-          {String(value)}
+          {safeToString(value)}
         </div>
       );
     }
     if (field.type === "select" && field.apiDropdown) {
       return resolveDropdownValue(value, field);
     }
+    if (field.type === "select") {
+      return translateOption(value, t);
+    }
     if (typeof value === "number") {
       return value.toLocaleString(undefined, { maximumFractionDigits: 20 });
     }
-    return String(value);
+    return translateOption(value, t);
   };
 
   // Get a clean label — keep question numbers, only strip "(Optional)" suffix
-  const getCleanLabel = (label: string): string => {
+  const getCleanLabel = (field: QuestionnaireField): string => {
+    const tr = t(`fields.${field.name}`);
+    const label =
+      tr !== `fields.${field.name}` ? tr : field.label || field.name;
     return label.replace(/\s*\(Optional\)\s*$/i, "").trim();
   };
 
@@ -367,7 +434,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     if (fields.length === 0) {
       return (
         <div className="text-center py-6 text-gray-400 text-sm">
-          No data entered for this section
+          {t("ui.noDataSection")}
         </div>
       );
     }
@@ -387,7 +454,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
               return (
                 <Descriptions.Item
                   key={field.name}
-                  label={getCleanLabel(field.label || field.name)}
+                  label={getCleanLabel(field)}
                 >
                   {renderFieldValue(field, value)}
                 </Descriptions.Item>
@@ -402,7 +469,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
           return (
             <div key={field.name} className="mt-4">
               <div className="text-sm font-medium text-gray-700 mb-2">
-                {getCleanLabel(field.label || field.name)}
+                {getCleanLabel(field)}
               </div>
               {renderTable(field, value)}
             </div>
@@ -446,10 +513,10 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
           </div>
           <div>
             <div className="text-lg font-semibold text-gray-900">
-              Questionnaire Preview
+              {t("ui.previewTitle")}
             </div>
             <div className="text-sm text-gray-500 font-normal">
-              Review your responses before submitting
+              {t("ui.previewSubtitle")}
             </div>
           </div>
         </div>
@@ -459,7 +526,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
       footer={
         <div className="flex justify-end gap-2">
           <Button onClick={onClose} disabled={isSubmitting}>
-            Close Preview
+            {t("ui.closePreview")}
           </Button>
           {onSubmit && (
             <Button
@@ -469,7 +536,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
               onClick={() => onSubmit()}
               className="!bg-green-600 hover:!bg-green-700 !border-green-600"
             >
-              Submit Questionnaire
+              {t("ui.submitQuestionnaire")}
             </Button>
           )}
         </div>
@@ -486,7 +553,7 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
     >
       {loadingDropdowns ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <LoadingSpinner size="lg" label="Loading preview..." />
+          <LoadingSpinner size="lg" label={t("ui.loadingPreview")} />
         </div>
       ) : (
         <Collapse
@@ -511,10 +578,13 @@ const QuestionnairePreviewModal: React.FC<QuestionnairePreviewModalProps> = ({
                     >
                       <span className={config.color}>{config.icon}</span>
                     </div>
-                    <span className="font-medium">{section.title}</span>
+                    <span className="font-medium">
+                      {catalog.sections[section.id]?.title || section.title}
+                    </span>
                     {answeredCount > 0 && (
                       <Tag color="green" className="ml-2">
-                        {answeredCount} {answeredCount === 1 ? "item" : "items"}
+                        {answeredCount}{" "}
+                        {answeredCount === 1 ? t("ui.item") : t("ui.items")}
                       </Tag>
                     )}
                   </div>

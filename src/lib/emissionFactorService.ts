@@ -5,19 +5,19 @@ const API_BASE_URL = getApiBaseUrl();
 
 export interface EmissionFactor {
   ef_id: string;
-  product: string;
+  domain: string;
   category: string | null;
-  sub_category_1: string | null;
-  sub_category_2: string | null;
-  country_code: string | null;
-  country_name: string | null;
+  sub_category: string | null;
+  group_name: string | null;
+  specific_type: string | null;
+  geography: string | null;
   unit: string | null;
-  kgco2e_per_unit: number | string | null;
-  reference_year: number | null;
+  gwp_100: number | string | null;
+  is_legacy: boolean | null;
+  search_text: string | null;
   source_db: string | null;
-  embedding_text: string | null;
-  created_date: string;
-  updated_date: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ListEmissionFactorsParams {
@@ -25,7 +25,26 @@ export interface ListEmissionFactorsParams {
   limit?: number;
   search?: string;
   country_code?: string;
-  unit?: string;
+  unit_kind?: string;
+  source_db?: string;
+  category?: string;
+  sub_category?: string;
+  group?: string;
+  specific_type?: string;
+}
+
+export type EfTaxonomyLevel =
+  | "category"
+  | "sub_category"
+  | "group"
+  | "specific_type";
+
+export interface EfTaxonomyParams {
+  level: EfTaxonomyLevel;
+  category?: string;
+  sub_category?: string;
+  group?: string;
+  q?: string;
 }
 
 export interface ListEmissionFactorsResponse {
@@ -38,7 +57,7 @@ export interface EmissionFactorStats {
   total: number;
   source_db_count: number;
   country_count: number;
-  unit_count: number;
+  unit_kind_count: number;
   last_updated: string | null;
 }
 
@@ -83,7 +102,12 @@ export async function listEmissionFactors(
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.search) qs.set("search", params.search);
   if (params.country_code) qs.set("country_code", params.country_code);
-  if (params.unit) qs.set("unit", params.unit);
+  if (params.unit_kind) qs.set("unit_kind", params.unit_kind);
+  if (params.source_db) qs.set("source_db", params.source_db);
+  if (params.category) qs.set("category", params.category);
+  if (params.sub_category) qs.set("sub_category", params.sub_category);
+  if (params.group) qs.set("group", params.group);
+  if (params.specific_type) qs.set("specific_type", params.specific_type);
 
   const url = `${API_BASE_URL}/api/emission-factors/list${qs.toString() ? `?${qs}` : ""}`;
   const res = await fetch(url, { headers: buildAuthHeaders() });
@@ -107,176 +131,6 @@ export async function getEmissionFactorById(efId: string): Promise<EmissionFacto
   return json.data;
 }
 
-export interface EmissionFactorCountry {
-  country_code: string;
-  country_name: string | null;
-}
-
-export interface MatchEmissionFactorInput {
-  category: string;
-  sub_category_1?: string | null;
-  sub_category_2?: string | null;
-  country_code: string;
-  country_name?: string | null;
-  year: number;
-  unit: string;
-}
-
-export interface MatchEmissionFactorResult {
-  matched: boolean;
-  ef_id?: string;
-  kgco2e_per_unit?: number | string;
-  unit?: string;
-  country_code?: string;
-  country_name?: string;
-  matched_step?: string;
-  matched_embedding?: string;
-  supplier_embedding: string;
-  tried_steps: string[];
-}
-
-export async function matchEmissionFactor(
-  input: MatchEmissionFactorInput,
-): Promise<MatchEmissionFactorResult> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/match`, {
-    method: "POST",
-    headers: buildAuthHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as MatchEmissionFactorResult;
-}
-
-// ── Material/alloy composition (Q7 auto-fill) ────────────────────────────────
-
-export interface CompositionRow {
-  element: string;
-  min_pct: number;
-  max_pct: number;
-  bafu_category: string;
-  bafu_process: string;
-  bafu_sub2: string;
-}
-
-export interface MaterialCompositionResult {
-  alloy: string | null;
-  rows: CompositionRow[];
-  source: string;
-}
-
-// Resolve a material/alloy description into its constituent materials + % +
-// BAFU layer mapping, to auto-populate the raw-materials question. Returns an
-// empty rows array (not an error) when nothing could be resolved.
-export async function resolveMaterialComposition(
-  description: string,
-): Promise<MaterialCompositionResult> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/material-composition`, {
-    method: "POST",
-    headers: buildAuthHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ description }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as MaterialCompositionResult;
-}
-
-// Full PCF calculation from the raw questionnaire data object.
-export interface PcfCalcResult {
-  input: any;
-  result: {
-    sections: {
-      raw_materials: { total: number; rows: any[] };
-      production: { total: number; detail: any };
-      packaging: { total: number; rows: any[] };
-      transport: { total: number; legs: any[] };
-      waste: { total: number; detail: any };
-    };
-    pcf_total: number;
-  };
-}
-
-export async function calculatePcfFromQuestionnaire(data: any): Promise<PcfCalcResult> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/pcf-from-questionnaire`, {
-    method: "POST",
-    headers: buildAuthHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as PcfCalcResult;
-}
-
-// Packaging types for the Q8 dropdown (each maps to a BAFU product).
-export interface PackagingType {
-  id: string;
-  name: string;
-}
-
-export async function listPackagingTypes(): Promise<PackagingType[]> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/meta/packaging-types`, {
-    headers: buildAuthHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as PackagingType[];
-}
-
-export interface EmissionFactorLayerTriple {
-  id: string;
-  layer1: string;
-  layer2: string | null;
-  layer3: string | null;
-}
-
-export async function listEmissionFactorLayerTriples(): Promise<EmissionFactorLayerTriple[]> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/meta/layer-triples`, {
-    headers: buildAuthHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as EmissionFactorLayerTriple[];
-}
-
-export async function listEmissionFactorCountries(): Promise<EmissionFactorCountry[]> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/meta/countries`, {
-    headers: buildAuthHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as EmissionFactorCountry[];
-}
-
-export async function listEmissionFactorUnits(): Promise<string[]> {
-  const res = await fetch(`${API_BASE_URL}/api/emission-factors/meta/units`, {
-    headers: buildAuthHeaders(),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.message || `Request failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data as string[];
-}
-
 export async function getEmissionFactorStats(): Promise<EmissionFactorStats> {
   const res = await fetch(`${API_BASE_URL}/api/emission-factors/meta/stats`, {
     headers: buildAuthHeaders(),
@@ -287,6 +141,38 @@ export async function getEmissionFactorStats(): Promise<EmissionFactorStats> {
   }
   const json = await res.json();
   return json.data;
+}
+
+// Cascading taxonomy for the filter dropdowns. Returns a distinct, sorted list
+// of values for the requested level, narrowed by the chosen parent(s):
+//   category                                  → all categories
+//   sub_category (+category)                  → sub-categories in that category
+//   group        (+category,+sub_category)    → groups in that sub-category
+//   specific_type(+category,+sub,+group)      → specific types in that group
+// The specific_type level returns row objects server-side; we flatten to the
+// distinct type names for the filter dropdown.
+export async function getEfTaxonomyOptions(
+  params: EfTaxonomyParams
+): Promise<string[]> {
+  const qs = new URLSearchParams();
+  qs.set("level", params.level);
+  if (params.category) qs.set("category", params.category);
+  if (params.sub_category) qs.set("sub_category", params.sub_category);
+  if (params.group) qs.set("group", params.group);
+  if (params.q) qs.set("q", params.q);
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/emission-factors/meta/taxonomy?${qs}`,
+    { headers: buildAuthHeaders() }
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `Request failed: ${res.status}`);
+  }
+  const json = await res.json();
+  const data: any[] = json.data || [];
+  const values = data.map((x) => (typeof x === "string" ? x : x?.specific_type));
+  return Array.from(new Set(values.filter((v): v is string => !!v)));
 }
 
 export async function importEmissionFactorsCsv(file: File): Promise<ImportCsvResponse> {

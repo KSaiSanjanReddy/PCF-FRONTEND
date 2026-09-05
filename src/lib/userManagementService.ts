@@ -1,6 +1,7 @@
 import type {
   ManufacturerOnboarding,
   SupplierOnboarding,
+  ActiveLoginUser,
   OnboardingListResponse,
 } from "../types/userManagement";
 import { getApiBaseUrl } from "./apiBaseUrl";
@@ -9,7 +10,11 @@ const API_BASE_URL = getApiBaseUrl();
 
 class UserManagementService {
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem("token");
+    // Honor the supplier magic-link token (…?token=… in the URL) so an
+    // account-less supplier's onboarding-status check authenticates as them.
+    // Other pages have no ?token=, so this falls back to the logged-in token.
+    const urlToken = new URLSearchParams(window.location.search).get("token");
+    const token = urlToken || localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: token } : {}),
@@ -17,6 +22,61 @@ class UserManagementService {
   }
 
   // ==================== MANUFACTURER ONBOARDING ====================
+
+  async getActiveLoginUsers(
+    pageNumber: number = 1,
+    pageSize: number = 10,
+    searchValue: string = ""
+  ): Promise<{
+    success: boolean;
+    data: ActiveLoginUser[];
+    totalCount: number;
+    message: string;
+  }> {
+    try {
+      const params = new URLSearchParams({
+        pageNumber: pageNumber.toString(),
+        pageSize: pageSize.toString(),
+      });
+      if (searchValue) {
+        params.append("searchValue", searchValue);
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/user/active-logins?${params.toString()}`,
+        {
+          method: "GET",
+          headers: this.getAuthHeaders(),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status && data.data?.userList) {
+        return {
+          success: true,
+          data: data.data.userList as ActiveLoginUser[],
+          totalCount: Number(data.data.totalCount || 0),
+          message: data.message,
+        };
+      }
+
+      return {
+        success: false,
+        data: [],
+        totalCount: 0,
+        message: data.message || "Failed to fetch active users",
+      };
+    } catch (error) {
+      console.error("Error fetching active login users:", error);
+      return {
+        success: false,
+        data: [],
+        totalCount: 0,
+        message: "Network error occurred",
+      };
+    }
+  }
 
   async getManufacturerList(
     pageNumber: number = 1,
